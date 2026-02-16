@@ -4,7 +4,6 @@ import {
   Card,
   CardBody,
   Chip,
-  Progress,
   Table,
   TableBody,
   TableCell,

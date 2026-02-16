@@ -8,7 +8,6 @@ import {
   ModalBody,
   ModalContent,
   ModalHeader,
-  Progress,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import type { User } from "@/types/user.types";

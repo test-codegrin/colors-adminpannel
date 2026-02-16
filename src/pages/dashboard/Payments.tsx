@@ -5,7 +5,6 @@ import {
   CardBody,
   Chip,
   Pagination,
-  Progress,
   Table,
   TableBody,
   TableCell,

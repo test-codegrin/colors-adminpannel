@@ -1,6 +1,5 @@
 import api from "@/lib/axios";
 import type {
-  Payment,
   PaymentsApiRawResponse,
   PaymentsApiResponse,
 } from "@/types/payment.types";
@@ -28,7 +27,7 @@ function normalizePaymentsResponse(
 
 export async function getAllPayments(page: number, limit: number): Promise<PaymentsApiResponse> {
   const response = await api.get<PaymentsApiRawResponse>(
-    `/payments/all`,
+    `/payments/all?page=${page}&limit=${limit}`,
   );
 
   return normalizePaymentsResponse(response.data);
