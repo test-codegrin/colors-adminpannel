@@ -1,19 +1,28 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
-import IndexPage from "@/pages/index";
-import DocsPage from "@/pages/docs";
-import PricingPage from "@/pages/pricing";
-import BlogPage from "@/pages/blog";
-import AboutPage from "@/pages/about";
+import { useAuth } from "@/context/AuthContext";
+import DashboardLayout from "@/layout/DashboardLayout";
+import Login from "@/pages/Login";
+import DashboardHome from "@/pages/dashboard/DashboardHome";
+import Users from "@/pages/dashboard/Users";
+import ProtectedRoute from "@/routes/ProtectedRoute";
 
 function App() {
+  const { token } = useAuth();
+
   return (
     <Routes>
-      <Route element={<IndexPage />} path="/" />
-      <Route element={<DocsPage />} path="/docs" />
-      <Route element={<PricingPage />} path="/pricing" />
-      <Route element={<BlogPage />} path="/blog" />
-      <Route element={<AboutPage />} path="/about" />
+      <Route element={<Navigate replace to={token ? "/dashboard" : "/login"} />} path="/" />
+      <Route element={<Login />} path="/login" />
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<DashboardLayout />} path="/dashboard">
+          <Route element={<DashboardHome />} index />
+          <Route element={<Users />} path="users" />
+        </Route>
+      </Route>
+
+      <Route element={<Navigate replace to={token ? "/dashboard" : "/login"} />} path="*" />
     </Routes>
   );
 }
