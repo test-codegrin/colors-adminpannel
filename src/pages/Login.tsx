@@ -1,4 +1,4 @@
-import { Button, Card, CardBody, Input } from "@heroui/react";
+import { Button, Card, CardBody, Input, addToast } from "@heroui/react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -18,12 +18,13 @@ const initialErrors: LoginFormErrors = {
 function Login() {
   const navigate = useNavigate();
   const { login, token } = useAuth();
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [errors, setErrors] = useState<LoginFormErrors>(initialErrors);
-  const [formError, setFormError] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<LoginFormErrors>(initialErrors);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect if already logged in
   useEffect(() => {
     if (token) {
       navigate("/dashboard", { replace: true });
@@ -46,26 +47,39 @@ function Login() {
     }
 
     setErrors(nextErrors);
-
     return !nextErrors.email && !nextErrors.password;
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!validate()) {
-      return;
-    }
+    if (!validate()) return;
 
     setIsLoading(true);
-    setFormError("");
 
     try {
       const result = await loginAdmin({ email, password });
       login(result);
+
+      // ✅ SUCCESS TOAST
+      addToast({
+        title: "Login Successful",
+        description: "Welcome back! Redirecting to dashboard...",
+        color: "success",
+        radius: "full",
+        timeout: 3000,
+      });
+
       navigate("/dashboard", { replace: true });
-    } catch (requestError) {
-      setFormError(getLoginErrorMessage(requestError));
+    } catch (error) {
+      // ❌ ERROR TOAST
+      addToast({
+        title: "Login Failed",
+        description: getLoginErrorMessage(error),
+        color: "danger",
+        radius: "full",
+        timeout: 3000,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -73,40 +87,46 @@ function Login() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-default-50 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-lg">
         <CardBody className="gap-4 p-6">
           <div>
             <h1 className="text-2xl font-semibold">Admin Login</h1>
-            <p className="text-sm text-default-500">Sign in to access the dashboard.</p>
+            <p className="text-sm text-default-500">
+              Sign in to access the dashboard
+            </p>
           </div>
 
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <Input
               isRequired
-              errorMessage={errors.email}
-              isInvalid={Boolean(errors.email)}
               label="Email"
               labelPlacement="outside"
               placeholder="admin@example.com"
               type="email"
               value={email}
               onValueChange={setEmail}
+              isInvalid={Boolean(errors.email)}
+              errorMessage={errors.email}
             />
+
             <Input
               isRequired
-              errorMessage={errors.password}
-              isInvalid={Boolean(errors.password)}
               label="Password"
               labelPlacement="outside"
               placeholder="Enter your password"
               type="password"
               value={password}
               onValueChange={setPassword}
+              isInvalid={Boolean(errors.password)}
+              errorMessage={errors.password}
             />
 
-            {formError ? <p className="text-sm text-danger">{formError}</p> : null}
-
-            <Button color="primary" isLoading={isLoading} type="submit">
+            <Button
+              color="primary"
+              isLoading={isLoading}
+              type="submit"
+              className="mt-2"
+            >
               Login
             </Button>
           </form>

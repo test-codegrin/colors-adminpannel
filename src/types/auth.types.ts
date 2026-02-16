@@ -36,3 +36,22 @@ export interface AuthContextValue {
   login: (payload: LoginResponse) => void;
   logout: () => void;
 }
+
+
+/* ================= USER DETAILS VIEW ================= */
+
+export interface UserDetails {
+  user_id: number;
+  name: string;
+  email: string;
+  mobile: string;
+  google_id: string | null;
+  picture: string | null;
+  is_paid: "0" | "1";
+  created_at: string;
+}
+
+export interface UserDetailsApiResponse {
+  success: boolean;
+  user: UserDetails;
+}

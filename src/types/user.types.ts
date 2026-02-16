@@ -5,6 +5,7 @@ export interface User {
   email?: string;
   mobile?: string;
   is_paid?: boolean;
+  picture?: string;
   created_at?: string;
   [key: string]: unknown;
 }
