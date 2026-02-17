@@ -1,39 +1,16 @@
 import api from "@/lib/axios";
-import type {
-  PaymentsApiRawResponse,
-  PaymentsApiResponse,
-} from "@/types/payment.types";
+import type { PaymentsApiResponse } from "@/types/payment.types";
 
-/* ---------------- Normalize ---------------- */
-
-function normalizePaymentsResponse(
-  payload: PaymentsApiRawResponse,
-): PaymentsApiResponse {
-  const paymentsValue =
-    Array.isArray(payload)
-      ? payload
-      : payload.payments ??
-        (Array.isArray(payload.data)
-          ? payload.data
-          : payload.data?.payments) ??
-        [];
-
-  return {
-    payments: Array.isArray(paymentsValue) ? paymentsValue : [],
-  };
-}
-
-/* ---------------- Get All Payments ---------------- */
-
-export async function getAllPayments(page: number, limit: number): Promise<PaymentsApiResponse> {
-  const response = await api.get<PaymentsApiRawResponse>(
+export async function getAllPayments(
+  page: number,
+  limit: number,
+): Promise<PaymentsApiResponse> {
+  const response = await api.get<PaymentsApiResponse>(
     `/payments/all?page=${page}&limit=${limit}`,
   );
 
-  return normalizePaymentsResponse(response.data);
+  return response.data;
 }
-
-/* ---------------- Error Handler ---------------- */
 
 export function getPaymentsErrorMessage(error: unknown): string {
   if (typeof error === "object" && error !== null && "response" in error) {
