@@ -5,6 +5,7 @@ import {
   CardBody,
   Chip,
   Pagination,
+  Spinner,
   Table,
   TableBody,
   TableCell,
@@ -13,12 +14,12 @@ import {
   TableRow,
 } from "@heroui/react";
 import { useEffect, useMemo, useState } from "react";
+import { useAsyncList } from "@react-stately/data";
 import {
   getAllPayments,
   getPaymentsErrorMessage,
 } from "@/api/payments.api";
 import type { Payment } from "@/types/payment.types";
-import Loader from "@/components/Loader";
 
 /* ---------- Utility ---------- */
 
@@ -32,62 +33,55 @@ function formatDate(value?: string): string {
 /* ---------- Component ---------- */
 
 export default function PaymentsTable() {
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchPayments = async () => {
-      setIsLoading(true);
+  const paymentsList = useAsyncList<Payment>({
+    async load() {
       setError("");
 
       try {
-        const result = await getAllPayments(page, rowsPerPage);
-        if (!isMounted) return;
-        setPayments(result.payments);
+        const result = await getAllPayments(1, rowsPerPage);
+
+        return { items: result.payments ?? [] };
       } catch (err) {
-        if (!isMounted) return;
         setError(getPaymentsErrorMessage(err));
-      } finally {
-        if (isMounted) setIsLoading(false);
+
+        return { items: [] };
       }
-    };
-
-    fetchPayments();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    },
+  });
 
   /* ---------- Pagination Logic ---------- */
 
-  const totalPages = Math.ceil(payments.length / rowsPerPage);
+  const totalPages = Math.ceil(paymentsList.items.length / rowsPerPage);
+
+  useEffect(() => {
+    if (totalPages === 0) {
+      if (page !== 1) setPage(1);
+      return;
+    }
+
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const paginatedPayments = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
-    return payments.slice(start, end);
-  }, [page, payments]);
+    return paymentsList.items.slice(start, end);
+  }, [page, paymentsList.items]);
 
   return (
     <Card shadow="md">
       <CardBody className="gap-6">
-        <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Payments</h2>
             <p className="text-sm text-default-500">Page {page}</p>
           </div>
-        <div className="relative min-h-[300px]">
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-lg">
-              <Loader />
-            </div>
-          )}
+        <div className="min-h-[300px]">
 
           {error && <p className="text-danger text-sm">{error}</p>}
 
@@ -102,7 +96,9 @@ export default function PaymentsTable() {
             </TableHeader>
 
             <TableBody
+              isLoading={paymentsList.isLoading}
               items={paginatedPayments}
+              loadingContent={<Spinner label="Loading payments..." />}
               emptyContent="No payments found"
             >
               {(payment: Payment) => (
@@ -145,6 +141,7 @@ export default function PaymentsTable() {
               total={totalPages}
               page={page}
               onChange={setPage}
+              isDisabled={paymentsList.isLoading}
               showControls
               color="primary"
             />

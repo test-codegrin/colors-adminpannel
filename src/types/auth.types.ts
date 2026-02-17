@@ -7,12 +7,18 @@ export interface Admin {
 
 export interface LoginRequest {
   email: string;
-  password: string;
+  password?: string;
+  otp?: string;
 }
 
 export interface LoginResponse {
   token: string;
   admin: Admin;
+}
+
+export interface OtpResponse {
+  success?: boolean;
+  message: string;
 }
 
 export interface LoginApiRawResponse {

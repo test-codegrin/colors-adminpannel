@@ -4,6 +4,7 @@ import {
   Card,
   CardBody,
   Chip,
+  Spinner,
   Table,
   TableBody,
   TableCell,
@@ -12,12 +13,12 @@ import {
   TableRow,
   useDisclosure,
 } from "@heroui/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import UserDetailsModal from "@/components/UserDetailsModal";
 import { getUsers, getUsersErrorMessage, getUserById } from "@/api/users.api";
 import type { User } from "@/types/user.types";
 import { Icon } from "@iconify/react";
-import Loader from "@/components/Loader";
+import { useAsyncList } from "@react-stately/data";
 
 /* ---------------- Utility ---------------- */
 
@@ -47,11 +48,10 @@ function isUserPaid(value: unknown): boolean {
 /* ---------------- Component ---------------- */
 
 function Users() {
-  const [users, setUsers] = useState<User[]>([]);
   const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [hasNext, setHasNext] = useState(false);
+  const hasMountedRef = useRef(false);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(false);
@@ -60,34 +60,34 @@ function Users() {
 
   const limit = 10;
 
-  /* ---------------- Fetch Users ---------------- */
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchUsers = async () => {
-      setIsLoading(true);
+  const usersList = useAsyncList<User>({
+    async load() {
       setError("");
 
       try {
         const result = await getUsers(page, limit);
-        if (!isMounted) return;
+        const nextUsers = result.users ?? [];
 
-        setUsers(result.users);
-        setHasNext(result.users.length === limit);
+        setHasNext(nextUsers.length === limit);
+
+        return { items: nextUsers };
       } catch (err) {
-        if (!isMounted) return;
         setError(getUsersErrorMessage(err));
-      } finally {
-        if (isMounted) setIsLoading(false);
+        setHasNext(false);
+
+        return { items: [] };
       }
-    };
+    },
+  });
 
-    fetchUsers();
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
 
-    return () => {
-      isMounted = false;
-    };
+      return;
+    }
+
+    usersList.reload();
   }, [page]);
 
   /* ---------------- View User ---------------- */
@@ -119,13 +119,7 @@ function Users() {
           {error && <p className="text-danger text-sm">{error}</p>}
 
           {/* Table Wrapper */}
-          <div className="relative min-h-[300px]">
-            {isLoading && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-lg">
-                <Loader />
-              </div>
-            )}
-
+          <div className="min-h-[300px]">
             <Table aria-label="Users table" removeWrapper>
               <TableHeader>
                 <TableColumn>User</TableColumn>
@@ -136,7 +130,12 @@ function Users() {
                 <TableColumn>Action</TableColumn>
               </TableHeader>
 
-              <TableBody items={users} emptyContent="No users found">
+              <TableBody
+                isLoading={usersList.isLoading}
+                items={usersList.items}
+                loadingContent={<Spinner label="Loading users..." />}
+                emptyContent="No users found"
+              >
                 {(user: User) => (
                   <TableRow key={String(user.user_id)}>
                     <TableCell>
@@ -188,7 +187,7 @@ function Users() {
           {/* Pagination */}
           <div className="flex justify-end gap-2">
             <Button
-              isDisabled={page === 1 || isLoading}
+              isDisabled={page === 1 || usersList.isLoading}
               variant="flat"
               onPress={() => setPage((p) => p - 1)}
             >
@@ -196,7 +195,7 @@ function Users() {
             </Button>
 
             <Button
-              isDisabled={!hasNext || isLoading}
+              isDisabled={!hasNext || usersList.isLoading}
               color="primary"
               variant="flat"
               onPress={() => setPage((p) => p + 1)}
