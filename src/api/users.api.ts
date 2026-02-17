@@ -1,6 +1,11 @@
 import api from "@/lib/axios";
 import type { User, UsersApiResponse } from "@/types/user.types";
 
+interface UserByIdApiResponse {
+  success?: boolean;
+  user?: User;
+}
+
 export async function getUsers(
   page: number,
   limit: number,
@@ -13,9 +18,23 @@ export async function getUsers(
 }
 
 export async function getUserById(userId: number): Promise<User> {
-  const response = await api.get<User>(`/admin/users/${userId}`);
+  const response = await api.get<User | UserByIdApiResponse>(
+    `/admin/users/${userId}`,
+  );
 
-  return response.data;
+  const data = response.data;
+
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    "user" in data &&
+    typeof (data as UserByIdApiResponse).user === "object" &&
+    (data as UserByIdApiResponse).user !== null
+  ) {
+    return (data as UserByIdApiResponse).user as User;
+  }
+
+  return data as User;
 }
 
 export function getUsersErrorMessage(error: unknown): string {
