@@ -5,6 +5,7 @@ export interface Payment {
   email: string;
   stripe_session_id: string;
   amount: number;
+  receipt_url?: string;
   status: "paid" | "pending" | "failed";
   created_at: string;
 }
