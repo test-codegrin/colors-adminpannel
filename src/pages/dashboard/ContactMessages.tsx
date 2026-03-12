@@ -1,9 +1,13 @@
 "use client";
 
 import {
+  Avatar,
+  Button,
   Card,
   CardBody,
   Pagination,
+  Select,
+  SelectItem,
   Spinner,
   Table,
   TableBody,
@@ -11,9 +15,7 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
-  Button,
   Tooltip,
-  Avatar,
   useDisclosure,
 } from "@heroui/react";
 import { useEffect, useState, useCallback } from "react";
@@ -38,12 +40,12 @@ function formatDate(value?: string): string {
 /* ---------- Component ---------- */
 
 export default function ContactMessagesPage() {
-
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
-  const rowsPerPage = 10;
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -57,21 +59,30 @@ export default function ContactMessagesPage() {
     setError("");
 
     try {
-      const res = await getContactMessages(page, rowsPerPage);
+      const res = await getContactMessages(page, limit);
+      const serverTotalPages =
+        res.pagination?.total_pages ?? res.pagination?.totalPages ?? 1;
+
       setMessages(res.data ?? []);
+      setTotalPages(Math.max(serverTotalPages, 1));
     } catch (err) {
       setError(getContactMessagesErrorMessage(err));
       setMessages([]);
+      setTotalPages(1);
     } finally {
       setIsLoading(false);
     }
-  }, [page]);
+  }, [page, limit]);
 
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
 
-  const totalPages = messages.length < rowsPerPage ? page : page + 1;
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   return (
     <>
@@ -169,17 +180,37 @@ export default function ContactMessagesPage() {
           </Table>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-end">
+          <div className="flex w-full items-end justify-between gap-4">
+            <Select
+              label="Limit"
+              size="sm"
+              disallowEmptySelection
+              selectedKeys={[String(limit)]}
+              className="w-28"
+              onChange={(event) => {
+                const nextLimit = Number(event.target.value);
+                if (nextLimit !== limit) {
+                  setLimit(nextLimit);
+                  setPage(1);
+                }
+              }}
+            >
+              <SelectItem key="10">10</SelectItem>
+              <SelectItem key="25">25</SelectItem>
+              <SelectItem key="50">50</SelectItem>
+            </Select>
+
+            <div className="flex justify-end w-full">
               <Pagination
-                total={totalPages}
+                total={Math.max(totalPages, 1)}
                 page={page}
                 onChange={setPage}
+                isDisabled={isLoading}
                 showControls
                 color="primary"
               />
             </div>
-          )}
+          </div>
 
         </CardBody>
       </Card>
@@ -190,6 +221,5 @@ export default function ContactMessagesPage() {
         messageId={selectedId}
       />
     </>
-
   );
 }

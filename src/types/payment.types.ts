@@ -1,3 +1,5 @@
+import type { PaginationPayload } from "./pagination.types";
+
 export interface Payment {
   payment_id: number;
   user_id: number;
@@ -20,4 +22,7 @@ export type PaymentsApiRawResponse =
 
 export interface PaymentsApiResponse {
   payments: Payment[];
+  total?: number;
+  totalPages?: number;
+  pagination?: PaginationPayload;
 }
