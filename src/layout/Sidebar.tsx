@@ -49,6 +49,7 @@ function Sidebar({ isOpen }: SidebarProps) {
   return (
     <aside
       className={`
+        fixed top-0 left-0 z-40
         bg-content1 border-r border-default-200
         transition-all duration-300
         ${isOpen ? "w-64 p-4" : "w-0 overflow-hidden"}
