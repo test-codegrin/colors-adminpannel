@@ -58,7 +58,7 @@ function Users() {
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  const limit = 10;
+  const limit = 50;
 
   const usersList = useAsyncList<User>({
     async load() {
