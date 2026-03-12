@@ -20,4 +20,4 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       </BrowserRouter>
     </HeroUIProvider>
   </React.StrictMode>,
-);
+);  

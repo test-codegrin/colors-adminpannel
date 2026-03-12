@@ -29,6 +29,11 @@ const navItems: NavItem[] = [
     path: "/dashboard/payments",
     icon: "mdi:credit-card-outline",
   },
+  {
+    label: "Contact Messages",
+    path: "/dashboard/contact",
+    icon: "fluent-mdl2:contact",
+  },
 ];
 
 function Sidebar({ isOpen }: SidebarProps) {

@@ -7,6 +7,7 @@ import DashboardHome from "@/pages/dashboard/DashboardHome";
 import Users from "@/pages/dashboard/Users";
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import Payments from "./pages/dashboard/Payments";
+import ContactMessages from "./pages/dashboard/ContactMessages";
 
 function App() {
   const { token } = useAuth();
@@ -21,6 +22,7 @@ function App() {
           <Route element={<DashboardHome />} index />
           <Route element={<Users />} path="users" />
           <Route element={<Payments />} path="payments" />
+          <Route element={<ContactMessages /> } path="contact" />
         </Route>
       </Route>
 
