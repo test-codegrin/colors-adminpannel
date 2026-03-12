@@ -1,3 +1,5 @@
+import type { PaginationPayload } from "./pagination.types";
+
 export interface User {
   id?: string;
   _id?: string;
@@ -14,6 +16,7 @@ export interface UsersApiResponse {
   users: User[];
   total?: number;
   totalPages?: number;
+  pagination?: PaginationPayload;
 }
 
 export interface UsersApiRawResponse {

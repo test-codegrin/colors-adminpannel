@@ -1,3 +1,5 @@
+import type { PaginationPayload } from "./pagination.types";
+
 export interface ContactMessage {
   contact_message_id: number;
   name: string;
@@ -7,15 +9,8 @@ export interface ContactMessage {
   created_at: string;
 }
 
-export interface Pagination {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
 export interface ContactMessagesApiResponse {
   success: boolean;
   data: ContactMessage[];
-  pagination: Pagination;
+  pagination: PaginationPayload;
 }

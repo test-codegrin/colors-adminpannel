@@ -1,10 +1,13 @@
 "use client";
 
 import {
+  Button,
   Card,
   CardBody,
   Chip,
   Pagination,
+  Select,
+  SelectItem,
   Spinner,
   Table,
   TableBody,
@@ -12,10 +15,9 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
-  Button,
   Tooltip,
 } from "@heroui/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAsyncList } from "@react-stately/data";
 import {
   getAllPayments,
@@ -60,19 +62,29 @@ function ReceiptIcon() {
 export default function PaymentsTable() {
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
+  const [totalPages, setTotalPages] = useState(1);
+  const hasMountedRef = useRef(false);
   const [loadingReceipt, setLoadingReceipt] = useState<number | null>(null);
-  const rowsPerPage = 50;
 
   const paymentsList = useAsyncList<Payment>({
     async load() {
       setError("");
 
       try {
-        const result = await getAllPayments(1, rowsPerPage);
+        const result = await getAllPayments(page, limit);
+        const serverTotalPages =
+          result.pagination?.total_pages ??
+          result.pagination?.totalPages ??
+          result.totalPages ??
+          1;
+
+        setTotalPages(Math.max(serverTotalPages, 1));
 
         return { items: result.payments ?? [] };
       } catch (err) {
         setError(getPaymentsErrorMessage(err));
+        setTotalPages(1);
 
         return { items: [] };
       }
@@ -81,24 +93,20 @@ export default function PaymentsTable() {
 
   /* ---------- Pagination Logic ---------- */
 
-  const totalPages = Math.ceil(paymentsList.items.length / rowsPerPage);
-
   useEffect(() => {
-    if (totalPages === 0) {
-      if (page !== 1) setPage(1);
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
       return;
     }
 
+    paymentsList.reload();
+  }, [page, limit]);
+
+  useEffect(() => {
     if (page > totalPages) {
       setPage(totalPages);
     }
   }, [page, totalPages]);
-
-  const paginatedPayments = useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-    return paymentsList.items.slice(start, end);
-  }, [page, paymentsList.items]);
 
   /* ---------- Stripe Receipt Handler ---------- */
 
@@ -148,7 +156,7 @@ export default function PaymentsTable() {
 
             <TableBody
               isLoading={paymentsList.isLoading}
-              items={paginatedPayments}
+              items={paymentsList.items}
               loadingContent={<Spinner label="Loading payments..." />}
               emptyContent="No payments found"
             >
@@ -209,10 +217,29 @@ export default function PaymentsTable() {
 
         {/* ---------- Pagination Bottom Right ---------- */}
 
-        {totalPages > 1 && (
-          <div className="flex justify-end gap-10 w-full">
+        <div className="flex w-full items-end justify-between gap-4">
+          <Select
+            label="Limit"
+            size="sm"
+            disallowEmptySelection
+            selectedKeys={[String(limit)]}
+            className="w-28"
+            onChange={(event) => {
+              const nextLimit = Number(event.target.value);
+              if (nextLimit !== limit) {
+                setLimit(nextLimit);
+                setPage(1);
+              }
+            }}
+          >
+            <SelectItem key="10">10</SelectItem>
+            <SelectItem key="25">25</SelectItem>
+            <SelectItem key="50">50</SelectItem>
+          </Select>
+
+          <div className="flex justify-end w-full">
             <Pagination
-              total={totalPages}
+              total={Math.max(totalPages, 1)}
               page={page}
               onChange={setPage}
               isDisabled={paymentsList.isLoading}
@@ -220,7 +247,7 @@ export default function PaymentsTable() {
               color="primary"
             />
           </div>
-        )}
+        </div>
       </CardBody>
     </Card>
   );

@@ -4,6 +4,9 @@ import {
   Card,
   CardBody,
   Chip,
+  Pagination,
+  Select,
+  SelectItem,
   Spinner,
   Table,
   TableBody,
@@ -49,16 +52,15 @@ function isUserPaid(value: unknown): boolean {
 
 function Users() {
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
+  const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState("");
-  const [hasNext, setHasNext] = useState(false);
   const hasMountedRef = useRef(false);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(false);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-
-  const limit = 50;
 
   const usersList = useAsyncList<User>({
     async load() {
@@ -67,13 +69,17 @@ function Users() {
       try {
         const result = await getUsers(page, limit);
         const nextUsers = result.users ?? [];
-
-        setHasNext(nextUsers.length === limit);
+        const serverTotalPages =
+          result.pagination?.total_pages ??
+          result.pagination?.totalPages ??
+          result.totalPages ??
+          1;
+        setTotalPages(Math.max(serverTotalPages, 1));
 
         return { items: nextUsers };
       } catch (err) {
         setError(getUsersErrorMessage(err));
-        setHasNext(false);
+        setTotalPages(1);
 
         return { items: [] };
       }
@@ -88,7 +94,13 @@ function Users() {
     }
 
     usersList.reload();
-  }, [page]);
+  }, [page, limit]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   /* ---------------- View User ---------------- */
 
@@ -185,23 +197,34 @@ function Users() {
           </div>
 
           {/* Pagination */}
-          <div className="flex justify-end gap-2">
-            <Button
-              isDisabled={page === 1 || usersList.isLoading}
-              variant="flat"
-              onPress={() => setPage((p) => p - 1)}
+          <div className="flex w-full items-end justify-between gap-4">
+            <Select
+              label="Limit"
+              size="sm"
+              disallowEmptySelection
+              selectedKeys={[String(limit)]}
+              className="w-28"
+              onChange={(event) => {
+                const nextLimit = Number(event.target.value);
+                if (nextLimit !== limit) {
+                  setLimit(nextLimit);
+                  setPage(1);
+                }
+              }}
             >
-              Prev
-            </Button>
+              <SelectItem key="10">10</SelectItem>
+              <SelectItem key="25">25</SelectItem>
+              <SelectItem key="50">50</SelectItem>
+            </Select>
 
-            <Button
-              isDisabled={!hasNext || usersList.isLoading}
+            <Pagination
+              total={Math.max(totalPages, 1)}
+              page={page}
+              onChange={setPage}
+              isDisabled={usersList.isLoading}
+              showControls
               color="primary"
-              variant="flat"
-              onPress={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
+            />
           </div>
         </CardBody>
       </Card>
