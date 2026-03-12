@@ -6,6 +6,12 @@ interface UserByIdApiResponse {
   user?: User;
 }
 
+interface DeleteUserApiResponse {
+  success: boolean;
+  message: string;
+  user_id: number;
+}
+
 export async function getUsers(
   page: number,
   limit: number,
@@ -35,6 +41,14 @@ export async function getUserById(userId: number): Promise<User> {
   }
 
   return data as User;
+}
+
+export async function deleteUserById(
+  userId: number,
+): Promise<DeleteUserApiResponse> {
+  const response = await api.delete<DeleteUserApiResponse>(`/admin/users/${userId}`);
+
+  return response.data;
 }
 
 export function getUsersErrorMessage(error: unknown): string {

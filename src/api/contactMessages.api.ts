@@ -4,6 +4,12 @@ import type {
   ContactMessage,
 } from "@/types/contactMessages.types";
 
+interface DeleteContactMessageApiResponse {
+  success: boolean;
+  message: string;
+  contact_message_id: number;
+}
+
 /* Get all messages */
 export async function getContactMessages(
   page: number,
@@ -28,6 +34,17 @@ export async function getContactMessageById(
   );
 
   return response.data.data;
+}
+
+/* Delete message by ID */
+export async function deleteContactMessageById(
+  id: number
+): Promise<DeleteContactMessageApiResponse> {
+  const response = await api.delete<DeleteContactMessageApiResponse>(
+    `/contact/contact-messages/${id}`
+  );
+
+  return response.data;
 }
 
 /* Error handler */

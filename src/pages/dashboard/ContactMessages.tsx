@@ -5,6 +5,11 @@ import {
   Button,
   Card,
   CardBody,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
   Pagination,
   Select,
   SelectItem,
@@ -16,10 +21,12 @@ import {
   TableHeader,
   TableRow,
   Tooltip,
+  addToast,
   useDisclosure,
 } from "@heroui/react";
 import { useEffect, useState, useCallback } from "react";
 import {
+  deleteContactMessageById,
   getContactMessages,
   getContactMessagesErrorMessage,
 } from "@/api/contactMessages.api";
@@ -47,11 +54,30 @@ export default function ContactMessagesPage() {
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null);
+  const [pendingDeleteMessage, setPendingDeleteMessage] = useState<{
+    id: number;
+    subject: string;
+  } | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const {
+    isOpen: isDeleteModalOpen,
+    onOpen: openDeleteModal,
+    onOpenChange: onDeleteModalOpenChange,
+    onClose: closeDeleteModal,
+  } = useDisclosure();
 
   const handleView = (id: number) => {
     setSelectedId(id);
     onOpen();
+  };
+
+  const handleOpenDeleteModal = (id: number, subject?: string) => {
+    setPendingDeleteMessage({
+      id,
+      subject: subject?.trim() ? subject : "this message",
+    });
+    openDeleteModal();
   };
 
   const fetchMessages = useCallback(async () => {
@@ -83,6 +109,45 @@ export default function ContactMessagesPage() {
       setPage(totalPages);
     }
   }, [page, totalPages]);
+
+  const handleDeleteMessage = async () => {
+    if (!pendingDeleteMessage) {
+      return;
+    }
+
+    const id = pendingDeleteMessage.id;
+    setDeletingMessageId(id);
+
+    try {
+      const result = await deleteContactMessageById(id);
+
+      addToast({
+        title: "Message Deleted",
+        description: result.message ?? "Contact message deleted successfully.",
+        color: "success",
+        radius: "full",
+        timeout: 3000,
+      });
+
+      if (messages.length === 1 && page > 1) {
+        setPage((prev) => prev - 1);
+      } else {
+        await fetchMessages();
+      }
+    } catch (err) {
+      addToast({
+        title: "Delete Failed",
+        description: getContactMessagesErrorMessage(err),
+        color: "danger",
+        radius: "full",
+        timeout: 3000,
+      });
+    } finally {
+      setDeletingMessageId(null);
+      setPendingDeleteMessage(null);
+      closeDeleteModal();
+    }
+  };
 
   return (
     <>
@@ -121,7 +186,7 @@ export default function ContactMessagesPage() {
               <TableColumn>Email</TableColumn>
               <TableColumn>Subject</TableColumn>
               <TableColumn>Created</TableColumn>
-              <TableColumn>View</TableColumn>
+              <TableColumn>Action</TableColumn>
             </TableHeader>
 
             <TableBody
@@ -158,20 +223,48 @@ export default function ContactMessagesPage() {
                     {formatDate(msg.created_at)}
                   </TableCell>
 
-                  {/* Eye Button */}
                   <TableCell>
-                    <Tooltip content="View message">
-                      <Button
-                        isIconOnly
-                        size="sm"
-                        variant="flat"
-                        onPress={() => handleView(msg.contact_message_id)}
-                        startContent={
-                          <Icon icon="mdi:eye" width={16} height={16} />
-                        }
-                      >
-                      </Button>
-                    </Tooltip>
+                    <div className="flex items-center gap-2">
+                      <Tooltip content="View message">
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          variant="flat"
+                          onPress={() => handleView(msg.contact_message_id)}
+                          startContent={
+                            <Icon icon="mdi:eye" width={16} height={16} />
+                          }
+                        >
+                        </Button>
+                      </Tooltip>
+
+                      <Tooltip content="Delete message">
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          color="danger"
+                          variant="flat"
+                          isDisabled={deletingMessageId !== null}
+                          isLoading={deletingMessageId === msg.contact_message_id}
+                          onPress={() =>
+                            handleOpenDeleteModal(
+                              msg.contact_message_id,
+                              msg.subject
+                            )
+                          }
+                          startContent={
+                            deletingMessageId !== msg.contact_message_id ? (
+                              <Icon
+                                icon="mdi:delete-outline"
+                                width={16}
+                                height={16}
+                              />
+                            ) : undefined
+                          }
+                        >
+                        </Button>
+                      </Tooltip>
+                    </div>
                   </TableCell>
 
                 </TableRow>
@@ -220,6 +313,44 @@ export default function ContactMessagesPage() {
         onOpenChange={onOpenChange}
         messageId={selectedId}
       />
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onOpenChange={onDeleteModalOpenChange}
+        isDismissable={deletingMessageId === null}
+        hideCloseButton={deletingMessageId !== null}
+      >
+        <ModalContent>
+          <ModalHeader className="text-base font-semibold">
+            Delete Message
+          </ModalHeader>
+          <ModalBody>
+            <p className="text-sm text-default-600">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-foreground">
+                {pendingDeleteMessage?.subject ?? "this message"}
+              </span>
+              ? This action cannot be undone.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="flat"
+              onPress={closeDeleteModal}
+              isDisabled={deletingMessageId !== null}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="danger"
+              onPress={handleDeleteMessage}
+              isLoading={deletingMessageId === pendingDeleteMessage?.id}
+            >
+              Delete
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 }
