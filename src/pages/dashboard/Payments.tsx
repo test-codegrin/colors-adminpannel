@@ -61,7 +61,7 @@ export default function PaymentsTable() {
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [loadingReceipt, setLoadingReceipt] = useState<number | null>(null);
-  const rowsPerPage = 10;
+  const rowsPerPage = 50;
 
   const paymentsList = useAsyncList<Payment>({
     async load() {
