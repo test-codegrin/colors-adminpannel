@@ -50,6 +50,88 @@ export interface MessagesGrowthPoint {
   messages: number;
 }
 
+export interface PageViewsPoint {
+  date: string;
+  views: number;
+  unique_visitors?: number;
+}
+
+export interface TopPage {
+  page: string;
+  views: number;
+  unique_visitors?: number;
+}
+
+export interface DeviceBreakdownItem {
+  device: string;
+  users: number;
+  percentage?: number;
+}
+
+export interface LiveUsersData {
+  live_users: number;
+  active_sessions?: number;
+  users_last_5_minutes?: number;
+  users_last_30_minutes?: number;
+  updated_at?: string;
+}
+
+export interface FeatureUsageItem {
+  feature: string;
+  usage: number;
+  percentage?: number;
+}
+
+export interface UserActivityItem {
+  id?: number | string;
+  user_id?: number | string;
+  name?: string;
+  action?: string | number;
+  activity?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
+export interface SessionsPoint {
+  date: string;
+  sessions: number;
+  avg_duration?: number;
+}
+
+export interface LocationBreakdownItem {
+  location: string;
+  users: number;
+  percentage?: number;
+}
+
+export interface TrafficSourceItem {
+  source: string;
+  users: number;
+  visits?: number;
+  percentage?: number;
+}
+
+export interface PerformanceData {
+  avg_response_time?: number;
+  uptime?: number;
+  bounce_rate?: number;
+  conversion_rate?: number;
+  avg_response_time_ms?: number;
+  error_rate?: number;
+  requests_per_minute?: number;
+  total_requests?: number;
+  [key: string]: unknown;
+}
+
+export interface ActivityFeedItem {
+  id?: number | string;
+  type?: string;
+  title?: string;
+  message?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
 export interface RecentUser extends User {
   user_id?: number;
 }

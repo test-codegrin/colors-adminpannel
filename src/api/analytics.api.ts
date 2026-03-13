@@ -1,14 +1,25 @@
 import api from "@/lib/axios";
 import type {
+  ActivityFeedItem,
   AnalyticsOverview,
   ApiEnvelope,
+  DeviceBreakdownItem,
   DayRange,
+  FeatureUsageItem,
+  LiveUsersData,
+  LocationBreakdownItem,
   MessagesGrowthPoint,
+  PageViewsPoint,
   PaginatedItems,
+  PerformanceData,
   RecentMessage,
   RecentPayment,
   RecentUser,
   RevenueGrowthPoint,
+  SessionsPoint,
+  TopPage,
+  TrafficSourceItem,
+  UserActivityItem,
   UsersGrowthPoint,
 } from "@/types/analytics.types";
 import type { PaginationPayload } from "@/types/pagination.types";
@@ -136,6 +147,52 @@ function getOverviewMetricValue(
   }
 
   return undefined;
+}
+
+function getNumberByKeys(
+  record: Record<string, unknown>,
+  keys: readonly string[],
+  fallback = 0,
+): number {
+  for (const key of keys) {
+    const parsed = toNumber(record[key], Number.NaN);
+
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+function getOptionalNumberByKeys(
+  record: Record<string, unknown>,
+  keys: readonly string[],
+): number | undefined {
+  for (const key of keys) {
+    const parsed = toNumber(record[key], Number.NaN);
+
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+
+  return undefined;
+}
+
+function getStringByKeys(
+  record: Record<string, unknown>,
+  keys: readonly string[],
+): string {
+  for (const key of keys) {
+    const value = toStringValue(record[key]);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return "";
 }
 
 function collectRecords(root: unknown): Record<string, unknown>[] {
@@ -450,6 +507,514 @@ function normalizeMessagesGrowth(data: unknown): MessagesGrowthPoint[] {
     .filter((row) => Boolean(row.date));
 }
 
+function normalizePageViews(data: unknown): PageViewsPoint[] {
+  let rows = extractArray(data, [
+    "page_views",
+    "pageViews",
+    "views",
+    "series",
+    "items",
+    "rows",
+    "data",
+  ]);
+
+  if (!rows.length) {
+    rows = extractArrayByPredicate(data, (item) => {
+      return "views" in item || "page_views" in item || "count" in item;
+    });
+  }
+
+  const normalizedRows = rows
+    .filter(isRecord)
+    .map((row) => ({
+      date: getStringByKeys(row, [
+        "date",
+        "day",
+        "label",
+        "hour",
+        "month",
+        "created_at",
+        "createdAt",
+      ]),
+      views: getNumberByKeys(row, ["views", "page_views", "count", "value"], 0),
+      unique_visitors: getOptionalNumberByKeys(row, [
+        "unique_visitors",
+        "uniqueVisitors",
+        "visitors",
+      ]),
+    }))
+    .filter((row) => Boolean(row.date));
+
+  if (normalizedRows.length) {
+    return normalizedRows;
+  }
+
+  if (isRecord(data)) {
+    const rangeDays = getNumberByKeys(data, ["range_days", "rangeDays"], 30);
+    const totalViews = getNumberByKeys(
+      data,
+      ["total_page_views", "totalPageViews", "views", "total_views"],
+      0,
+    );
+    const uniqueViews = getOptionalNumberByKeys(data, [
+      "unique_page_views",
+      "uniquePageViews",
+      "unique_visitors",
+      "uniqueVisitors",
+    ]);
+    const todayViews = getOptionalNumberByKeys(data, [
+      "page_views_today",
+      "pageViewsToday",
+    ]);
+    const views7d = getOptionalNumberByKeys(data, ["page_views_7d", "pageViews7d"]);
+
+    const fallback: PageViewsPoint[] = [];
+
+    if (typeof todayViews === "number") {
+      fallback.push({
+        date: "Today",
+        views: todayViews,
+      });
+    }
+
+    if (typeof views7d === "number") {
+      fallback.push({
+        date: "Last 7 Days",
+        views: views7d,
+      });
+    }
+
+    fallback.push({
+      date: `Last ${Math.max(1, rangeDays)} Days`,
+      views: totalViews,
+      unique_visitors: uniqueViews,
+    });
+
+    return fallback;
+  }
+
+  return [];
+}
+
+function normalizeTopPages(data: unknown): TopPage[] {
+  let rows = extractArray(data, [
+    "top_pages",
+    "topPages",
+    "most_viewed_pages",
+    "mostViewedPages",
+    "pages",
+    "items",
+    "rows",
+    "data",
+  ]);
+
+  if (!rows.length) {
+    rows = extractArrayByPredicate(data, (item) => {
+      return "page" in item || "path" in item || "url" in item;
+    });
+  }
+
+  return rows
+    .filter(isRecord)
+    .map((row) => ({
+      page: getStringByKeys(row, ["page", "path", "url", "slug", "title", "label"]),
+      views: getNumberByKeys(row, ["views", "page_views", "count", "hits", "value"], 0),
+      unique_visitors: getOptionalNumberByKeys(row, [
+        "unique_visitors",
+        "uniqueVisitors",
+        "visitors",
+      ]),
+    }))
+    .filter((row) => Boolean(row.page));
+}
+
+function normalizeDevices(data: unknown): DeviceBreakdownItem[] {
+  let rows = extractArray(data, [
+    "devices",
+    "device_breakdown",
+    "deviceBreakdown",
+    "items",
+    "rows",
+    "data",
+  ]);
+
+  if (!rows.length) {
+    rows = extractArrayByPredicate(data, (item) => {
+      return "device" in item || "type" in item || "category" in item;
+    });
+  }
+
+  const normalizedRows = rows
+    .filter(isRecord)
+    .map((row) => ({
+      device: getStringByKeys(row, ["device", "type", "category", "label", "name"]),
+      users: getNumberByKeys(row, ["users", "count", "value", "sessions"], 0),
+      percentage: getOptionalNumberByKeys(row, ["percentage", "share", "ratio"]),
+    }))
+    .filter((row) => Boolean(row.device));
+
+  if (normalizedRows.length) {
+    return normalizedRows;
+  }
+
+  if (isRecord(data) && isRecord(data.devices)) {
+    const totalEvents = getNumberByKeys(data, ["total_events", "totalEvents"], 0);
+    const mapped = Object.entries(data.devices)
+      .map(([key, value]) => {
+        const percentage = toNumber(value, 0);
+
+        return {
+          device: key,
+          percentage,
+          users:
+            totalEvents > 0
+              ? Math.round((totalEvents * Math.max(0, percentage)) / 100)
+              : 0,
+        };
+      })
+      .filter((item) => Boolean(item.device))
+      .sort((a, b) => b.users - a.users);
+
+    if (mapped.length) {
+      return mapped;
+    }
+  }
+
+  return [];
+}
+
+function normalizeLiveUsers(data: unknown): LiveUsersData {
+  const records = [data, ...collectRecords(data)];
+
+  for (const record of records) {
+    if (!isRecord(record)) {
+      continue;
+    }
+
+    const liveUsers = getOptionalNumberByKeys(record, [
+      "live_users",
+      "liveUsers",
+      "online_users",
+      "onlineUsers",
+      "active_users",
+      "activeUsers",
+      "active_users_now",
+      "activeUsersNow",
+      "count",
+      "users",
+    ]);
+
+    if (typeof liveUsers === "number") {
+      return {
+        live_users: liveUsers,
+        active_sessions: getOptionalNumberByKeys(record, [
+          "active_sessions",
+          "activeSessions",
+        ]),
+        users_last_5_minutes: getOptionalNumberByKeys(record, [
+          "users_last_5_minutes",
+          "usersLast5Minutes",
+        ]),
+        users_last_30_minutes: getOptionalNumberByKeys(record, [
+          "users_last_30_minutes",
+          "usersLast30Minutes",
+        ]),
+        updated_at: getStringByKeys(record, ["updated_at", "updatedAt", "timestamp"]),
+      };
+    }
+  }
+
+  return { live_users: 0 };
+}
+
+function normalizeFeatureUsage(data: unknown): FeatureUsageItem[] {
+  let rows = extractArray(data, [
+    "feature_usage",
+    "featureUsage",
+    "features",
+    "items",
+    "rows",
+    "data",
+  ]);
+
+  if (!rows.length) {
+    rows = extractArrayByPredicate(data, (item) => {
+      return (
+        "feature" in item ||
+        "name" in item ||
+        "action" in item ||
+        "event_type" in item ||
+        "eventType" in item
+      );
+    });
+  }
+
+  const normalizedRows = rows
+    .filter(isRecord)
+    .map((row) => ({
+      feature: getStringByKeys(row, [
+        "feature",
+        "feature_name",
+        "featureName",
+        "name",
+        "label",
+        "action",
+        "event_type",
+        "eventType",
+      ]),
+      usage: getNumberByKeys(row, ["usage", "count", "total", "events", "value"], 0),
+      percentage: getOptionalNumberByKeys(row, ["percentage", "share", "ratio"]),
+    }))
+    .filter((row) => Boolean(row.feature));
+
+  if (normalizedRows.length) {
+    return normalizedRows;
+  }
+
+  if (!isRecord(data)) {
+    return [];
+  }
+
+  const ignoredKeys = new Set([
+    "range_days",
+    "rangeDays",
+    "top_feature_events",
+    "topFeatureEvents",
+  ]);
+
+  const metricRows = Object.entries(data)
+    .filter(([key, value]) => !ignoredKeys.has(key) && typeof value === "number")
+    .map(([feature, usage]) => ({
+      feature,
+      usage: toNumber(usage, 0),
+    }))
+    .filter((item) => item.usage > 0);
+
+  const topEvents = extractArray(data, ["top_feature_events", "topFeatureEvents"])
+    .filter(isRecord)
+    .map((row) => ({
+      feature: getStringByKeys(row, ["event_type", "eventType", "feature", "name"]),
+      usage: getNumberByKeys(row, ["count", "usage", "total", "value"], 0),
+    }))
+    .filter((item) => Boolean(item.feature));
+
+  const mergedMap = new Map<string, number>();
+
+  for (const item of [...metricRows, ...topEvents]) {
+    mergedMap.set(item.feature, (mergedMap.get(item.feature) ?? 0) + item.usage);
+  }
+
+  const merged = Array.from(mergedMap.entries()).map(([feature, usage]) => ({
+    feature,
+    usage,
+  }));
+  const total = merged.reduce((sum, item) => sum + item.usage, 0);
+
+  return merged
+    .sort((a, b) => b.usage - a.usage)
+    .map((item) => ({
+      ...item,
+      percentage: total ? Number(((item.usage / total) * 100).toFixed(2)) : undefined,
+    }));
+}
+
+function normalizeSessions(data: unknown): SessionsPoint[] {
+  let rows = extractArray(data, [
+    "sessions",
+    "session_growth",
+    "sessionGrowth",
+    "series",
+    "items",
+    "rows",
+    "data",
+  ]);
+
+  if (!rows.length) {
+    rows = extractArrayByPredicate(data, (item) => {
+      return "sessions" in item || "session_count" in item || "count" in item;
+    });
+  }
+
+  const normalizedRows = rows
+    .filter(isRecord)
+    .map((row) => ({
+      date: getStringByKeys(row, [
+        "date",
+        "day",
+        "label",
+        "hour",
+        "month",
+        "created_at",
+        "createdAt",
+      ]),
+      sessions: getNumberByKeys(row, ["sessions", "session_count", "count", "value"], 0),
+      avg_duration: getOptionalNumberByKeys(row, [
+        "avg_duration",
+        "avgDuration",
+        "duration",
+      ]),
+    }))
+    .filter((row) => Boolean(row.date));
+
+  if (normalizedRows.length) {
+    return normalizedRows;
+  }
+
+  if (isRecord(data)) {
+    const rangeDays = getNumberByKeys(data, ["range_days", "rangeDays"], 30);
+
+    return [
+      {
+        date: `Last ${Math.max(1, rangeDays)} Days`,
+        sessions: getNumberByKeys(data, ["total_sessions", "totalSessions", "sessions"], 0),
+        avg_duration: getOptionalNumberByKeys(data, [
+          "avg_session_time_seconds",
+          "avgSessionTimeSeconds",
+          "avg_duration",
+          "avgDuration",
+        ]),
+      },
+    ];
+  }
+
+  return [];
+}
+
+function normalizeLocations(data: unknown): LocationBreakdownItem[] {
+  let rows = extractArray(data, [
+    "locations",
+    "location_breakdown",
+    "locationBreakdown",
+    "countries",
+    "regions",
+    "cities",
+    "items",
+    "rows",
+    "data",
+  ]);
+
+  if (!rows.length) {
+    rows = extractArrayByPredicate(data, (item) => {
+      return "location" in item || "city" in item || "country" in item;
+    });
+  }
+
+  return rows
+    .filter(isRecord)
+    .map((row) => ({
+      location: getStringByKeys(row, [
+        "location",
+        "city",
+        "country",
+        "region",
+        "name",
+        "label",
+      ]),
+      users: getNumberByKeys(row, ["users", "count", "value", "sessions"], 0),
+      percentage: getOptionalNumberByKeys(row, ["percentage", "share", "ratio"]),
+    }))
+    .filter((row) => Boolean(row.location));
+}
+
+function normalizeTrafficSources(data: unknown): TrafficSourceItem[] {
+  let rows = extractArray(data, [
+    "traffic_sources",
+    "trafficSources",
+    "sources",
+    "items",
+    "rows",
+    "data",
+  ]);
+
+  if (!rows.length) {
+    rows = extractArrayByPredicate(data, (item) => {
+      return "source" in item || "channel" in item || "referrer" in item;
+    });
+  }
+
+  const normalizedRows = rows
+    .filter(isRecord)
+    .map((row) => ({
+      source: getStringByKeys(row, ["source", "channel", "referrer", "name", "label"]),
+      users: getNumberByKeys(row, ["users", "count", "visits", "value"], 0),
+      visits:
+        getOptionalNumberByKeys(row, ["visits", "sessions", "hits"]) ??
+        getOptionalNumberByKeys(row, ["count", "users", "value"]),
+      percentage: getOptionalNumberByKeys(row, ["percentage", "share", "ratio"]),
+    }))
+    .filter((row) => Boolean(row.source));
+
+  if (normalizedRows.length) {
+    return normalizedRows;
+  }
+
+  if (isRecord(data) && isRecord(data.sources)) {
+    return Object.entries(data.sources)
+      .map(([source, value]) => ({
+        source,
+        users: toNumber(value, 0),
+        visits: toNumber(value, 0),
+      }))
+      .filter((item) => Boolean(item.source))
+      .sort((a, b) => b.users - a.users);
+  }
+
+  return [];
+}
+
+function normalizePerformance(data: unknown): PerformanceData {
+  const records = [data, ...collectRecords(data)];
+
+  const getMetric = (keys: readonly string[]): number | undefined => {
+    for (const candidate of records) {
+      if (!isRecord(candidate)) {
+        continue;
+      }
+
+      const value = getOptionalNumberByKeys(candidate, keys);
+
+      if (typeof value === "number") {
+        return value;
+      }
+    }
+
+    return undefined;
+  };
+
+  const result: PerformanceData = {
+    avg_response_time_ms: getMetric([
+      "avg_response_time_ms",
+      "avgResponseTimeMs",
+      "avg_response_time",
+      "avgResponseTime",
+    ]),
+    error_rate: getMetric(["error_rate", "errorRate"]),
+    requests_per_minute: getMetric(["requests_per_minute", "requestsPerMinute"]),
+    total_requests: getMetric(["total_requests", "totalRequests"]),
+    avg_response_time: getMetric([
+      "avg_response_time",
+      "avgResponseTime",
+      "avg_response_time_ms",
+      "avgResponseTimeMs",
+      "response_time",
+      "responseTime",
+    ]),
+    uptime: getMetric(["uptime", "uptime_percentage", "uptimePercentage"]),
+    bounce_rate: getMetric(["bounce_rate", "bounceRate"]),
+    conversion_rate: getMetric(["conversion_rate", "conversionRate"]),
+  };
+
+  if (typeof result.uptime !== "number" && typeof result.error_rate === "number") {
+    result.uptime = Number((100 - result.error_rate).toFixed(2));
+  }
+
+  if (typeof result.bounce_rate !== "number" && typeof result.error_rate === "number") {
+    result.bounce_rate = result.error_rate;
+  }
+
+  return result;
+}
+
 function normalizePaginatedItems<T>(
   data: unknown,
   keys: readonly string[],
@@ -467,13 +1032,103 @@ function normalizePaginatedItems<T>(
   return { items, pagination };
 }
 
+function normalizeUserActivityItems(
+  data: unknown,
+  page: number,
+  limit: number,
+): PaginatedItems<UserActivityItem> {
+  if (isRecord(data)) {
+    const dau = getOptionalNumberByKeys(data, ["dau", "DAU"]);
+    const wau = getOptionalNumberByKeys(data, ["wau", "WAU"]);
+    const mau = getOptionalNumberByKeys(data, ["mau", "MAU"]);
+
+    if (
+      typeof dau === "number" ||
+      typeof wau === "number" ||
+      typeof mau === "number"
+    ) {
+      const summaryRows: UserActivityItem[] = [
+        { id: "dau", name: "Daily Active Users", action: dau ?? 0 },
+        { id: "wau", name: "Weekly Active Users", action: wau ?? 0 },
+        { id: "mau", name: "Monthly Active Users", action: mau ?? 0 },
+      ];
+
+      const safePage = Math.max(1, page);
+      const safeLimit = Math.max(1, limit);
+      const start = (safePage - 1) * safeLimit;
+      const end = start + safeLimit;
+      const items = summaryRows.slice(start, end);
+
+      return {
+        items,
+        pagination: normalizePagination(undefined, safePage, safeLimit, summaryRows.length),
+      };
+    }
+  }
+
+  return normalizePaginatedItems<UserActivityItem>(
+    data,
+    ["activity", "user_activity", "userActivity", "items", "data"],
+    page,
+    limit,
+  );
+}
+
+function normalizeActivityFeedItems(
+  data: unknown,
+  page: number,
+  limit: number,
+): PaginatedItems<ActivityFeedItem> {
+  if (Array.isArray(data)) {
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.max(1, limit);
+    const start = (safePage - 1) * safeLimit;
+    const end = start + safeLimit;
+
+    return {
+      items: data.slice(start, end) as ActivityFeedItem[],
+      pagination: normalizePagination(undefined, safePage, safeLimit, data.length),
+    };
+  }
+
+  if (isRecord(data) && Array.isArray(data.items)) {
+    const allItems = data.items as ActivityFeedItem[];
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.max(1, limit);
+    const start = (safePage - 1) * safeLimit;
+    const end = start + safeLimit;
+
+    return {
+      items: allItems.slice(start, end),
+      pagination: normalizePagination(undefined, safePage, safeLimit, allItems.length),
+    };
+  }
+
+  const normalized = normalizePaginatedItems<ActivityFeedItem>(
+    data,
+    ["activity_feed", "activityFeed", "feed", "items", "data"],
+    page,
+    limit,
+  );
+
+  return normalized;
+}
+
 async function fetchAnalyticsData<T>(
   url: string,
-  params?: Record<string, number>,
+  params?: Record<string, number | undefined>,
 ): Promise<T> {
-  const response = await api.get<ApiEnvelope<T>>(url, { params });
+  const response = await api.get<ApiEnvelope<T> | Record<string, unknown>>(url, {
+    params,
+  });
 
-  return response.data.data;
+  const payload = response.data;
+
+  if (isRecord(payload) && "data" in payload) {
+    return (payload as ApiEnvelope<T>).data;
+  }
+
+  return payload as T;
 }
 
 function normalizeOverview(data: unknown): AnalyticsOverview {
@@ -593,6 +1248,114 @@ export async function getMessagesGrowth(
   );
 
   return normalizeMessagesGrowth(data);
+}
+
+export async function getPageViews(days?: DayRange): Promise<PageViewsPoint[]> {
+  const data = await fetchAnalyticsData<unknown>(
+    "/admin/analytics/page-views",
+    typeof days === "number" ? { days } : undefined,
+  );
+
+  return normalizePageViews(data);
+}
+
+export async function getTopPages(
+  days: DayRange = 30,
+  limit = 10,
+): Promise<TopPage[]> {
+  const data = await fetchAnalyticsData<unknown>(
+    "/admin/analytics/top-pages",
+    { days, limit },
+  );
+
+  return normalizeTopPages(data);
+}
+
+export async function getDevices(days?: DayRange): Promise<DeviceBreakdownItem[]> {
+  const data = await fetchAnalyticsData<unknown>(
+    "/admin/analytics/devices",
+    typeof days === "number" ? { days } : undefined,
+  );
+
+  return normalizeDevices(data);
+}
+
+export async function getLiveUsers(): Promise<LiveUsersData> {
+  const data = await fetchAnalyticsData<unknown>("/admin/analytics/live-users");
+
+  return normalizeLiveUsers(data);
+}
+
+export async function getFeatureUsage(
+  days?: DayRange,
+): Promise<FeatureUsageItem[]> {
+  const data = await fetchAnalyticsData<unknown>(
+    "/admin/analytics/feature-usage",
+    typeof days === "number" ? { days } : undefined,
+  );
+
+  return normalizeFeatureUsage(data);
+}
+
+export async function getUserActivity(
+  page: number,
+  limit: number,
+): Promise<PaginatedItems<UserActivityItem>> {
+  const data = await fetchAnalyticsData<unknown>("/admin/analytics/user-activity");
+
+  return normalizeUserActivityItems(data, page, limit);
+}
+
+export async function getSessions(days?: DayRange): Promise<SessionsPoint[]> {
+  const data = await fetchAnalyticsData<unknown>(
+    "/admin/analytics/sessions",
+    typeof days === "number" ? { days } : undefined,
+  );
+
+  return normalizeSessions(data);
+}
+
+export async function getLocations(
+  days: DayRange = 30,
+  limit = 20,
+): Promise<LocationBreakdownItem[]> {
+  const data = await fetchAnalyticsData<unknown>(
+    "/admin/analytics/locations",
+    { days, limit },
+  );
+
+  return normalizeLocations(data);
+}
+
+export async function getTrafficSources(
+  days?: DayRange,
+): Promise<TrafficSourceItem[]> {
+  const data = await fetchAnalyticsData<unknown>(
+    "/admin/analytics/traffic-sources",
+    typeof days === "number" ? { days } : undefined,
+  );
+
+  return normalizeTrafficSources(data);
+}
+
+export async function getPerformance(minutes = 60): Promise<PerformanceData> {
+  const data = await fetchAnalyticsData<unknown>(
+    "/admin/analytics/performance",
+    { minutes },
+  );
+
+  return normalizePerformance(data);
+}
+
+export async function getActivityFeed(
+  page: number,
+  limit: number,
+): Promise<PaginatedItems<ActivityFeedItem>> {
+  const data = await fetchAnalyticsData<unknown>("/admin/analytics/activity-feed", {
+    limit,
+  });
+
+  return normalizeActivityFeedItems(data, page, limit);
 }
 
 export async function getRecentUsers(

@@ -32,8 +32,9 @@ import {
   getUserById,
   getUsers,
   getUsersErrorMessage,
+  updateUserById,
 } from "@/api/users.api";
-import type { User } from "@/types/user.types";
+import type { UpdateUserPayload, User } from "@/types/user.types";
 
 function formatDate(value?: string): string {
   if (!value) return "-";
@@ -86,6 +87,7 @@ function Users() {
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(false);
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
   const [pendingDeleteUser, setPendingDeleteUser] = useState<{
     id: number;
@@ -142,6 +144,7 @@ function Users() {
 
   const handleViewUser = async (userId: number) => {
     setIsUserLoading(true);
+    setIsUpdatingUser(false);
     setSelectedUser(null);
     onOpen();
 
@@ -150,6 +153,52 @@ function Users() {
       setSelectedUser(user);
     } finally {
       setIsUserLoading(false);
+    }
+  };
+
+  const handleUpdateUser = async (payload: UpdateUserPayload) => {
+    if (!selectedUser) {
+      return;
+    }
+
+    const userId = getUserId(selectedUser);
+
+    if (!userId) {
+      addToast({
+        title: "Update Failed",
+        description: "Could not determine user id.",
+        color: "danger",
+        radius: "full",
+        timeout: 3000,
+      });
+      throw new Error("Missing user id");
+    }
+
+    setIsUpdatingUser(true);
+
+    try {
+      const result = await updateUserById(userId, payload);
+      setSelectedUser(result.user);
+      await usersList.reload();
+
+      addToast({
+        title: "User Updated",
+        description: result.message ?? "User updated successfully.",
+        color: "success",
+        radius: "full",
+        timeout: 3000,
+      });
+    } catch (err) {
+      addToast({
+        title: "Update Failed",
+        description: getUsersErrorMessage(err),
+        color: "danger",
+        radius: "full",
+        timeout: 3000,
+      });
+      throw err;
+    } finally {
+      setIsUpdatingUser(false);
     }
   };
 
@@ -341,9 +390,12 @@ function Users() {
         onOpenChange={onOpenChange}
         selectedUser={selectedUser}
         isUserLoading={isUserLoading}
+        isUpdatingUser={isUpdatingUser}
+        onUpdateUser={handleUpdateUser}
       />
 
       <Modal
+        backdrop="blur"
         isOpen={isDeleteModalOpen}
         onOpenChange={onDeleteModalOpenChange}
         isDismissable={deletingUserId === null}

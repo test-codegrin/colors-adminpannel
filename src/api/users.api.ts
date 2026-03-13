@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import type { User, UsersApiResponse } from "@/types/user.types";
+import type { UpdateUserPayload, User, UsersApiResponse } from "@/types/user.types";
 
 interface UserByIdApiResponse {
   success?: boolean;
@@ -10,6 +10,12 @@ interface DeleteUserApiResponse {
   success: boolean;
   message: string;
   user_id: number;
+}
+
+interface UpdateUserApiResponse {
+  success: boolean;
+  message: string;
+  user: User;
 }
 
 export async function getUsers(
@@ -47,6 +53,15 @@ export async function deleteUserById(
   userId: number,
 ): Promise<DeleteUserApiResponse> {
   const response = await api.delete<DeleteUserApiResponse>(`/admin/users/${userId}`);
+
+  return response.data;
+}
+
+export async function updateUserById(
+  userId: number,
+  payload: UpdateUserPayload,
+): Promise<UpdateUserApiResponse> {
+  const response = await api.patch<UpdateUserApiResponse>(`/admin/users/${userId}`, payload);
 
   return response.data;
 }
