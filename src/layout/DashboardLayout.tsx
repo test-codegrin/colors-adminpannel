@@ -1,14 +1,25 @@
 import { useState } from "react";
 import { Card, CardBody, Button } from "@heroui/react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
 
 import { useAuth } from "@/context/AuthContext";
 import Sidebar from "@/layout/Sidebar";
 import { ThemeSwitch } from "@/components/theme-switch";
 
+function getPageTitle(pathname: string): string {
+  if (pathname === "/dashboard/users") return "Users";
+  if (pathname === "/dashboard/payments") return "Payments";
+  if (pathname === "/dashboard/contact") return "Contact Messages";
+  if (pathname === "/dashboard/live-users") return "Live Users";
+  if (pathname === "/dashboard/devices-analytics") return "Devices Analytics";
+
+  return "Dashboard";
+}
+
 function DashboardLayout() {
   const { admin } = useAuth();
+  const { pathname } = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const toggleSidebar = () => {
@@ -38,7 +49,7 @@ function DashboardLayout() {
                 />
               </Button>
 
-              <h1 className="text-xl font-semibold">Dashboard</h1>
+              <h1 className="text-xl font-semibold">{getPageTitle(pathname)}</h1>
             </div>
 
             {/* Right Side */}

@@ -66,13 +66,56 @@ export interface DeviceBreakdownItem {
   device: string;
   users: number;
   percentage?: number;
+  logged_in_users?: number;
+  guest_users?: number;
+  sessions?: number;
+  sessions_per_user?: number;
+}
+
+export interface BrowserBreakdownItem {
+  browser: string;
+  users: number;
+  sessions?: number;
+  percentage?: number;
+}
+
+export interface OsBreakdownItem {
+  os: string;
+  users: number;
+  sessions?: number;
+  percentage?: number;
+}
+
+export interface DeviceAnalyticsSummary {
+  total_users: number;
+  logged_in_users: number;
+  guest_users: number;
+  total_sessions: number;
+  avg_sessions_per_user: number;
+}
+
+export interface DeviceAnalyticsPayload {
+  range_days?: number;
+  summary: DeviceAnalyticsSummary;
+  devices: DeviceBreakdownItem[];
+  browsers: BrowserBreakdownItem[];
+  os: OsBreakdownItem[];
 }
 
 export interface LiveUsersData {
   live_users: number;
+  active_users_now?: number;
   active_sessions?: number;
   users_last_5_minutes?: number;
   users_last_30_minutes?: number;
+  logged_in_users_now?: number;
+  guest_users_now?: number;
+  logged_in_users_last_30_minutes?: number;
+  guest_users_last_30_minutes?: number;
+  logged_in_active_sessions?: number;
+  guest_active_sessions?: number;
+  sessions_last_30_minutes?: number;
+  sessions_per_user_now?: number;
   updated_at?: string;
 }
 

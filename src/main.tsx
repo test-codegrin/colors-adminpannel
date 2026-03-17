@@ -1,4 +1,3 @@
-import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { HeroUIProvider, ToastProvider } from "@heroui/react";
@@ -8,7 +7,7 @@ import { Provider } from "./provider";
 import "@/styles/globals.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+  // <React.StrictMode>
     <HeroUIProvider>
       <ToastProvider placement="bottom-right" />
       <BrowserRouter>
@@ -19,5 +18,5 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         </Provider>
       </BrowserRouter>
     </HeroUIProvider>
-  </React.StrictMode>,
+  // </React.StrictMode>,
 );  

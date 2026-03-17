@@ -12,6 +12,19 @@ import {
   TableHeader,
   TableRow,
 } from "@heroui/react";
+import {
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LineElement,
+  LinearScale,
+  PointElement,
+  Tooltip,
+  type ChartData,
+  type ChartOptions,
+} from "chart.js";
+import { Line } from "react-chartjs-2";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -61,6 +74,20 @@ import type { PaginationPayload } from "@/types/pagination.types";
 
 const DAY_OPTIONS: DayRange[] = [7, 30, 90];
 const DEFAULT_LIMIT = 10;
+const CHART_PRIMARY_COLOR = "#006FEE";
+const CHART_SECONDARY_COLOR = "#f5a524";
+const CHART_GRID_COLOR = "#e4e4e7";
+const CHART_TICK_COLOR = "#71717a";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend,
+  Filler,
+);
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -175,45 +202,14 @@ function createPaginatedState<T>(): PaginatedSectionState<T> {
   };
 }
 
-function buildPath(values: number[], maxValue: number): string {
-  if (!values.length) {
-    return "";
-  }
-
-  const width = 100;
-  const height = 100;
-  const leftPadding = 6;
-  const rightPadding = 4;
-  const topPadding = 8;
-  const bottomPadding = 10;
-  const usableWidth = width - leftPadding - rightPadding;
-  const usableHeight = height - topPadding - bottomPadding;
-  const safeMax = Math.max(1, maxValue);
-
-  if (values.length === 1) {
-    const onlyY = topPadding + usableHeight - (values[0] / safeMax) * usableHeight;
-
-    return `M ${leftPadding} ${onlyY} L ${width - rightPadding} ${onlyY}`;
-  }
-
-  const step = usableWidth / (values.length - 1);
-
-  return values
-    .map((value, index) => {
-      const x = leftPadding + step * index;
-      const y = topPadding + usableHeight - (value / safeMax) * usableHeight;
-
-      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-    })
-    .join(" ");
-}
-
 function GrowthChart({
   data,
   isCurrency = false,
+  secondaryScale = "shared",
 }: {
   data: ChartRow[];
   isCurrency?: boolean;
+  secondaryScale?: "shared" | "independent";
 }) {
   if (!data.length) {
     return (
@@ -223,72 +219,94 @@ function GrowthChart({
     );
   }
 
+  const labels = data.map((point) => point.label);
   const primaryValues = data.map((point) => point.value);
   const hasSecondary = data.some((point) => typeof point.secondaryValue === "number");
   const secondaryValues = hasSecondary
     ? data.map((point) => point.secondaryValue ?? 0)
     : [];
-  const maxValue = Math.max(1, ...primaryValues, ...secondaryValues);
-  const primaryPath = buildPath(primaryValues, maxValue);
-  const secondaryPath = hasSecondary ? buildPath(secondaryValues, maxValue) : "";
+  const chartData = useMemo<ChartData<"line">>(() => {
+    const datasets: ChartData<"line">["datasets"] = [
+      {
+        label: isCurrency ? "Revenue" : "Value",
+        data: primaryValues,
+        borderColor: CHART_PRIMARY_COLOR,
+        backgroundColor: CHART_PRIMARY_COLOR,
+        tension: 0.35,
+        borderWidth: 2,
+        pointRadius: 2.5,
+        pointHoverRadius: 4,
+      },
+    ];
+
+    if (hasSecondary) {
+      datasets.push({
+        label: "Payments",
+        data: secondaryValues,
+        borderColor: CHART_SECONDARY_COLOR,
+        backgroundColor: CHART_SECONDARY_COLOR,
+        tension: 0.35,
+        borderWidth: 2,
+        pointRadius: 2,
+        pointHoverRadius: 3.5,
+        yAxisID: secondaryScale === "independent" ? "y1" : "y",
+      });
+    }
+
+    return { labels, datasets };
+  }, [hasSecondary, isCurrency, labels, primaryValues, secondaryScale, secondaryValues]);
+
+  const chartOptions = useMemo<ChartOptions<"line">>(() => {
+    const scales: NonNullable<ChartOptions<"line">["scales"]> = {
+      x: {
+        grid: { display: false },
+        ticks: { color: CHART_TICK_COLOR, maxTicksLimit: 8 },
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: CHART_GRID_COLOR },
+        ticks: { color: CHART_TICK_COLOR },
+      },
+    };
+
+    if (hasSecondary && secondaryScale === "independent") {
+      scales.y1 = {
+        beginAtZero: true,
+        position: "right",
+        grid: { drawOnChartArea: false },
+        ticks: { color: CHART_TICK_COLOR },
+      };
+    }
+
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: { mode: "index", intersect: false },
+      normalized: true,
+      plugins: {
+        legend: {
+          display: hasSecondary,
+          labels: { color: CHART_TICK_COLOR },
+        },
+        tooltip: {
+          mode: "index",
+          intersect: false,
+        },
+      },
+      scales,
+    };
+  }, [hasSecondary, secondaryScale]);
+
   const firstLabel = data[0]?.label ?? "-";
   const lastLabel = data[data.length - 1]?.label ?? "-";
   const latestValue = data[data.length - 1]?.value ?? 0;
 
   return (
     <div className="w-full">
-      <svg className="h-52 w-full" preserveAspectRatio="none" viewBox="0 0 100 100">
-        <line
-          x1="6"
-          x2="96"
-          y1="90"
-          y2="90"
-          stroke="hsl(var(--heroui-default-300))"
-          strokeWidth="0.5"
-        />
-        <line
-          x1="6"
-          x2="96"
-          y1="64"
-          y2="64"
-          stroke="hsl(var(--heroui-default-200))"
-          strokeWidth="0.4"
-        />
-        <line
-          x1="6"
-          x2="96"
-          y1="38"
-          y2="38"
-          stroke="hsl(var(--heroui-default-200))"
-          strokeWidth="0.4"
-        />
-        <line
-          x1="6"
-          x2="96"
-          y1="12"
-          y2="12"
-          stroke="hsl(var(--heroui-default-200))"
-          strokeWidth="0.4"
-        />
-        {secondaryPath && (
-          <path
-            d={secondaryPath}
-            fill="none"
-            stroke="hsl(var(--heroui-warning))"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        )}
-        <path
-          d={primaryPath}
-          fill="none"
-          stroke="hsl(var(--heroui-primary))"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <div className="h-52 w-full">
+        <Line data={chartData} options={chartOptions} />
+      </div>
 
       <div className="mt-2 flex items-center justify-between text-xs text-default-500">
         <span>{firstLabel}</span>
@@ -1031,10 +1049,14 @@ function DashboardHome() {
               </div>
             ) : (
               <>
-                <GrowthChart data={revenueChartRows} isCurrency />
+                <GrowthChart
+                  data={revenueChartRows}
+                  isCurrency
+                  secondaryScale="independent"
+                />
                 {revenueChartRows.some((item) => typeof item.secondaryValue === "number") && (
                   <p className="text-xs text-default-500">
-                    Blue line: revenue, yellow line: payments.
+                    Blue line: revenue, yellow line: payments (scaled independently).
                   </p>
                 )}
               </>
@@ -1159,6 +1181,10 @@ function DashboardHome() {
               <TableHeader>
                 <TableColumn>Device</TableColumn>
                 <TableColumn>Users</TableColumn>
+                <TableColumn>Logged In</TableColumn>
+                <TableColumn>Guest</TableColumn>
+                <TableColumn>Sessions</TableColumn>
+                <TableColumn>Sessions/User</TableColumn>
                 <TableColumn>Share</TableColumn>
               </TableHeader>
               <TableBody
@@ -1171,6 +1197,16 @@ function DashboardHome() {
                   <TableRow key={item.device}>
                     <TableCell>{item.device}</TableCell>
                     <TableCell>{numberFormatter.format(toSafeNumber(item.users))}</TableCell>
+                    <TableCell>
+                      {numberFormatter.format(toSafeNumber(item.logged_in_users))}
+                    </TableCell>
+                    <TableCell>{numberFormatter.format(toSafeNumber(item.guest_users))}</TableCell>
+                    <TableCell>{numberFormatter.format(toSafeNumber(item.sessions))}</TableCell>
+                    <TableCell>
+                      {typeof item.sessions_per_user === "number"
+                        ? toSafeNumber(item.sessions_per_user).toFixed(2)
+                        : "-"}
+                    </TableCell>
                     <TableCell>
                       {typeof item.percentage === "number"
                         ? `${toSafeNumber(item.percentage).toFixed(2)}%`

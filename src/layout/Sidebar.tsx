@@ -34,6 +34,16 @@ const navItems: NavItem[] = [
     path: "/dashboard/contact",
     icon: "fluent-mdl2:contact",
   },
+  {
+    label: "Live Users",
+    path: "/dashboard/live-users",
+    icon: "mdi:account-clock-outline",
+  },
+  {
+    label: "Devices Analytics",
+    path: "/dashboard/devices-analytics",
+    icon: "mdi:desktop-mac-dashboard",
+  },
 ];
 
 function Sidebar({ isOpen }: SidebarProps) {

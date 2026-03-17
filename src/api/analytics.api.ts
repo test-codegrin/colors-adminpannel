@@ -3,11 +3,15 @@ import type {
   ActivityFeedItem,
   AnalyticsOverview,
   ApiEnvelope,
+  BrowserBreakdownItem,
+  DeviceAnalyticsPayload,
+  DeviceAnalyticsSummary,
   DeviceBreakdownItem,
   DayRange,
   FeatureUsageItem,
   LiveUsersData,
   LocationBreakdownItem,
+  OsBreakdownItem,
   MessagesGrowthPoint,
   PageViewsPoint,
   PaginatedItems,
@@ -369,15 +373,21 @@ function normalizePagination(
 }
 
 function normalizeUsersGrowth(data: unknown): UsersGrowthPoint[] {
-  let rows = extractArray(data, [
-    "users_growth",
-    "usersGrowth",
-    "growth",
-    "series",
-    "items",
-    "rows",
-    "data",
-  ]);
+  let rows: unknown[] = [];
+
+  if (isRecord(data) && Array.isArray(data.growth)) {
+    rows = data.growth;
+  } else {
+    rows = extractArray(data, [
+      "users_growth",
+      "usersGrowth",
+      "growth",
+      "series",
+      "items",
+      "rows",
+      "data",
+    ]);
+  }
 
   if (!rows.length) {
     rows = extractArrayByPredicate(data, (item) => {
@@ -410,19 +420,35 @@ function normalizeUsersGrowth(data: unknown): UsersGrowthPoint[] {
         "value",
       ]),
     }))
-    .filter((row) => Boolean(row.date));
+    .filter((row) => Boolean(row.date))
+    .sort((a, b) => {
+      const first = new Date(a.date).getTime();
+      const second = new Date(b.date).getTime();
+
+      if (!Number.isFinite(first) || !Number.isFinite(second)) {
+        return 0;
+      }
+
+      return first - second;
+    });
 }
 
 function normalizeRevenueGrowth(data: unknown): RevenueGrowthPoint[] {
-  let rows = extractArray(data, [
-    "revenue_growth",
-    "revenueGrowth",
-    "growth",
-    "series",
-    "items",
-    "rows",
-    "data",
-  ]);
+  let rows: unknown[] = [];
+
+  if (isRecord(data) && Array.isArray(data.growth)) {
+    rows = data.growth;
+  } else {
+    rows = extractArray(data, [
+      "revenue_growth",
+      "revenueGrowth",
+      "growth",
+      "series",
+      "items",
+      "rows",
+      "data",
+    ]);
+  }
 
   if (!rows.length) {
     rows = extractArrayByPredicate(data, (item) => {
@@ -460,7 +486,17 @@ function normalizeRevenueGrowth(data: unknown): RevenueGrowthPoint[] {
         "paymentCount",
       ]),
     }))
-    .filter((row) => Boolean(row.date));
+    .filter((row) => Boolean(row.date))
+    .sort((a, b) => {
+      const first = new Date(a.date).getTime();
+      const second = new Date(b.date).getTime();
+
+      if (!Number.isFinite(first) || !Number.isFinite(second)) {
+        return 0;
+      }
+
+      return first - second;
+    });
 }
 
 function normalizeMessagesGrowth(data: unknown): MessagesGrowthPoint[] {
@@ -629,14 +665,20 @@ function normalizeTopPages(data: unknown): TopPage[] {
 }
 
 function normalizeDevices(data: unknown): DeviceBreakdownItem[] {
-  let rows = extractArray(data, [
-    "devices",
-    "device_breakdown",
-    "deviceBreakdown",
-    "items",
-    "rows",
-    "data",
-  ]);
+  let rows: unknown[] = [];
+
+  if (isRecord(data) && Array.isArray(data.devices)) {
+    rows = data.devices;
+  } else {
+    rows = extractArray(data, [
+      "devices",
+      "device_breakdown",
+      "deviceBreakdown",
+      "items",
+      "rows",
+      "data",
+    ]);
+  }
 
   if (!rows.length) {
     rows = extractArrayByPredicate(data, (item) => {
@@ -648,10 +690,26 @@ function normalizeDevices(data: unknown): DeviceBreakdownItem[] {
     .filter(isRecord)
     .map((row) => ({
       device: getStringByKeys(row, ["device", "type", "category", "label", "name"]),
-      users: getNumberByKeys(row, ["users", "count", "value", "sessions"], 0),
-      percentage: getOptionalNumberByKeys(row, ["percentage", "share", "ratio"]),
+      users: getNumberByKeys(row, ["users", "count", "value"], 0),
+      percentage: getOptionalNumberByKeys(row, [
+        "users_share_percent",
+        "percentage",
+        "share",
+        "ratio",
+      ]),
+      logged_in_users: getOptionalNumberByKeys(row, [
+        "logged_in_users",
+        "loggedInUsers",
+      ]),
+      guest_users: getOptionalNumberByKeys(row, ["guest_users", "guestUsers"]),
+      sessions: getOptionalNumberByKeys(row, ["sessions", "session_count", "sessionCount"]),
+      sessions_per_user: getOptionalNumberByKeys(row, [
+        "sessions_per_user",
+        "sessionsPerUser",
+      ]),
     }))
-    .filter((row) => Boolean(row.device));
+    .filter((row) => Boolean(row.device))
+    .sort((a, b) => b.users - a.users);
 
   if (normalizedRows.length) {
     return normalizedRows;
@@ -683,6 +741,106 @@ function normalizeDevices(data: unknown): DeviceBreakdownItem[] {
   return [];
 }
 
+function normalizeBrowsers(data: unknown): BrowserBreakdownItem[] {
+  let rows: unknown[] = [];
+
+  if (isRecord(data) && Array.isArray(data.browsers)) {
+    rows = data.browsers;
+  } else {
+    rows = extractArray(data, ["browsers", "browser_breakdown", "browserBreakdown"]);
+  }
+
+  if (!rows.length) {
+    rows = extractArrayByPredicate(data, (item) => "browser" in item);
+  }
+
+  return rows
+    .filter(isRecord)
+    .map((row) => ({
+      browser: getStringByKeys(row, ["browser", "name", "label"]),
+      users: getNumberByKeys(row, ["users", "count", "value"], 0),
+      sessions: getOptionalNumberByKeys(row, ["sessions", "session_count", "sessionCount"]),
+      percentage: getOptionalNumberByKeys(row, [
+        "users_share_percent",
+        "percentage",
+        "share",
+        "ratio",
+      ]),
+    }))
+    .filter((row) => Boolean(row.browser))
+    .sort((a, b) => b.users - a.users);
+}
+
+function normalizeOperatingSystems(data: unknown): OsBreakdownItem[] {
+  let rows: unknown[] = [];
+
+  if (isRecord(data) && Array.isArray(data.os)) {
+    rows = data.os;
+  } else {
+    rows = extractArray(data, ["os", "operating_systems", "operatingSystems"]);
+  }
+
+  if (!rows.length) {
+    rows = extractArrayByPredicate(data, (item) => "os" in item || "platform" in item);
+  }
+
+  return rows
+    .filter(isRecord)
+    .map((row) => ({
+      os: getStringByKeys(row, ["os", "platform", "name", "label"]),
+      users: getNumberByKeys(row, ["users", "count", "value"], 0),
+      sessions: getOptionalNumberByKeys(row, ["sessions", "session_count", "sessionCount"]),
+      percentage: getOptionalNumberByKeys(row, [
+        "users_share_percent",
+        "percentage",
+        "share",
+        "ratio",
+      ]),
+    }))
+    .filter((row) => Boolean(row.os))
+    .sort((a, b) => b.users - a.users);
+}
+
+function normalizeDeviceAnalyticsSummary(data: unknown): DeviceAnalyticsSummary {
+  const summarySource = isRecord(data) && isRecord(data.summary) ? data.summary : undefined;
+  const fallbackSource = isRecord(data) ? data : {};
+  const source = summarySource ?? fallbackSource;
+
+  return {
+    total_users: getNumberByKeys(source, ["total_users", "totalUsers", "users"], 0),
+    logged_in_users: getNumberByKeys(
+      source,
+      ["logged_in_users", "loggedInUsers"],
+      0,
+    ),
+    guest_users: getNumberByKeys(source, ["guest_users", "guestUsers"], 0),
+    total_sessions: getNumberByKeys(
+      source,
+      ["total_sessions", "totalSessions", "sessions"],
+      0,
+    ),
+    avg_sessions_per_user: getNumberByKeys(
+      source,
+      ["avg_sessions_per_user", "avgSessionsPerUser"],
+      0,
+    ),
+  };
+}
+
+function normalizeDevicesAnalyticsPayload(data: unknown): DeviceAnalyticsPayload {
+  const rangeDays = isRecord(data)
+    ? getOptionalNumberByKeys(data, ["range_days", "rangeDays"])
+    : undefined;
+
+  return {
+    range_days: rangeDays,
+    summary: normalizeDeviceAnalyticsSummary(data),
+    devices: normalizeDevices(data),
+    browsers: normalizeBrowsers(data),
+    os: normalizeOperatingSystems(data),
+  };
+}
+
 function normalizeLiveUsers(data: unknown): LiveUsersData {
   const records = [data, ...collectRecords(data)];
 
@@ -705,8 +863,13 @@ function normalizeLiveUsers(data: unknown): LiveUsersData {
     ]);
 
     if (typeof liveUsers === "number") {
+      const activeUsersNow =
+        getOptionalNumberByKeys(record, ["active_users_now", "activeUsersNow"]) ??
+        liveUsers;
+
       return {
-        live_users: liveUsers,
+        live_users: activeUsersNow,
+        active_users_now: activeUsersNow,
         active_sessions: getOptionalNumberByKeys(record, [
           "active_sessions",
           "activeSessions",
@@ -718,6 +881,38 @@ function normalizeLiveUsers(data: unknown): LiveUsersData {
         users_last_30_minutes: getOptionalNumberByKeys(record, [
           "users_last_30_minutes",
           "usersLast30Minutes",
+        ]),
+        logged_in_users_now: getOptionalNumberByKeys(record, [
+          "logged_in_users_now",
+          "loggedInUsersNow",
+        ]),
+        guest_users_now: getOptionalNumberByKeys(record, [
+          "guest_users_now",
+          "guestUsersNow",
+        ]),
+        logged_in_users_last_30_minutes: getOptionalNumberByKeys(record, [
+          "logged_in_users_last_30_minutes",
+          "loggedInUsersLast30Minutes",
+        ]),
+        guest_users_last_30_minutes: getOptionalNumberByKeys(record, [
+          "guest_users_last_30_minutes",
+          "guestUsersLast30Minutes",
+        ]),
+        logged_in_active_sessions: getOptionalNumberByKeys(record, [
+          "logged_in_active_sessions",
+          "loggedInActiveSessions",
+        ]),
+        guest_active_sessions: getOptionalNumberByKeys(record, [
+          "guest_active_sessions",
+          "guestActiveSessions",
+        ]),
+        sessions_last_30_minutes: getOptionalNumberByKeys(record, [
+          "sessions_last_30_minutes",
+          "sessionsLast30Minutes",
+        ]),
+        sessions_per_user_now: getOptionalNumberByKeys(record, [
+          "sessions_per_user_now",
+          "sessionsPerUserNow",
         ]),
         updated_at: getStringByKeys(record, ["updated_at", "updatedAt", "timestamp"]),
       };
@@ -1125,7 +1320,7 @@ async function fetchAnalyticsData<T>(
   const payload = response.data;
 
   if (isRecord(payload) && "data" in payload) {
-    return (payload as ApiEnvelope<T>).data;
+    return (payload as unknown as ApiEnvelope<T>).data;
   }
 
   return payload as T;
@@ -1278,6 +1473,17 @@ export async function getDevices(days?: DayRange): Promise<DeviceBreakdownItem[]
   );
 
   return normalizeDevices(data);
+}
+
+export async function getDevicesAnalytics(
+  days?: DayRange,
+): Promise<DeviceAnalyticsPayload> {
+  const data = await fetchAnalyticsData<unknown>(
+    "/admin/analytics/devices",
+    typeof days === "number" ? { days } : undefined,
+  );
+
+  return normalizeDevicesAnalyticsPayload(data);
 }
 
 export async function getLiveUsers(): Promise<LiveUsersData> {
