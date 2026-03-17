@@ -1,1628 +1,280 @@
 import api from "@/lib/axios";
 import type {
-  ActivityFeedItem,
+  ActivityFeedData,
   AnalyticsOverview,
   ApiEnvelope,
-  BrowserBreakdownItem,
-  DeviceAnalyticsPayload,
-  DeviceAnalyticsSummary,
-  DeviceBreakdownItem,
+  ApiErrorEnvelope,
   DayRange,
-  FeatureUsageItem,
+  DeviceAnalyticsPayload,
+  FeatureUsageData,
   LiveUsersData,
-  LocationBreakdownItem,
-  OsBreakdownItem,
-  MessagesGrowthPoint,
-  PageViewsPoint,
+  LocationsData,
+  MessagesGrowthResponse,
+  MinutesRange,
+  PageViewsSummary,
   PaginatedItems,
   PerformanceData,
   RecentMessage,
   RecentPayment,
   RecentUser,
-  RevenueGrowthPoint,
-  SessionsPoint,
+  RevenueGrowthResponse,
+  SessionsSummary,
   TopPage,
-  TrafficSourceItem,
-  UserActivityItem,
-  UsersGrowthPoint,
+  TrafficSourcesData,
+  UserActivityData,
+  UsersGrowthResponse,
 } from "@/types/analytics.types";
 import type { PaginationPayload } from "@/types/pagination.types";
 
 const FALLBACK_ERROR = "Failed to load analytics data.";
-
-type GrowthMetricKey =
-  | "users"
-  | "totalUsers"
-  | "newUsers"
-  | "revenue"
-  | "totalRevenue"
-  | "messages"
-  | "totalMessages"
-  | "payments"
-  | "paymentCount"
-  | "count"
-  | "amount"
-  | "value"
-  | "total_users"
-  | "total_revenue"
-  | "total_messages"
-  | "payment_count"
-  | "total_payments";
-
-type OverviewMetricKey =
-  | "total_users"
-  | "totalUsers"
-  | "new_users_today"
-  | "newUsersToday"
-  | "new_users_7d"
-  | "newUsers7d"
-  | "active_users"
-  | "activeUsers"
-  | "total_payments"
-  | "totalPayments"
-  | "paid_users"
-  | "paidUsers"
-  | "total_revenue"
-  | "totalRevenue"
-  | "revenue_7d"
-  | "revenue7d"
-  | "revenue_30d"
-  | "revenue30d"
-  | "total_messages"
-  | "totalMessages"
-  | "messages_today"
-  | "messagesToday"
-  | "messages_7d"
-  | "messages7d";
+const DEFAULT_PAGE_SIZE = 10;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function toNumber(value: unknown, fallback: number): number {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number(value);
-
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-
-  return fallback;
-}
-
-function toStringValue(value: unknown): string {
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (typeof value === "number") {
-    return String(value);
-  }
-
-  return "";
-}
-
-function getMetricValue(
-  record: Record<string, unknown>,
-  keys: readonly GrowthMetricKey[],
-  fallback = 0,
-): number {
-  for (const key of keys) {
-    const parsed = toNumber(record[key], Number.NaN);
-
-    if (!Number.isNaN(parsed)) {
-      return parsed;
-    }
-  }
-
-  return fallback;
-}
-
-function getOptionalMetricValue(
-  record: Record<string, unknown>,
-  keys: readonly GrowthMetricKey[],
-): number | undefined {
-  for (const key of keys) {
-    const parsed = toNumber(record[key], Number.NaN);
-
-    if (!Number.isNaN(parsed)) {
-      return parsed;
-    }
-  }
-
-  return undefined;
-}
-
-function getOverviewMetricValue(
-  record: Record<string, unknown>,
-  keys: readonly OverviewMetricKey[],
-): number | undefined {
-  for (const key of keys) {
-    const parsed = toNumber(record[key], Number.NaN);
-
-    if (!Number.isNaN(parsed)) {
-      return parsed;
-    }
-  }
-
-  return undefined;
-}
-
-function getNumberByKeys(
-  record: Record<string, unknown>,
-  keys: readonly string[],
-  fallback = 0,
-): number {
-  for (const key of keys) {
-    const parsed = toNumber(record[key], Number.NaN);
-
-    if (!Number.isNaN(parsed)) {
-      return parsed;
-    }
-  }
-
-  return fallback;
-}
-
-function getOptionalNumberByKeys(
-  record: Record<string, unknown>,
-  keys: readonly string[],
-): number | undefined {
-  for (const key of keys) {
-    const parsed = toNumber(record[key], Number.NaN);
-
-    if (!Number.isNaN(parsed)) {
-      return parsed;
-    }
-  }
-
-  return undefined;
-}
-
-function getStringByKeys(
-  record: Record<string, unknown>,
-  keys: readonly string[],
-): string {
-  for (const key of keys) {
-    const value = toStringValue(record[key]);
-
-    if (value) {
-      return value;
-    }
-  }
-
-  return "";
-}
-
-function collectRecords(root: unknown): Record<string, unknown>[] {
-  const queue: unknown[] = [root];
-  const visited = new Set<unknown>();
-  const collected: Record<string, unknown>[] = [];
-
-  while (queue.length) {
-    const current = queue.shift();
-
-    if (!current || visited.has(current)) {
-      continue;
-    }
-
-    visited.add(current);
-
-    if (Array.isArray(current)) {
-      for (const item of current) {
-        queue.push(item);
-      }
-      continue;
-    }
-
-    if (!isRecord(current)) {
-      continue;
-    }
-
-    collected.push(current);
-
-    for (const value of Object.values(current)) {
-      queue.push(value);
-    }
-  }
-
-  return collected;
-}
-
-function extractArrayByPredicate(
-  root: unknown,
-  predicate: (record: Record<string, unknown>) => boolean,
-): unknown[] {
-  if (Array.isArray(root)) {
-    return root;
-  }
-
-  const records = collectRecords(root);
-
-  for (const record of records) {
-    for (const value of Object.values(record)) {
-      if (!Array.isArray(value)) {
-        continue;
-      }
-
-      const firstObject = value.find((item) => isRecord(item));
-
-      if (isRecord(firstObject) && predicate(firstObject)) {
-        return value;
-      }
-    }
-  }
-
-  return [];
-}
-
-function extractArray(data: unknown, keys: readonly string[]): unknown[] {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (!isRecord(data)) {
-    return [];
-  }
-
-  for (const key of keys) {
-    if (Array.isArray(data[key])) {
-      return data[key] as unknown[];
-    }
-  }
-
-  const nestedData = data.data;
-
-  if (Array.isArray(nestedData)) {
-    return nestedData;
-  }
-
-  if (isRecord(nestedData)) {
-    for (const key of keys) {
-      if (Array.isArray(nestedData[key])) {
-        return nestedData[key] as unknown[];
-      }
-    }
-  }
-
-  const deepRecords = collectRecords(data);
-
-  for (const record of deepRecords) {
-    for (const key of keys) {
-      if (Array.isArray(record[key])) {
-        return record[key] as unknown[];
-      }
-    }
-  }
-
-  for (const record of deepRecords) {
-    for (const value of Object.values(record)) {
-      if (Array.isArray(value)) {
-        return value;
-      }
-    }
-  }
-
-  return [];
-}
-
-function extractPagination(data: unknown): unknown {
-  if (isRecord(data) && "pagination" in data) {
-    return data.pagination;
-  }
-
-  if (isRecord(data) && isRecord(data.data) && "pagination" in data.data) {
-    return data.data.pagination;
-  }
-
-  const deepRecords = collectRecords(data);
-
-  for (const record of deepRecords) {
-    if ("pagination" in record && isRecord(record.pagination)) {
-      return record.pagination;
-    }
-  }
-
-  return undefined;
-}
-
 function normalizePagination(
-  raw: unknown,
+  pagination: PaginationPayload | undefined,
   page: number,
   limit: number,
-  itemsLength: number,
+  itemCount: number,
 ): PaginationPayload {
   const safePage = Math.max(1, page);
   const safeLimit = Math.max(1, limit);
-
-  if (!isRecord(raw)) {
-    const totalPages = Math.max(1, Math.ceil(itemsLength / safeLimit));
-
-    return {
-      total: itemsLength,
-      page: safePage,
-      limit: safeLimit,
-      total_pages: totalPages,
-      totalPages,
-    };
-  }
-
-  const total = Math.max(0, toNumber(raw.total, itemsLength));
-  const resolvedPage = Math.max(1, toNumber(raw.page, safePage));
-  const resolvedLimit = Math.max(1, toNumber(raw.limit, safeLimit));
-  const resolvedTotalPages = Math.max(
-    1,
-    toNumber(
-      raw.total_pages ?? raw.totalPages,
-      Math.ceil(Math.max(total, itemsLength) / resolvedLimit),
-    ),
-  );
+  const total = Math.max(0, pagination?.total ?? itemCount);
+  const totalPages =
+    pagination?.total_pages ??
+    pagination?.totalPages ??
+    Math.max(1, Math.ceil(Math.max(total, itemCount) / safeLimit));
 
   return {
     total,
-    page: resolvedPage,
-    limit: resolvedLimit,
-    total_pages: resolvedTotalPages,
-    totalPages: resolvedTotalPages,
+    page: pagination?.page ?? safePage,
+    limit: pagination?.limit ?? safeLimit,
+    total_pages: totalPages,
+    totalPages,
   };
 }
 
-function normalizeUsersGrowth(data: unknown): UsersGrowthPoint[] {
-  let rows: unknown[] = [];
-
-  if (isRecord(data) && Array.isArray(data.growth)) {
-    rows = data.growth;
-  } else {
-    rows = extractArray(data, [
-      "users_growth",
-      "usersGrowth",
-      "growth",
-      "series",
-      "items",
-      "rows",
-      "data",
-    ]);
-  }
-
-  if (!rows.length) {
-    rows = extractArrayByPredicate(data, (item) => {
-      return (
-        "users" in item ||
-        "total_users" in item ||
-        "totalUsers" in item ||
-        "count" in item
-      );
-    });
-  }
-
-  return rows
-    .filter(isRecord)
-    .map((row) => ({
-      date: toStringValue(
-        row.date ??
-          row.day ??
-          row.label ??
-          row.created_at ??
-          row.createdAt ??
-          row.month,
-      ),
-      users: getMetricValue(row, [
-        "users",
-        "count",
-        "total_users",
-        "totalUsers",
-        "newUsers",
-        "value",
-      ]),
-    }))
-    .filter((row) => Boolean(row.date))
-    .sort((a, b) => {
-      const first = new Date(a.date).getTime();
-      const second = new Date(b.date).getTime();
-
-      if (!Number.isFinite(first) || !Number.isFinite(second)) {
-        return 0;
-      }
-
-      return first - second;
-    });
-}
-
-function normalizeRevenueGrowth(data: unknown): RevenueGrowthPoint[] {
-  let rows: unknown[] = [];
-
-  if (isRecord(data) && Array.isArray(data.growth)) {
-    rows = data.growth;
-  } else {
-    rows = extractArray(data, [
-      "revenue_growth",
-      "revenueGrowth",
-      "growth",
-      "series",
-      "items",
-      "rows",
-      "data",
-    ]);
-  }
-
-  if (!rows.length) {
-    rows = extractArrayByPredicate(data, (item) => {
-      return (
-        "revenue" in item ||
-        "total_revenue" in item ||
-        "totalRevenue" in item ||
-        "amount" in item
-      );
-    });
-  }
-
-  return rows
-    .filter(isRecord)
-    .map((row) => ({
-      date: toStringValue(
-        row.date ??
-          row.day ??
-          row.label ??
-          row.created_at ??
-          row.createdAt ??
-          row.month,
-      ),
-      revenue: getMetricValue(row, [
-        "revenue",
-        "amount",
-        "total_revenue",
-        "totalRevenue",
-        "value",
-      ]),
-      payments: getOptionalMetricValue(row, [
-        "payments",
-        "payment_count",
-        "total_payments",
-        "paymentCount",
-      ]),
-    }))
-    .filter((row) => Boolean(row.date))
-    .sort((a, b) => {
-      const first = new Date(a.date).getTime();
-      const second = new Date(b.date).getTime();
-
-      if (!Number.isFinite(first) || !Number.isFinite(second)) {
-        return 0;
-      }
-
-      return first - second;
-    });
-}
-
-function normalizeMessagesGrowth(data: unknown): MessagesGrowthPoint[] {
-  let rows = extractArray(data, [
-    "messages_growth",
-    "messagesGrowth",
-    "growth",
-    "series",
-    "items",
-    "rows",
-    "data",
-  ]);
-
-  if (!rows.length) {
-    rows = extractArrayByPredicate(data, (item) => {
-      return (
-        "messages" in item ||
-        "total_messages" in item ||
-        "totalMessages" in item ||
-        "count" in item
-      );
-    });
-  }
-
-  return rows
-    .filter(isRecord)
-    .map((row) => ({
-      date: toStringValue(
-        row.date ??
-          row.day ??
-          row.label ??
-          row.created_at ??
-          row.createdAt ??
-          row.month,
-      ),
-      messages: getMetricValue(row, [
-        "messages",
-        "count",
-        "total_messages",
-        "totalMessages",
-        "value",
-      ]),
-    }))
-    .filter((row) => Boolean(row.date));
-}
-
-function normalizePageViews(data: unknown): PageViewsPoint[] {
-  let rows = extractArray(data, [
-    "page_views",
-    "pageViews",
-    "views",
-    "series",
-    "items",
-    "rows",
-    "data",
-  ]);
-
-  if (!rows.length) {
-    rows = extractArrayByPredicate(data, (item) => {
-      return "views" in item || "page_views" in item || "count" in item;
-    });
-  }
-
-  const normalizedRows = rows
-    .filter(isRecord)
-    .map((row) => ({
-      date: getStringByKeys(row, [
-        "date",
-        "day",
-        "label",
-        "hour",
-        "month",
-        "created_at",
-        "createdAt",
-      ]),
-      views: getNumberByKeys(row, ["views", "page_views", "count", "value"], 0),
-      unique_visitors: getOptionalNumberByKeys(row, [
-        "unique_visitors",
-        "uniqueVisitors",
-        "visitors",
-      ]),
-    }))
-    .filter((row) => Boolean(row.date));
-
-  if (normalizedRows.length) {
-    return normalizedRows;
-  }
-
-  if (isRecord(data)) {
-    const rangeDays = getNumberByKeys(data, ["range_days", "rangeDays"], 30);
-    const totalViews = getNumberByKeys(
-      data,
-      ["total_page_views", "totalPageViews", "views", "total_views"],
-      0,
-    );
-    const uniqueViews = getOptionalNumberByKeys(data, [
-      "unique_page_views",
-      "uniquePageViews",
-      "unique_visitors",
-      "uniqueVisitors",
-    ]);
-    const todayViews = getOptionalNumberByKeys(data, [
-      "page_views_today",
-      "pageViewsToday",
-    ]);
-    const views7d = getOptionalNumberByKeys(data, ["page_views_7d", "pageViews7d"]);
-
-    const fallback: PageViewsPoint[] = [];
-
-    if (typeof todayViews === "number") {
-      fallback.push({
-        date: "Today",
-        views: todayViews,
-      });
-    }
-
-    if (typeof views7d === "number") {
-      fallback.push({
-        date: "Last 7 Days",
-        views: views7d,
-      });
-    }
-
-    fallback.push({
-      date: `Last ${Math.max(1, rangeDays)} Days`,
-      views: totalViews,
-      unique_visitors: uniqueViews,
-    });
-
-    return fallback;
-  }
-
-  return [];
-}
-
-function normalizeTopPages(data: unknown): TopPage[] {
-  let rows = extractArray(data, [
-    "top_pages",
-    "topPages",
-    "most_viewed_pages",
-    "mostViewedPages",
-    "pages",
-    "items",
-    "rows",
-    "data",
-  ]);
-
-  if (!rows.length) {
-    rows = extractArrayByPredicate(data, (item) => {
-      return "page" in item || "path" in item || "url" in item;
-    });
-  }
-
-  return rows
-    .filter(isRecord)
-    .map((row) => ({
-      page: getStringByKeys(row, ["page", "path", "url", "slug", "title", "label"]),
-      views: getNumberByKeys(row, ["views", "page_views", "count", "hits", "value"], 0),
-      unique_visitors: getOptionalNumberByKeys(row, [
-        "unique_visitors",
-        "uniqueVisitors",
-        "visitors",
-      ]),
-    }))
-    .filter((row) => Boolean(row.page));
-}
-
-function normalizeDevices(data: unknown): DeviceBreakdownItem[] {
-  let rows: unknown[] = [];
-
-  if (isRecord(data) && Array.isArray(data.devices)) {
-    rows = data.devices;
-  } else {
-    rows = extractArray(data, [
-      "devices",
-      "device_breakdown",
-      "deviceBreakdown",
-      "items",
-      "rows",
-      "data",
-    ]);
-  }
-
-  if (!rows.length) {
-    rows = extractArrayByPredicate(data, (item) => {
-      return "device" in item || "type" in item || "category" in item;
-    });
-  }
-
-  const normalizedRows = rows
-    .filter(isRecord)
-    .map((row) => ({
-      device: getStringByKeys(row, ["device", "type", "category", "label", "name"]),
-      users: getNumberByKeys(row, ["users", "count", "value"], 0),
-      percentage: getOptionalNumberByKeys(row, [
-        "users_share_percent",
-        "percentage",
-        "share",
-        "ratio",
-      ]),
-      logged_in_users: getOptionalNumberByKeys(row, [
-        "logged_in_users",
-        "loggedInUsers",
-      ]),
-      guest_users: getOptionalNumberByKeys(row, ["guest_users", "guestUsers"]),
-      sessions: getOptionalNumberByKeys(row, ["sessions", "session_count", "sessionCount"]),
-      sessions_per_user: getOptionalNumberByKeys(row, [
-        "sessions_per_user",
-        "sessionsPerUser",
-      ]),
-    }))
-    .filter((row) => Boolean(row.device))
-    .sort((a, b) => b.users - a.users);
-
-  if (normalizedRows.length) {
-    return normalizedRows;
-  }
-
-  if (isRecord(data) && isRecord(data.devices)) {
-    const totalEvents = getNumberByKeys(data, ["total_events", "totalEvents"], 0);
-    const mapped = Object.entries(data.devices)
-      .map(([key, value]) => {
-        const percentage = toNumber(value, 0);
-
-        return {
-          device: key,
-          percentage,
-          users:
-            totalEvents > 0
-              ? Math.round((totalEvents * Math.max(0, percentage)) / 100)
-              : 0,
-        };
-      })
-      .filter((item) => Boolean(item.device))
-      .sort((a, b) => b.users - a.users);
-
-    if (mapped.length) {
-      return mapped;
-    }
-  }
-
-  return [];
-}
-
-function normalizeBrowsers(data: unknown): BrowserBreakdownItem[] {
-  let rows: unknown[] = [];
-
-  if (isRecord(data) && Array.isArray(data.browsers)) {
-    rows = data.browsers;
-  } else {
-    rows = extractArray(data, ["browsers", "browser_breakdown", "browserBreakdown"]);
-  }
-
-  if (!rows.length) {
-    rows = extractArrayByPredicate(data, (item) => "browser" in item);
-  }
-
-  return rows
-    .filter(isRecord)
-    .map((row) => ({
-      browser: getStringByKeys(row, ["browser", "name", "label"]),
-      users: getNumberByKeys(row, ["users", "count", "value"], 0),
-      sessions: getOptionalNumberByKeys(row, ["sessions", "session_count", "sessionCount"]),
-      percentage: getOptionalNumberByKeys(row, [
-        "users_share_percent",
-        "percentage",
-        "share",
-        "ratio",
-      ]),
-    }))
-    .filter((row) => Boolean(row.browser))
-    .sort((a, b) => b.users - a.users);
-}
-
-function normalizeOperatingSystems(data: unknown): OsBreakdownItem[] {
-  let rows: unknown[] = [];
-
-  if (isRecord(data) && Array.isArray(data.os)) {
-    rows = data.os;
-  } else {
-    rows = extractArray(data, ["os", "operating_systems", "operatingSystems"]);
-  }
-
-  if (!rows.length) {
-    rows = extractArrayByPredicate(data, (item) => "os" in item || "platform" in item);
-  }
-
-  return rows
-    .filter(isRecord)
-    .map((row) => ({
-      os: getStringByKeys(row, ["os", "platform", "name", "label"]),
-      users: getNumberByKeys(row, ["users", "count", "value"], 0),
-      sessions: getOptionalNumberByKeys(row, ["sessions", "session_count", "sessionCount"]),
-      percentage: getOptionalNumberByKeys(row, [
-        "users_share_percent",
-        "percentage",
-        "share",
-        "ratio",
-      ]),
-    }))
-    .filter((row) => Boolean(row.os))
-    .sort((a, b) => b.users - a.users);
-}
-
-function normalizeDeviceAnalyticsSummary(data: unknown): DeviceAnalyticsSummary {
-  const summarySource = isRecord(data) && isRecord(data.summary) ? data.summary : undefined;
-  const fallbackSource = isRecord(data) ? data : {};
-  const source = summarySource ?? fallbackSource;
-
-  return {
-    total_users: getNumberByKeys(source, ["total_users", "totalUsers", "users"], 0),
-    logged_in_users: getNumberByKeys(
-      source,
-      ["logged_in_users", "loggedInUsers"],
-      0,
-    ),
-    guest_users: getNumberByKeys(source, ["guest_users", "guestUsers"], 0),
-    total_sessions: getNumberByKeys(
-      source,
-      ["total_sessions", "totalSessions", "sessions"],
-      0,
-    ),
-    avg_sessions_per_user: getNumberByKeys(
-      source,
-      ["avg_sessions_per_user", "avgSessionsPerUser"],
-      0,
-    ),
-  };
-}
-
-function normalizeDevicesAnalyticsPayload(data: unknown): DeviceAnalyticsPayload {
-  const rangeDays = isRecord(data)
-    ? getOptionalNumberByKeys(data, ["range_days", "rangeDays"])
-    : undefined;
-
-  return {
-    range_days: rangeDays,
-    summary: normalizeDeviceAnalyticsSummary(data),
-    devices: normalizeDevices(data),
-    browsers: normalizeBrowsers(data),
-    os: normalizeOperatingSystems(data),
-  };
-}
-
-function normalizeLiveUsers(data: unknown): LiveUsersData {
-  const records = [data, ...collectRecords(data)];
-
-  for (const record of records) {
-    if (!isRecord(record)) {
-      continue;
-    }
-
-    const liveUsers = getOptionalNumberByKeys(record, [
-      "live_users",
-      "liveUsers",
-      "online_users",
-      "onlineUsers",
-      "active_users",
-      "activeUsers",
-      "active_users_now",
-      "activeUsersNow",
-      "count",
-      "users",
-    ]);
-
-    if (typeof liveUsers === "number") {
-      const activeUsersNow =
-        getOptionalNumberByKeys(record, ["active_users_now", "activeUsersNow"]) ??
-        liveUsers;
-
-      return {
-        live_users: activeUsersNow,
-        active_users_now: activeUsersNow,
-        active_sessions: getOptionalNumberByKeys(record, [
-          "active_sessions",
-          "activeSessions",
-        ]),
-        users_last_5_minutes: getOptionalNumberByKeys(record, [
-          "users_last_5_minutes",
-          "usersLast5Minutes",
-        ]),
-        users_last_30_minutes: getOptionalNumberByKeys(record, [
-          "users_last_30_minutes",
-          "usersLast30Minutes",
-        ]),
-        logged_in_users_now: getOptionalNumberByKeys(record, [
-          "logged_in_users_now",
-          "loggedInUsersNow",
-        ]),
-        guest_users_now: getOptionalNumberByKeys(record, [
-          "guest_users_now",
-          "guestUsersNow",
-        ]),
-        logged_in_users_last_30_minutes: getOptionalNumberByKeys(record, [
-          "logged_in_users_last_30_minutes",
-          "loggedInUsersLast30Minutes",
-        ]),
-        guest_users_last_30_minutes: getOptionalNumberByKeys(record, [
-          "guest_users_last_30_minutes",
-          "guestUsersLast30Minutes",
-        ]),
-        logged_in_active_sessions: getOptionalNumberByKeys(record, [
-          "logged_in_active_sessions",
-          "loggedInActiveSessions",
-        ]),
-        guest_active_sessions: getOptionalNumberByKeys(record, [
-          "guest_active_sessions",
-          "guestActiveSessions",
-        ]),
-        sessions_last_30_minutes: getOptionalNumberByKeys(record, [
-          "sessions_last_30_minutes",
-          "sessionsLast30Minutes",
-        ]),
-        sessions_per_user_now: getOptionalNumberByKeys(record, [
-          "sessions_per_user_now",
-          "sessionsPerUserNow",
-        ]),
-        updated_at: getStringByKeys(record, ["updated_at", "updatedAt", "timestamp"]),
-      };
-    }
-  }
-
-  return { live_users: 0 };
-}
-
-function normalizeFeatureUsage(data: unknown): FeatureUsageItem[] {
-  let rows = extractArray(data, [
-    "feature_usage",
-    "featureUsage",
-    "features",
-    "items",
-    "rows",
-    "data",
-  ]);
-
-  if (!rows.length) {
-    rows = extractArrayByPredicate(data, (item) => {
-      return (
-        "feature" in item ||
-        "name" in item ||
-        "action" in item ||
-        "event_type" in item ||
-        "eventType" in item
-      );
-    });
-  }
-
-  const normalizedRows = rows
-    .filter(isRecord)
-    .map((row) => ({
-      feature: getStringByKeys(row, [
-        "feature",
-        "feature_name",
-        "featureName",
-        "name",
-        "label",
-        "action",
-        "event_type",
-        "eventType",
-      ]),
-      usage: getNumberByKeys(row, ["usage", "count", "total", "events", "value"], 0),
-      percentage: getOptionalNumberByKeys(row, ["percentage", "share", "ratio"]),
-    }))
-    .filter((row) => Boolean(row.feature));
-
-  if (normalizedRows.length) {
-    return normalizedRows;
-  }
-
-  if (!isRecord(data)) {
-    return [];
-  }
-
-  const ignoredKeys = new Set([
-    "range_days",
-    "rangeDays",
-    "top_feature_events",
-    "topFeatureEvents",
-  ]);
-
-  const metricRows = Object.entries(data)
-    .filter(([key, value]) => !ignoredKeys.has(key) && typeof value === "number")
-    .map(([feature, usage]) => ({
-      feature,
-      usage: toNumber(usage, 0),
-    }))
-    .filter((item) => item.usage > 0);
-
-  const topEvents = extractArray(data, ["top_feature_events", "topFeatureEvents"])
-    .filter(isRecord)
-    .map((row) => ({
-      feature: getStringByKeys(row, ["event_type", "eventType", "feature", "name"]),
-      usage: getNumberByKeys(row, ["count", "usage", "total", "value"], 0),
-    }))
-    .filter((item) => Boolean(item.feature));
-
-  const mergedMap = new Map<string, number>();
-
-  for (const item of [...metricRows, ...topEvents]) {
-    mergedMap.set(item.feature, (mergedMap.get(item.feature) ?? 0) + item.usage);
-  }
-
-  const merged = Array.from(mergedMap.entries()).map(([feature, usage]) => ({
-    feature,
-    usage,
-  }));
-  const total = merged.reduce((sum, item) => sum + item.usage, 0);
-
-  return merged
-    .sort((a, b) => b.usage - a.usage)
-    .map((item) => ({
-      ...item,
-      percentage: total ? Number(((item.usage / total) * 100).toFixed(2)) : undefined,
-    }));
-}
-
-function normalizeSessions(data: unknown): SessionsPoint[] {
-  let rows = extractArray(data, [
-    "sessions",
-    "session_growth",
-    "sessionGrowth",
-    "series",
-    "items",
-    "rows",
-    "data",
-  ]);
-
-  if (!rows.length) {
-    rows = extractArrayByPredicate(data, (item) => {
-      return "sessions" in item || "session_count" in item || "count" in item;
-    });
-  }
-
-  const normalizedRows = rows
-    .filter(isRecord)
-    .map((row) => ({
-      date: getStringByKeys(row, [
-        "date",
-        "day",
-        "label",
-        "hour",
-        "month",
-        "created_at",
-        "createdAt",
-      ]),
-      sessions: getNumberByKeys(row, ["sessions", "session_count", "count", "value"], 0),
-      avg_duration: getOptionalNumberByKeys(row, [
-        "avg_duration",
-        "avgDuration",
-        "duration",
-      ]),
-    }))
-    .filter((row) => Boolean(row.date));
-
-  if (normalizedRows.length) {
-    return normalizedRows;
-  }
-
-  if (isRecord(data)) {
-    const rangeDays = getNumberByKeys(data, ["range_days", "rangeDays"], 30);
-
-    return [
-      {
-        date: `Last ${Math.max(1, rangeDays)} Days`,
-        sessions: getNumberByKeys(data, ["total_sessions", "totalSessions", "sessions"], 0),
-        avg_duration: getOptionalNumberByKeys(data, [
-          "avg_session_time_seconds",
-          "avgSessionTimeSeconds",
-          "avg_duration",
-          "avgDuration",
-        ]),
-      },
-    ];
-  }
-
-  return [];
-}
-
-function normalizeLocations(data: unknown): LocationBreakdownItem[] {
-  let rows = extractArray(data, [
-    "locations",
-    "location_breakdown",
-    "locationBreakdown",
-    "countries",
-    "regions",
-    "cities",
-    "items",
-    "rows",
-    "data",
-  ]);
-
-  if (!rows.length) {
-    rows = extractArrayByPredicate(data, (item) => {
-      return "location" in item || "city" in item || "country" in item;
-    });
-  }
-
-  return rows
-    .filter(isRecord)
-    .map((row) => ({
-      location: getStringByKeys(row, [
-        "location",
-        "city",
-        "country",
-        "region",
-        "name",
-        "label",
-      ]),
-      users: getNumberByKeys(row, ["users", "count", "value", "sessions"], 0),
-      percentage: getOptionalNumberByKeys(row, ["percentage", "share", "ratio"]),
-    }))
-    .filter((row) => Boolean(row.location));
-}
-
-function normalizeTrafficSources(data: unknown): TrafficSourceItem[] {
-  let rows = extractArray(data, [
-    "traffic_sources",
-    "trafficSources",
-    "sources",
-    "items",
-    "rows",
-    "data",
-  ]);
-
-  if (!rows.length) {
-    rows = extractArrayByPredicate(data, (item) => {
-      return "source" in item || "channel" in item || "referrer" in item;
-    });
-  }
-
-  const normalizedRows = rows
-    .filter(isRecord)
-    .map((row) => ({
-      source: getStringByKeys(row, ["source", "channel", "referrer", "name", "label"]),
-      users: getNumberByKeys(row, ["users", "count", "visits", "value"], 0),
-      visits:
-        getOptionalNumberByKeys(row, ["visits", "sessions", "hits"]) ??
-        getOptionalNumberByKeys(row, ["count", "users", "value"]),
-      percentage: getOptionalNumberByKeys(row, ["percentage", "share", "ratio"]),
-    }))
-    .filter((row) => Boolean(row.source));
-
-  if (normalizedRows.length) {
-    return normalizedRows;
-  }
-
-  if (isRecord(data) && isRecord(data.sources)) {
-    return Object.entries(data.sources)
-      .map(([source, value]) => ({
-        source,
-        users: toNumber(value, 0),
-        visits: toNumber(value, 0),
-      }))
-      .filter((item) => Boolean(item.source))
-      .sort((a, b) => b.users - a.users);
-  }
-
-  return [];
-}
-
-function normalizePerformance(data: unknown): PerformanceData {
-  const records = [data, ...collectRecords(data)];
-
-  const getMetric = (keys: readonly string[]): number | undefined => {
-    for (const candidate of records) {
-      if (!isRecord(candidate)) {
-        continue;
-      }
-
-      const value = getOptionalNumberByKeys(candidate, keys);
-
-      if (typeof value === "number") {
-        return value;
-      }
-    }
-
-    return undefined;
-  };
-
-  const result: PerformanceData = {
-    avg_response_time_ms: getMetric([
-      "avg_response_time_ms",
-      "avgResponseTimeMs",
-      "avg_response_time",
-      "avgResponseTime",
-    ]),
-    error_rate: getMetric(["error_rate", "errorRate"]),
-    requests_per_minute: getMetric(["requests_per_minute", "requestsPerMinute"]),
-    total_requests: getMetric(["total_requests", "totalRequests"]),
-    avg_response_time: getMetric([
-      "avg_response_time",
-      "avgResponseTime",
-      "avg_response_time_ms",
-      "avgResponseTimeMs",
-      "response_time",
-      "responseTime",
-    ]),
-    uptime: getMetric(["uptime", "uptime_percentage", "uptimePercentage"]),
-    bounce_rate: getMetric(["bounce_rate", "bounceRate"]),
-    conversion_rate: getMetric(["conversion_rate", "conversionRate"]),
-  };
-
-  if (typeof result.uptime !== "number" && typeof result.error_rate === "number") {
-    result.uptime = Number((100 - result.error_rate).toFixed(2));
-  }
-
-  if (typeof result.bounce_rate !== "number" && typeof result.error_rate === "number") {
-    result.bounce_rate = result.error_rate;
-  }
-
-  return result;
-}
-
-function normalizePaginatedItems<T>(
-  data: unknown,
-  keys: readonly string[],
-  page: number,
-  limit: number,
-): PaginatedItems<T> {
-  const items = extractArray(data, keys) as T[];
-  const pagination = normalizePagination(
-    extractPagination(data),
-    page,
-    limit,
-    items.length,
-  );
-
-  return { items, pagination };
-}
-
-function normalizeUserActivityItems(
-  data: unknown,
-  page: number,
-  limit: number,
-): PaginatedItems<UserActivityItem> {
-  if (isRecord(data)) {
-    const dau = getOptionalNumberByKeys(data, ["dau", "DAU"]);
-    const wau = getOptionalNumberByKeys(data, ["wau", "WAU"]);
-    const mau = getOptionalNumberByKeys(data, ["mau", "MAU"]);
-
-    if (
-      typeof dau === "number" ||
-      typeof wau === "number" ||
-      typeof mau === "number"
-    ) {
-      const summaryRows: UserActivityItem[] = [
-        { id: "dau", name: "Daily Active Users", action: dau ?? 0 },
-        { id: "wau", name: "Weekly Active Users", action: wau ?? 0 },
-        { id: "mau", name: "Monthly Active Users", action: mau ?? 0 },
-      ];
-
-      const safePage = Math.max(1, page);
-      const safeLimit = Math.max(1, limit);
-      const start = (safePage - 1) * safeLimit;
-      const end = start + safeLimit;
-      const items = summaryRows.slice(start, end);
-
-      return {
-        items,
-        pagination: normalizePagination(undefined, safePage, safeLimit, summaryRows.length),
-      };
-    }
-  }
-
-  return normalizePaginatedItems<UserActivityItem>(
-    data,
-    ["activity", "user_activity", "userActivity", "items", "data"],
-    page,
-    limit,
-  );
-}
-
-function normalizeActivityFeedItems(
-  data: unknown,
-  page: number,
-  limit: number,
-): PaginatedItems<ActivityFeedItem> {
-  if (Array.isArray(data)) {
-    const safePage = Math.max(1, page);
-    const safeLimit = Math.max(1, limit);
-    const start = (safePage - 1) * safeLimit;
-    const end = start + safeLimit;
-
-    return {
-      items: data.slice(start, end) as ActivityFeedItem[],
-      pagination: normalizePagination(undefined, safePage, safeLimit, data.length),
-    };
-  }
-
-  if (isRecord(data) && Array.isArray(data.items)) {
-    const allItems = data.items as ActivityFeedItem[];
-    const safePage = Math.max(1, page);
-    const safeLimit = Math.max(1, limit);
-    const start = (safePage - 1) * safeLimit;
-    const end = start + safeLimit;
-
-    return {
-      items: allItems.slice(start, end),
-      pagination: normalizePagination(undefined, safePage, safeLimit, allItems.length),
-    };
-  }
-
-  const normalized = normalizePaginatedItems<ActivityFeedItem>(
-    data,
-    ["activity_feed", "activityFeed", "feed", "items", "data"],
-    page,
-    limit,
-  );
-
-  return normalized;
-}
-
-async function fetchAnalyticsData<T>(
-  url: string,
+async function fetchAnalytics<T>(
+  path: string,
   params?: Record<string, number | undefined>,
 ): Promise<T> {
-  const response = await api.get<ApiEnvelope<T> | Record<string, unknown>>(url, {
+  const response = await api.get<ApiEnvelope<T> | ApiErrorEnvelope>(path, {
     params,
   });
-
   const payload = response.data;
 
-  if (isRecord(payload) && "data" in payload) {
-    return (payload as unknown as ApiEnvelope<T>).data;
+  if (!isRecord(payload)) {
+    throw new Error(FALLBACK_ERROR);
   }
 
-  return payload as T;
+  if (payload.success === false) {
+    throw new Error(typeof payload.message === "string" ? payload.message : FALLBACK_ERROR);
+  }
+
+  if (payload.success === true && "data" in payload) {
+    return payload.data as T;
+  }
+
+  throw new Error(FALLBACK_ERROR);
 }
 
-function normalizeOverview(data: unknown): AnalyticsOverview {
-  if (!isRecord(data)) {
-    return {};
-  }
-
-  const records = collectRecords(data);
-  const rootCandidates = [
-    data,
-    ...(isRecord(data.overview) ? [data.overview] : []),
-    ...(isRecord(data.kpi) ? [data.kpi] : []),
-    ...(isRecord(data.kpis) ? [data.kpis] : []),
-    ...(isRecord(data.metrics) ? [data.metrics] : []),
-    ...(isRecord(data.summary) ? [data.summary] : []),
-    ...records,
-  ];
-
-  const result: AnalyticsOverview = {};
-
-  const setMetric = (
-    targetKey: keyof AnalyticsOverview,
-    keyCandidates: readonly OverviewMetricKey[],
-  ) => {
-    for (const source of rootCandidates) {
-      const value = getOverviewMetricValue(source, keyCandidates);
-
-      if (typeof value === "number") {
-        result[targetKey] = value;
-        return;
-      }
-    }
-  };
-
-  setMetric("total_users", ["total_users", "totalUsers"]);
-  setMetric("new_users_today", ["new_users_today", "newUsersToday"]);
-  setMetric("new_users_7d", ["new_users_7d", "newUsers7d"]);
-  setMetric("active_users", ["active_users", "activeUsers"]);
-  setMetric("total_payments", ["total_payments", "totalPayments"]);
-  setMetric("paid_users", ["paid_users", "paidUsers"]);
-  setMetric("total_revenue", ["total_revenue", "totalRevenue"]);
-  setMetric("revenue_7d", ["revenue_7d", "revenue7d"]);
-  setMetric("revenue_30d", ["revenue_30d", "revenue30d"]);
-  setMetric("total_messages", ["total_messages", "totalMessages"]);
-  setMetric("messages_today", ["messages_today", "messagesToday"]);
-  setMetric("messages_7d", ["messages_7d", "messages7d"]);
-
-  const contactSupport =
-    records.find(
-      (record) =>
-        "contact_support_analytics" in record &&
-        isRecord(record.contact_support_analytics),
-    )?.contact_support_analytics ??
-    records.find(
-      (record) =>
-        "contactSupportAnalytics" in record &&
-        isRecord(record.contactSupportAnalytics),
-    )?.contactSupportAnalytics;
-
-  if (isRecord(contactSupport)) {
-    result.contact_support_analytics = {
-      unread_messages_supported:
-        typeof contactSupport.unread_messages_supported === "boolean"
-          ? contactSupport.unread_messages_supported
-          : typeof contactSupport.unreadMessagesSupported === "boolean"
-          ? contactSupport.unreadMessagesSupported
-          : undefined,
-      unread_messages: toNumber(
-        contactSupport.unread_messages ?? contactSupport.unreadMessages,
-        0,
-      ),
-      unread_messages_count: toNumber(
-        contactSupport.unread_messages_count ?? contactSupport.unreadMessagesCount,
-        0,
-      ),
-    };
-  }
-
-  return result;
+export async function getAnalyticsOverview(days: DayRange): Promise<AnalyticsOverview> {
+  return fetchAnalytics<AnalyticsOverview>("/admin/analytics/overview", { days });
 }
 
-export async function getAnalyticsOverview(
+export async function getUsersGrowth(
   days: DayRange,
-): Promise<AnalyticsOverview> {
-  const data = await fetchAnalyticsData<unknown>("/admin/analytics/overview", {
-    days,
-  });
+): Promise<UsersGrowthResponse["growth"]> {
+  const data = await fetchAnalytics<UsersGrowthResponse>(
+    "/admin/analytics/users-growth",
+    { days },
+  );
 
-  return normalizeOverview(data);
-}
-
-export async function getUsersGrowth(days: DayRange): Promise<UsersGrowthPoint[]> {
-  const data = await fetchAnalyticsData<unknown>("/admin/analytics/users-growth", {
-    days,
-  });
-
-  return normalizeUsersGrowth(data);
+  return data.growth ?? [];
 }
 
 export async function getRevenueGrowth(
   days: DayRange,
-): Promise<RevenueGrowthPoint[]> {
-  const data = await fetchAnalyticsData<unknown>(
+): Promise<RevenueGrowthResponse["growth"]> {
+  const data = await fetchAnalytics<RevenueGrowthResponse>(
     "/admin/analytics/revenue-growth",
     { days },
   );
 
-  return normalizeRevenueGrowth(data);
+  return data.growth ?? [];
 }
 
 export async function getMessagesGrowth(
   days: DayRange,
-): Promise<MessagesGrowthPoint[]> {
-  const data = await fetchAnalyticsData<unknown>(
+): Promise<MessagesGrowthResponse["growth"]> {
+  const data = await fetchAnalytics<MessagesGrowthResponse>(
     "/admin/analytics/messages-growth",
     { days },
   );
 
-  return normalizeMessagesGrowth(data);
+  return data.growth ?? [];
 }
 
-export async function getPageViews(days?: DayRange): Promise<PageViewsPoint[]> {
-  const data = await fetchAnalyticsData<unknown>(
-    "/admin/analytics/page-views",
-    typeof days === "number" ? { days } : undefined,
-  );
-
-  return normalizePageViews(data);
+export async function getPageViews(
+  days: DayRange,
+  limit = DEFAULT_PAGE_SIZE,
+): Promise<PageViewsSummary> {
+  return fetchAnalytics<PageViewsSummary>("/admin/analytics/page-views", {
+    days,
+    limit,
+  });
 }
 
 export async function getTopPages(
-  days: DayRange = 30,
-  limit = 10,
+  days: DayRange,
+  limit = DEFAULT_PAGE_SIZE,
 ): Promise<TopPage[]> {
-  const data = await fetchAnalyticsData<unknown>(
+  const data = await fetchAnalytics<{ range_days: number; top_pages: TopPage[] }>(
     "/admin/analytics/top-pages",
     { days, limit },
   );
 
-  return normalizeTopPages(data);
+  return data.top_pages ?? [];
 }
 
-export async function getDevices(days?: DayRange): Promise<DeviceBreakdownItem[]> {
-  const data = await fetchAnalyticsData<unknown>(
-    "/admin/analytics/devices",
-    typeof days === "number" ? { days } : undefined,
-  );
-
-  return normalizeDevices(data);
+export async function getDevices(days: DayRange): Promise<DeviceAnalyticsPayload> {
+  return fetchAnalytics<DeviceAnalyticsPayload>("/admin/analytics/devices", { days });
 }
 
 export async function getDevicesAnalytics(
-  days?: DayRange,
+  days: DayRange,
 ): Promise<DeviceAnalyticsPayload> {
-  const data = await fetchAnalyticsData<unknown>(
-    "/admin/analytics/devices",
-    typeof days === "number" ? { days } : undefined,
-  );
-
-  return normalizeDevicesAnalyticsPayload(data);
+  return getDevices(days);
 }
 
 export async function getLiveUsers(): Promise<LiveUsersData> {
-  const data = await fetchAnalyticsData<unknown>("/admin/analytics/live-users");
-
-  return normalizeLiveUsers(data);
+  return fetchAnalytics<LiveUsersData>("/admin/analytics/live-users");
 }
 
-export async function getFeatureUsage(
-  days?: DayRange,
-): Promise<FeatureUsageItem[]> {
-  const data = await fetchAnalyticsData<unknown>(
-    "/admin/analytics/feature-usage",
-    typeof days === "number" ? { days } : undefined,
-  );
-
-  return normalizeFeatureUsage(data);
+export async function getFeatureUsage(days: DayRange): Promise<FeatureUsageData> {
+  return fetchAnalytics<FeatureUsageData>("/admin/analytics/feature-usage", { days });
 }
 
-export async function getUserActivity(
-  page: number,
-  limit: number,
-): Promise<PaginatedItems<UserActivityItem>> {
-  const data = await fetchAnalyticsData<unknown>("/admin/analytics/user-activity");
-
-  return normalizeUserActivityItems(data, page, limit);
+export async function getUserActivity(): Promise<UserActivityData> {
+  return fetchAnalytics<UserActivityData>("/admin/analytics/user-activity");
 }
 
-export async function getSessions(days?: DayRange): Promise<SessionsPoint[]> {
-  const data = await fetchAnalyticsData<unknown>(
-    "/admin/analytics/sessions",
-    typeof days === "number" ? { days } : undefined,
-  );
-
-  return normalizeSessions(data);
+export async function getSessions(days: DayRange): Promise<SessionsSummary> {
+  return fetchAnalytics<SessionsSummary>("/admin/analytics/sessions", { days });
 }
 
 export async function getLocations(
-  days: DayRange = 30,
-  limit = 20,
-): Promise<LocationBreakdownItem[]> {
-  const data = await fetchAnalyticsData<unknown>(
-    "/admin/analytics/locations",
-    { days, limit },
-  );
-
-  return normalizeLocations(data);
+  days: DayRange,
+  limit = DEFAULT_PAGE_SIZE,
+): Promise<LocationsData> {
+  return fetchAnalytics<LocationsData>("/admin/analytics/locations", {
+    days,
+    limit,
+  });
 }
 
 export async function getTrafficSources(
-  days?: DayRange,
-): Promise<TrafficSourceItem[]> {
-  const data = await fetchAnalyticsData<unknown>(
-    "/admin/analytics/traffic-sources",
-    typeof days === "number" ? { days } : undefined,
-  );
-
-  return normalizeTrafficSources(data);
-}
-
-export async function getPerformance(minutes = 60): Promise<PerformanceData> {
-  const data = await fetchAnalyticsData<unknown>(
-    "/admin/analytics/performance",
-    { minutes },
-  );
-
-  return normalizePerformance(data);
-}
-
-export async function getActivityFeed(
-  page: number,
-  limit: number,
-): Promise<PaginatedItems<ActivityFeedItem>> {
-  const data = await fetchAnalyticsData<unknown>("/admin/analytics/activity-feed", {
+  days: DayRange,
+  limit = DEFAULT_PAGE_SIZE,
+): Promise<TrafficSourcesData> {
+  return fetchAnalytics<TrafficSourcesData>("/admin/analytics/traffic-sources", {
+    days,
     limit,
   });
+}
 
-  return normalizeActivityFeedItems(data, page, limit);
+export async function getPerformance(
+  minutes: MinutesRange,
+): Promise<PerformanceData> {
+  return fetchAnalytics<PerformanceData>("/admin/analytics/performance", {
+    minutes,
+  });
+}
+
+export async function getActivityFeed(limit = 50): Promise<ActivityFeedData> {
+  return fetchAnalytics<ActivityFeedData>("/admin/analytics/activity-feed", { limit });
 }
 
 export async function getRecentUsers(
   page: number,
-  limit: number,
+  limit = DEFAULT_PAGE_SIZE,
 ): Promise<PaginatedItems<RecentUser>> {
-  const data = await fetchAnalyticsData<unknown>("/admin/analytics/recent-users", {
+  const data = await fetchAnalytics<{
+    users: RecentUser[];
+    pagination?: PaginationPayload;
+  }>("/admin/analytics/recent-users", {
     page,
     limit,
   });
 
-  return normalizePaginatedItems<RecentUser>(
-    data,
-    ["users", "recent_users", "recentUsers", "items", "data"],
-    page,
-    limit,
-  );
+  return {
+    items: data.users ?? [],
+    pagination: normalizePagination(data.pagination, page, limit, data.users?.length ?? 0),
+  };
 }
 
 export async function getRecentPayments(
   page: number,
-  limit: number,
+  limit = DEFAULT_PAGE_SIZE,
 ): Promise<PaginatedItems<RecentPayment>> {
-  const data = await fetchAnalyticsData<unknown>(
-    "/admin/analytics/recent-payments",
-    { page, limit },
-  );
-
-  return normalizePaginatedItems<RecentPayment>(
-    data,
-    ["payments", "recent_payments", "recentPayments", "items", "data"],
+  const data = await fetchAnalytics<{
+    payments: RecentPayment[];
+    pagination?: PaginationPayload;
+  }>("/admin/analytics/recent-payments", {
     page,
     limit,
-  );
+  });
+
+  return {
+    items: data.payments ?? [],
+    pagination: normalizePagination(
+      data.pagination,
+      page,
+      limit,
+      data.payments?.length ?? 0,
+    ),
+  };
 }
 
 export async function getRecentMessages(
   page: number,
-  limit: number,
+  limit = DEFAULT_PAGE_SIZE,
 ): Promise<PaginatedItems<RecentMessage>> {
-  const data = await fetchAnalyticsData<unknown>(
-    "/admin/analytics/recent-messages",
-    { page, limit },
-  );
-
-  return normalizePaginatedItems<RecentMessage>(
-    data,
-    ["messages", "recent_messages", "recentMessages", "items", "data"],
+  const data = await fetchAnalytics<{
+    messages: RecentMessage[];
+    pagination?: PaginationPayload;
+  }>("/admin/analytics/recent-messages", {
     page,
     limit,
-  );
+  });
+
+  return {
+    items: data.messages ?? [],
+    pagination: normalizePagination(
+      data.pagination,
+      page,
+      limit,
+      data.messages?.length ?? 0,
+    ),
+  };
 }
 
 export function getAnalyticsErrorMessage(error: unknown): string {
   if (typeof error === "object" && error !== null && "response" in error) {
-    const err = error as { response?: { data?: { message?: string } } };
+    const err = error as {
+      response?: {
+        data?: {
+          message?: string;
+        };
+      };
+    };
 
     return err.response?.data?.message ?? FALLBACK_ERROR;
   }
 
-  if (error instanceof Error) {
+  if (error instanceof Error && error.message) {
     return error.message;
   }
 

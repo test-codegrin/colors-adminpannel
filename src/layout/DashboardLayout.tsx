@@ -8,13 +8,14 @@ import Sidebar from "@/layout/Sidebar";
 import { ThemeSwitch } from "@/components/theme-switch";
 
 function getPageTitle(pathname: string): string {
+  if (pathname === "/dashboard") return "Analytics Dashboard";
   if (pathname === "/dashboard/users") return "Users";
   if (pathname === "/dashboard/payments") return "Payments";
   if (pathname === "/dashboard/contact") return "Contact Messages";
   if (pathname === "/dashboard/live-users") return "Live Users";
   if (pathname === "/dashboard/devices-analytics") return "Devices Analytics";
 
-  return "Dashboard";
+  return "Admin Panel";
 }
 
 function DashboardLayout() {

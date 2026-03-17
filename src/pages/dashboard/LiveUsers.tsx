@@ -89,6 +89,22 @@ const metricCards: MetricCard[] = [
   },
 ];
 
+const emptyLiveUsersData: LiveUsersData = {
+  live_users: 0,
+  active_users_now: 0,
+  active_sessions: 0,
+  users_last_5_minutes: 0,
+  users_last_30_minutes: 0,
+  logged_in_users_now: 0,
+  guest_users_now: 0,
+  logged_in_users_last_30_minutes: 0,
+  guest_users_last_30_minutes: 0,
+  logged_in_active_sessions: 0,
+  guest_active_sessions: 0,
+  sessions_last_30_minutes: 0,
+  sessions_per_user_now: 0,
+};
+
 function formatValue(value: number | undefined): string {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return "-";
@@ -184,7 +200,7 @@ export default function LiveUsers() {
                   </div>
 
                   <p className="text-2xl font-semibold text-foreground">
-                    {formatValue(metric.getValue(liveUsersData ?? { live_users: 0 }))}
+                    {formatValue(metric.getValue(liveUsersData ?? emptyLiveUsersData))}
                   </p>
                 </CardBody>
               </Card>

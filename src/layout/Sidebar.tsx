@@ -15,7 +15,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    label: "Dashboard",
+    label: "Analytics",
     path: "/dashboard",
     icon: "mdi:view-dashboard-outline",
   },

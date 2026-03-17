@@ -194,7 +194,9 @@ export default function DevicesAnalytics() {
                       ? item.sessions_per_user.toFixed(2)
                       : "-"}
                   </TableCell>
-                  <TableCell>{formatPercent(item.percentage)}</TableCell>
+                  <TableCell>
+                    {formatPercent(item.users_share_percent ?? item.percentage)}
+                  </TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -224,7 +226,9 @@ export default function DevicesAnalytics() {
                     <TableCell>{item.browser}</TableCell>
                     <TableCell>{formatNumber(item.users)}</TableCell>
                     <TableCell>{formatNumber(item.sessions)}</TableCell>
-                    <TableCell>{formatPercent(item.percentage)}</TableCell>
+                    <TableCell>
+                      {formatPercent(item.users_share_percent ?? item.percentage)}
+                    </TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -253,7 +257,9 @@ export default function DevicesAnalytics() {
                     <TableCell>{item.os}</TableCell>
                     <TableCell>{formatNumber(item.users)}</TableCell>
                     <TableCell>{formatNumber(item.sessions)}</TableCell>
-                    <TableCell>{formatPercent(item.percentage)}</TableCell>
+                    <TableCell>
+                      {formatPercent(item.users_share_percent ?? item.percentage)}
+                    </TableCell>
                   </TableRow>
                 )}
               </TableBody>
