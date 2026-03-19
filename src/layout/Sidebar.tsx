@@ -30,6 +30,11 @@ const navItems: NavItem[] = [
     icon: "mdi:credit-card-outline",
   },
   {
+    label: "Subscription Plans",
+    path: "/dashboard/subscription-plans",
+    icon: "mdi:ticket-confirmation-outline",
+  },
+  {
     label: "Contact Messages",
     path: "/dashboard/contact",
     icon: "fluent-mdl2:contact",
