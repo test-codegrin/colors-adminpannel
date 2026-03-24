@@ -1,5 +1,10 @@
 "use client";
 
+import type {
+  SubscriptionPlan,
+  SubscriptionPlanPayload,
+} from "@/types/subscriptionPlan.types";
+
 import {
   Button,
   Card,
@@ -39,7 +44,6 @@ import {
   getSubscriptionPlansErrorMessage,
   updateSubscriptionPlanById,
 } from "@/api/subscriptionPlans.api";
-import type { SubscriptionPlan, SubscriptionPlanPayload } from "@/types/subscriptionPlan.types";
 
 interface PlanFormState {
   name: string;
@@ -60,7 +64,9 @@ const defaultFormState: PlanFormState = {
 function formatDate(value?: string): string {
   if (!value) return "-";
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleString();
 }
 
@@ -93,14 +99,17 @@ export default function SubscriptionPlans() {
   const [totalPages, setTotalPages] = useState(1);
   const hasMountedRef = useRef(false);
 
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(
+    null,
+  );
   const [isViewLoading, setIsViewLoading] = useState(false);
 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
   const [formState, setFormState] = useState<PlanFormState>(defaultFormState);
 
-  const [pendingDeletePlan, setPendingDeletePlan] = useState<SubscriptionPlan | null>(null);
+  const [pendingDeletePlan, setPendingDeletePlan] =
+    useState<SubscriptionPlan | null>(null);
   const [deletingPlanId, setDeletingPlanId] = useState<number | null>(null);
 
   const {
@@ -148,6 +157,7 @@ export default function SubscriptionPlans() {
   useEffect(() => {
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
+
       return;
     }
 
@@ -216,6 +226,7 @@ export default function SubscriptionPlans() {
         radius: "full",
         timeout: 3000,
       });
+
       return null;
     }
 
@@ -227,6 +238,7 @@ export default function SubscriptionPlans() {
         radius: "full",
         timeout: 3000,
       });
+
       return null;
     }
 
@@ -238,6 +250,7 @@ export default function SubscriptionPlans() {
         radius: "full",
         timeout: 3000,
       });
+
       return null;
     }
 
@@ -265,7 +278,8 @@ export default function SubscriptionPlans() {
 
         addToast({
           title: "Plan Updated",
-          description: result.message ?? "Subscription plan updated successfully.",
+          description:
+            result.message ?? "Subscription plan updated successfully.",
           color: "success",
           radius: "full",
           timeout: 3000,
@@ -275,7 +289,8 @@ export default function SubscriptionPlans() {
 
         addToast({
           title: "Plan Created",
-          description: result.message ?? "Subscription plan created successfully.",
+          description:
+            result.message ?? "Subscription plan created successfully.",
           color: "success",
           radius: "full",
           timeout: 3000,
@@ -304,6 +319,7 @@ export default function SubscriptionPlans() {
     }
 
     const id = pendingDeletePlan.id;
+
     setDeletingPlanId(id);
 
     try {
@@ -311,7 +327,8 @@ export default function SubscriptionPlans() {
 
       addToast({
         title: "Plan Deleted",
-        description: result.message ?? "Subscription plan deleted successfully.",
+        description:
+          result.message ?? "Subscription plan deleted successfully.",
         color: "success",
         radius: "full",
         timeout: 3000,
@@ -346,23 +363,29 @@ export default function SubscriptionPlans() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-semibold">Subscription Plans</h2>
-              <p className="text-sm text-default-500">Create and manage plan pricing.</p>
+              <p className="text-sm text-default-500">
+                Create and manage plan pricing.
+              </p>
             </div>
 
             <div className="flex items-center gap-2">
               <Button
+                isLoading={plansList.isLoading}
+                startContent={
+                  !plansList.isLoading && (
+                    <Icon icon="solar:refresh-bold" width={18} />
+                  )
+                }
                 variant="flat"
                 onPress={() => plansList.reload()}
-                isLoading={plansList.isLoading}
-                startContent={!plansList.isLoading && <Icon icon="solar:refresh-bold" width={18} />}
               >
                 Refresh
               </Button>
 
               <Button
                 color="primary"
-                onPress={openCreateModal}
                 startContent={<Icon icon="mdi:plus" width={18} />}
+                onPress={openCreateModal}
               >
                 Add Plan
               </Button>
@@ -371,7 +394,7 @@ export default function SubscriptionPlans() {
 
           {error && <p className="text-sm text-danger">{error}</p>}
 
-          <Table aria-label="Subscription plans table" removeWrapper>
+          <Table removeWrapper aria-label="Subscription plans table">
             <TableHeader>
               <TableColumn>ID</TableColumn>
               <TableColumn>Name</TableColumn>
@@ -383,73 +406,93 @@ export default function SubscriptionPlans() {
             </TableHeader>
 
             <TableBody
+              emptyContent="No subscription plans found"
               isLoading={plansList.isLoading}
               items={plansList.items}
               loadingContent={<Spinner label="Loading plans..." />}
-              emptyContent="No subscription plans found"
             >
               {(plan: SubscriptionPlan) => (
                 <TableRow key={String(plan.id)}>
                   <TableCell>#{plan.id}</TableCell>
                   <TableCell>{plan.name ?? "-"}</TableCell>
-                  <TableCell>Rs. {Number(plan.price ?? 0).toFixed(2)}</TableCell>
+                  <TableCell>
+                    Rs. {Number(plan.price ?? 0).toFixed(2)}
+                  </TableCell>
                   <TableCell>
                     <Chip
+                      color={
+                        toBooleanFlag(plan.is_beta) ? "warning" : "default"
+                      }
                       size="sm"
                       variant="flat"
-                      color={toBooleanFlag(plan.is_beta) ? "warning" : "default"}
                     >
                       {toBooleanFlag(plan.is_beta) ? "Yes" : "No"}
                     </Chip>
                   </TableCell>
                   <TableCell>
                     <Chip
+                      color={
+                        toBooleanFlag(plan.is_active) ? "success" : "danger"
+                      }
                       size="sm"
                       variant="flat"
-                      color={toBooleanFlag(plan.is_active) ? "success" : "danger"}
                     >
                       {toBooleanFlag(plan.is_active) ? "Active" : "Inactive"}
                     </Chip>
                   </TableCell>
-                  <TableCell>{formatDate(plan.updated_at ?? plan.created_at)}</TableCell>
+                  <TableCell>
+                    {formatDate(plan.updated_at ?? plan.created_at)}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Tooltip content="View plan">
                         <Button
                           isIconOnly
                           size="sm"
+                          startContent={
+                            <Icon height={16} icon="mdi:eye" width={16} />
+                          }
                           variant="flat"
                           onPress={() => openViewModal(plan.id)}
-                          startContent={<Icon icon="mdi:eye" width={16} height={16} />}
-                        ></Button>
+                        />
                       </Tooltip>
 
                       <Tooltip content="Edit plan">
                         <Button
                           isIconOnly
-                          size="sm"
                           color="secondary"
+                          size="sm"
+                          startContent={
+                            <Icon
+                              height={16}
+                              icon="mdi:pencil-outline"
+                              width={16}
+                            />
+                          }
                           variant="flat"
                           onPress={() => openEditModal(plan)}
-                          startContent={<Icon icon="mdi:pencil-outline" width={16} height={16} />}
-                        ></Button>
+                        />
                       </Tooltip>
 
                       <Tooltip content="Delete plan">
                         <Button
                           isIconOnly
-                          size="sm"
                           color="danger"
-                          variant="flat"
                           isDisabled={deletingPlanId !== null}
                           isLoading={deletingPlanId === plan.id}
-                          onPress={() => openDeleteModal(plan)}
+                          size="sm"
                           startContent={
                             deletingPlanId !== plan.id ? (
-                              <Icon icon="mdi:delete-outline" width={16} height={16} />
+                              <Icon
+                                height={16}
+                                icon="mdi:delete-outline"
+                                width={16}
+                              />
                             ) : undefined
                           }
-                        ></Button>
+                          variant="flat"
+                          onPress={() => openDeleteModal(plan)}
+                        />
                       </Tooltip>
                     </div>
                   </TableCell>
@@ -460,13 +503,14 @@ export default function SubscriptionPlans() {
 
           <div className="flex w-full items-end justify-between gap-4">
             <Select
-              label="Limit"
-              size="sm"
               disallowEmptySelection
-              selectedKeys={[String(limit)]}
               className="w-28"
+              label="Limit"
+              selectedKeys={[String(limit)]}
+              size="sm"
               onChange={(event) => {
                 const nextLimit = Number(event.target.value);
+
                 if (nextLimit !== limit) {
                   setLimit(nextLimit);
                   setPage(1);
@@ -479,12 +523,12 @@ export default function SubscriptionPlans() {
             </Select>
 
             <Pagination
-              total={Math.max(totalPages, 1)}
-              page={page}
-              onChange={setPage}
-              isDisabled={plansList.isLoading}
               showControls
               color="primary"
+              isDisabled={plansList.isLoading}
+              page={page}
+              total={Math.max(totalPages, 1)}
+              onChange={setPage}
             />
           </div>
         </CardBody>
@@ -493,11 +537,13 @@ export default function SubscriptionPlans() {
       <Modal
         backdrop="blur"
         isOpen={isViewModalOpen}
-        onOpenChange={onViewOpenChange}
         size="md"
+        onOpenChange={onViewOpenChange}
       >
         <ModalContent>
-          <ModalHeader className="text-base font-semibold">Subscription Plan</ModalHeader>
+          <ModalHeader className="text-base font-semibold">
+            Subscription Plan
+          </ModalHeader>
           <ModalBody className="pb-4">
             {isViewLoading ? (
               <div className="flex min-h-[140px] items-center justify-center">
@@ -505,30 +551,39 @@ export default function SubscriptionPlans() {
               </div>
             ) : selectedPlan ? (
               <div className="space-y-3">
-                <Input label="Name" value={selectedPlan.name ?? "-"} isReadOnly variant="flat" />
                 <Input
-                  label="Price"
-                  value={`Rs. ${Number(selectedPlan.price ?? 0).toFixed(2)}`}
                   isReadOnly
+                  label="Name"
+                  value={selectedPlan.name ?? "-"}
                   variant="flat"
                 />
                 <Input
+                  isReadOnly
+                  label="Price"
+                  value={`Rs. ${Number(selectedPlan.price ?? 0).toFixed(2)}`}
+                  variant="flat"
+                />
+                <Input
+                  isReadOnly
                   label="Description"
                   value={stripHtmlTags(selectedPlan.description ?? "-") || "-"}
-                  isReadOnly
                   variant="flat"
                 />
                 <div className="grid grid-cols-2 gap-3">
                   <Input
+                    isReadOnly
                     label="Beta"
                     value={toBooleanFlag(selectedPlan.is_beta) ? "Yes" : "No"}
-                    isReadOnly
                     variant="flat"
                   />
                   <Input
-                    label="Status"
-                    value={toBooleanFlag(selectedPlan.is_active) ? "Active" : "Inactive"}
                     isReadOnly
+                    label="Status"
+                    value={
+                      toBooleanFlag(selectedPlan.is_active)
+                        ? "Active"
+                        : "Inactive"
+                    }
                     variant="flat"
                   />
                 </div>
@@ -543,8 +598,8 @@ export default function SubscriptionPlans() {
       <Modal
         backdrop="blur"
         isOpen={isFormModalOpen}
-        onOpenChange={onFormOpenChange}
         size="lg"
+        onOpenChange={onFormOpenChange}
       >
         <ModalContent>
           <ModalHeader className="text-base font-semibold">
@@ -552,36 +607,44 @@ export default function SubscriptionPlans() {
           </ModalHeader>
           <ModalBody className="pb-2">
             <Input
+              isRequired
               label="Plan Name"
               value={formState.name}
-              onValueChange={(value) => setFormState((prev) => ({ ...prev, name: value }))}
-              isRequired
+              onValueChange={(value) =>
+                setFormState((prev) => ({ ...prev, name: value }))
+              }
             />
 
             <Input
+              isRequired
               label="Price"
+              min={0}
               placeholder="199.99"
+              step={0.01}
               type="number"
               value={formState.price}
-              onValueChange={(value) => setFormState((prev) => ({ ...prev, price: value }))}
-              min={0}
-              step={0.01}
-              isRequired
+              onValueChange={(value) =>
+                setFormState((prev) => ({ ...prev, price: value }))
+              }
             />
 
             <Textarea
+              isRequired
               label="Description"
+              minRows={3}
               placeholder="Plan content"
               value={formState.description}
-              onValueChange={(value) => setFormState((prev) => ({ ...prev, description: value }))}
-              minRows={3}
-              isRequired
+              onValueChange={(value) =>
+                setFormState((prev) => ({ ...prev, description: value }))
+              }
             />
 
             <div className="flex flex-wrap gap-6 py-2">
               <Switch
                 isSelected={formState.is_beta}
-                onValueChange={(value) => setFormState((prev) => ({ ...prev, is_beta: value }))}
+                onValueChange={(value) =>
+                  setFormState((prev) => ({ ...prev, is_beta: value }))
+                }
               >
                 Is Beta
               </Switch>
@@ -598,16 +661,20 @@ export default function SubscriptionPlans() {
           </ModalBody>
           <ModalFooter>
             <Button
+              isDisabled={isSubmittingForm}
               variant="flat"
               onPress={() => {
                 onFormClose();
                 resetForm();
               }}
-              isDisabled={isSubmittingForm}
             >
               Cancel
             </Button>
-            <Button color="primary" onPress={handleSavePlan} isLoading={isSubmittingForm}>
+            <Button
+              color="primary"
+              isLoading={isSubmittingForm}
+              onPress={handleSavePlan}
+            >
               {isEditMode ? "Update Plan" : "Create Plan"}
             </Button>
           </ModalFooter>
@@ -616,13 +683,15 @@ export default function SubscriptionPlans() {
 
       <Modal
         backdrop="blur"
+        hideCloseButton={deletingPlanId !== null}
+        isDismissable={deletingPlanId === null}
         isOpen={isDeleteModalOpen}
         onOpenChange={onDeleteOpenChange}
-        isDismissable={deletingPlanId === null}
-        hideCloseButton={deletingPlanId !== null}
       >
         <ModalContent>
-          <ModalHeader className="text-base font-semibold">Delete Plan</ModalHeader>
+          <ModalHeader className="text-base font-semibold">
+            Delete Plan
+          </ModalHeader>
           <ModalBody>
             <p className="text-sm text-default-600">
               Are you sure you want to delete{" "}
@@ -633,13 +702,17 @@ export default function SubscriptionPlans() {
             </p>
           </ModalBody>
           <ModalFooter>
-            <Button variant="flat" onPress={onDeleteClose} isDisabled={deletingPlanId !== null}>
+            <Button
+              isDisabled={deletingPlanId !== null}
+              variant="flat"
+              onPress={onDeleteClose}
+            >
               Cancel
             </Button>
             <Button
               color="danger"
-              onPress={handleDeletePlan}
               isLoading={deletingPlanId === pendingDeletePlan?.id}
+              onPress={handleDeletePlan}
             >
               Delete
             </Button>
@@ -649,4 +722,3 @@ export default function SubscriptionPlans() {
     </>
   );
 }
-

@@ -1,5 +1,7 @@
 "use client";
 
+import type { UpdateUserPayload, User } from "@/types/user.types";
+
 import {
   Avatar,
   Button,
@@ -14,7 +16,7 @@ import {
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
-import type { UpdateUserPayload, User } from "@/types/user.types";
+
 import Loader from "./Loader";
 
 /* ---------- Utility ---------- */
@@ -22,12 +24,15 @@ import Loader from "./Loader";
 function formatDate(value?: string): string {
   if (!value) return "-";
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleString();
 }
 
 function getInitials(name?: string): string {
   if (!name) return "U";
+
   return name
     .trim()
     .split(" ")
@@ -91,22 +96,29 @@ export default function UserDetailsModal({
   onUpdateUser,
 }: Props) {
   const [isEditMode, setIsEditMode] = useState(false);
-  const [formValues, setFormValues] = useState<EditFormValues>(initialEditFormValues);
-  const [formErrors, setFormErrors] = useState<EditFormErrors>(initialEditFormErrors);
+  const [formValues, setFormValues] = useState<EditFormValues>(
+    initialEditFormValues,
+  );
+  const [formErrors, setFormErrors] = useState<EditFormErrors>(
+    initialEditFormErrors,
+  );
 
   useEffect(() => {
     if (!selectedUser) {
       setFormValues(initialEditFormValues);
       setFormErrors(initialEditFormErrors);
       setIsEditMode(false);
+
       return;
     }
 
     setFormValues({
       name: typeof selectedUser.name === "string" ? selectedUser.name : "",
       email: typeof selectedUser.email === "string" ? selectedUser.email : "",
-      mobile: typeof selectedUser.mobile === "string" ? selectedUser.mobile : "",
-      picture: typeof selectedUser.picture === "string" ? selectedUser.picture : "",
+      mobile:
+        typeof selectedUser.mobile === "string" ? selectedUser.mobile : "",
+      picture:
+        typeof selectedUser.picture === "string" ? selectedUser.picture : "",
       is_paid: isUserPaid(selectedUser.is_paid),
       password: "",
     });
@@ -121,7 +133,10 @@ export default function UserDetailsModal({
     }
   }, [isOpen]);
 
-  const handleFieldChange = (field: keyof EditFormValues, value: string | boolean) => {
+  const handleFieldChange = (
+    field: keyof EditFormValues,
+    value: string | boolean,
+  ) => {
     setFormValues((prev) => ({
       ...prev,
       [field]: value,
@@ -131,14 +146,17 @@ export default function UserDetailsModal({
   const handleEditCancel = () => {
     if (!selectedUser) {
       setIsEditMode(false);
+
       return;
     }
 
     setFormValues({
       name: typeof selectedUser.name === "string" ? selectedUser.name : "",
       email: typeof selectedUser.email === "string" ? selectedUser.email : "",
-      mobile: typeof selectedUser.mobile === "string" ? selectedUser.mobile : "",
-      picture: typeof selectedUser.picture === "string" ? selectedUser.picture : "",
+      mobile:
+        typeof selectedUser.mobile === "string" ? selectedUser.mobile : "",
+      picture:
+        typeof selectedUser.picture === "string" ? selectedUser.picture : "",
       is_paid: isUserPaid(selectedUser.is_paid),
       password: "",
     });
@@ -169,11 +187,16 @@ export default function UserDetailsModal({
       return;
     }
 
-    const currentName = typeof selectedUser.name === "string" ? selectedUser.name.trim() : "";
-    const currentEmail = typeof selectedUser.email === "string" ? selectedUser.email.trim() : "";
-    const currentMobile = typeof selectedUser.mobile === "string" ? selectedUser.mobile.trim() : "";
+    const currentName =
+      typeof selectedUser.name === "string" ? selectedUser.name.trim() : "";
+    const currentEmail =
+      typeof selectedUser.email === "string" ? selectedUser.email.trim() : "";
+    const currentMobile =
+      typeof selectedUser.mobile === "string" ? selectedUser.mobile.trim() : "";
     const currentPicture =
-      typeof selectedUser.picture === "string" ? selectedUser.picture.trim() : "";
+      typeof selectedUser.picture === "string"
+        ? selectedUser.picture.trim()
+        : "";
     const currentIsPaid = isUserPaid(selectedUser.is_paid);
 
     const payload: UpdateUserPayload = {};
@@ -187,7 +210,8 @@ export default function UserDetailsModal({
     if (nextEmail !== currentEmail) payload.email = nextEmail;
     if (nextMobile !== currentMobile) payload.mobile = nextMobile;
     if (nextPicture !== currentPicture) payload.picture = nextPicture;
-    if (formValues.is_paid !== currentIsPaid) payload.is_paid = formValues.is_paid;
+    if (formValues.is_paid !== currentIsPaid)
+      payload.is_paid = formValues.is_paid;
     if (nextPassword.trim()) payload.password = nextPassword;
 
     if (Object.keys(payload).length === 0) {
@@ -198,6 +222,7 @@ export default function UserDetailsModal({
         radius: "full",
         timeout: 3000,
       });
+
       return;
     }
 
@@ -212,12 +237,12 @@ export default function UserDetailsModal({
 
   return (
     <Modal
-      backdrop="blur"
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      size="md"
       hideCloseButton
+      backdrop="blur"
       isDismissable={false}
+      isOpen={isOpen}
+      size="md"
+      onOpenChange={onOpenChange}
     >
       <ModalContent>
         {(onClose) => (
@@ -228,10 +253,10 @@ export default function UserDetailsModal({
                 {selectedUser && !isUserLoading ? (
                   <Button
                     isIconOnly
-                    variant={isEditMode ? "flat" : "light"}
                     color={isEditMode ? "warning" : "default"}
-                    radius="full"
                     isDisabled={isUpdatingUser}
+                    radius="full"
+                    variant={isEditMode ? "flat" : "light"}
                     onPress={() => {
                       if (isEditMode) {
                         handleEditCancel();
@@ -240,12 +265,20 @@ export default function UserDetailsModal({
                       }
                     }}
                   >
-                    <Icon icon={isEditMode ? "mdi:close" : "mdi:pencil"} className="w-5 h-5" />
+                    <Icon
+                      className="w-5 h-5"
+                      icon={isEditMode ? "mdi:close" : "mdi:pencil"}
+                    />
                   </Button>
                 ) : null}
 
-                <Button isIconOnly variant="light" radius="full" onPress={onClose}>
-                  <Icon icon="mdi:close" className="w-5 h-5" />
+                <Button
+                  isIconOnly
+                  radius="full"
+                  variant="light"
+                  onPress={onClose}
+                >
+                  <Icon className="w-5 h-5" icon="mdi:close" />
                 </Button>
               </div>
             </ModalHeader>
@@ -258,70 +291,91 @@ export default function UserDetailsModal({
                   {/* Avatar */}
                   <div className="flex justify-center">
                     <Avatar
-                      src={selectedUser.picture || undefined}
-                      name={getInitials(selectedUser.name)}
                       isBordered
-                      color="primary"
-                      radius="full"
                       className="w-20 h-20 text-white text-xl font-semibold"
+                      color="primary"
+                      name={getInitials(selectedUser.name)}
+                      radius="full"
+                      src={selectedUser.picture || undefined}
                     />
                   </div>
 
                   <Input
-                    label="Full Name"
-                    value={isEditMode ? formValues.name : selectedUser.name ?? "-"}
-                    variant="flat"
                     isReadOnly={!isEditMode}
+                    label="Full Name"
+                    value={
+                      isEditMode ? formValues.name : (selectedUser.name ?? "-")
+                    }
+                    variant="flat"
                     onValueChange={(value) => handleFieldChange("name", value)}
                   />
 
                   <Input
-                    label="Email"
-                    value={isEditMode ? formValues.email : selectedUser.email ?? "-"}
-                    variant="flat"
-                    isReadOnly={!isEditMode}
-                    onValueChange={(value) => handleFieldChange("email", value)}
-                    isInvalid={Boolean(formErrors.email)}
                     errorMessage={formErrors.email}
+                    isInvalid={Boolean(formErrors.email)}
+                    isReadOnly={!isEditMode}
+                    label="Email"
+                    value={
+                      isEditMode
+                        ? formValues.email
+                        : (selectedUser.email ?? "-")
+                    }
+                    variant="flat"
+                    onValueChange={(value) => handleFieldChange("email", value)}
                   />
 
                   <Input
-                    label="Mobile"
-                    value={isEditMode ? formValues.mobile : selectedUser.mobile ?? "-"}
-                    variant="flat"
-                    isReadOnly={!isEditMode}
-                    onValueChange={(value) => handleFieldChange("mobile", value)}
-                    isInvalid={Boolean(formErrors.mobile)}
                     errorMessage={formErrors.mobile}
-                  />
-
-                  <Input
-                    label="Picture URL"
-                    value={isEditMode ? formValues.picture : selectedUser.picture ?? "-"}
-                    variant="flat"
+                    isInvalid={Boolean(formErrors.mobile)}
                     isReadOnly={!isEditMode}
-                    onValueChange={(value) => handleFieldChange("picture", value)}
+                    label="Mobile"
+                    value={
+                      isEditMode
+                        ? formValues.mobile
+                        : (selectedUser.mobile ?? "-")
+                    }
+                    variant="flat"
+                    onValueChange={(value) =>
+                      handleFieldChange("mobile", value)
+                    }
                   />
 
                   <Input
-                    label="Google Account"
-                    value={selectedUser.google_id ? "Linked" : "Not Linked"}
+                    isReadOnly={!isEditMode}
+                    label="Picture URL"
+                    value={
+                      isEditMode
+                        ? formValues.picture
+                        : (selectedUser.picture ?? "-")
+                    }
                     variant="flat"
+                    onValueChange={(value) =>
+                      handleFieldChange("picture", value)
+                    }
+                  />
+
+                  <Input
                     isReadOnly
                     classNames={{
                       input: selectedUser.google_id
                         ? "text-success font-medium"
                         : "text-danger font-medium",
                     }}
+                    label="Google Account"
+                    value={selectedUser.google_id ? "Linked" : "Not Linked"}
+                    variant="flat"
                   />
 
                   {isEditMode ? (
                     <Select
+                      disallowEmptySelection
                       label="Payment Status"
                       selectedKeys={[formValues.is_paid ? "paid" : "unpaid"]}
-                      disallowEmptySelection
                       onChange={(event) =>
-                        handleFieldChange("is_paid", event.target.value === "paid")
+                        handleFieldChange(
+                          "is_paid",
+                          event.target.value === "paid",
+                        )
                       }
                     >
                       <SelectItem key="paid">Paid</SelectItem>
@@ -329,15 +383,17 @@ export default function UserDetailsModal({
                     </Select>
                   ) : (
                     <Input
-                      label="Payment Status"
-                      value={isUserPaid(selectedUser.is_paid) ? "Paid" : "Unpaid"}
-                      variant="flat"
                       isReadOnly
                       classNames={{
                         input: isUserPaid(selectedUser.is_paid)
                           ? "text-success font-medium"
                           : "text-danger font-medium",
                       }}
+                      label="Payment Status"
+                      value={
+                        isUserPaid(selectedUser.is_paid) ? "Paid" : "Unpaid"
+                      }
+                      variant="flat"
                     />
                   )}
 
@@ -345,26 +401,36 @@ export default function UserDetailsModal({
                     <Input
                       label="New Password"
                       placeholder="Leave blank to keep current password"
-                      value={formValues.password}
                       type="password"
+                      value={formValues.password}
                       variant="flat"
-                      onValueChange={(value) => handleFieldChange("password", value)}
+                      onValueChange={(value) =>
+                        handleFieldChange("password", value)
+                      }
                     />
                   ) : null}
 
                   <Input
+                    isReadOnly
                     label="Created At"
                     value={formatDate(selectedUser.created_at)}
                     variant="flat"
-                    isReadOnly
                   />
 
                   {isEditMode ? (
                     <div className="flex justify-end gap-2 pt-2">
-                      <Button variant="flat" onPress={handleEditCancel} isDisabled={isUpdatingUser}>
+                      <Button
+                        isDisabled={isUpdatingUser}
+                        variant="flat"
+                        onPress={handleEditCancel}
+                      >
                         Cancel
                       </Button>
-                      <Button color="primary" onPress={handleSave} isLoading={isUpdatingUser}>
+                      <Button
+                        color="primary"
+                        isLoading={isUpdatingUser}
+                        onPress={handleSave}
+                      >
                         Save Changes
                       </Button>
                     </div>

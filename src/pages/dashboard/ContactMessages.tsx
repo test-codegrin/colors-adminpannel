@@ -1,5 +1,7 @@
 "use client";
 
+import type { ContactMessage } from "@/types/contactMessages.types";
+
 import {
   Avatar,
   Button,
@@ -25,22 +27,23 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { useEffect, useState, useCallback } from "react";
+import { Icon } from "@iconify/react";
+
 import {
   deleteContactMessageById,
   getContactMessages,
   getContactMessagesErrorMessage,
 } from "@/api/contactMessages.api";
-
-import type { ContactMessage } from "@/types/contactMessages.types";
 import ContactMessageModal from "@/components/ContactMessageModal";
-import { Icon } from "@iconify/react";
 
 /* ---------- Utility ---------- */
 
 function formatDate(value?: string): string {
   if (!value) return "-";
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleString();
 }
 
@@ -54,7 +57,9 @@ export default function ContactMessagesPage() {
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null);
+  const [deletingMessageId, setDeletingMessageId] = useState<number | null>(
+    null,
+  );
   const [pendingDeleteMessage, setPendingDeleteMessage] = useState<{
     id: number;
     subject: string;
@@ -116,6 +121,7 @@ export default function ContactMessagesPage() {
     }
 
     const id = pendingDeleteMessage.id;
+
     setDeletingMessageId(id);
 
     try {
@@ -153,7 +159,6 @@ export default function ContactMessagesPage() {
     <>
       <Card shadow="md">
         <CardBody className="gap-6">
-
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -164,11 +169,13 @@ export default function ContactMessagesPage() {
             </div>
 
             <Button
-              onPress={fetchMessages}
               isLoading={isLoading}
-              startContent={!isLoading && <Icon icon="solar:refresh-bold" width="18" />}
-              variant="flat"
               size="sm"
+              startContent={
+                !isLoading && <Icon icon="solar:refresh-bold" width="18" />
+              }
+              variant="flat"
+              onPress={fetchMessages}
             >
               Refresh
             </Button>
@@ -178,8 +185,7 @@ export default function ContactMessagesPage() {
           {error && <p className="text-danger text-sm">{error}</p>}
 
           {/* Table */}
-          <Table aria-label="Contact messages table" removeWrapper>
-
+          <Table removeWrapper aria-label="Contact messages table">
             <TableHeader>
               <TableColumn>ID</TableColumn>
               <TableColumn>Sender</TableColumn>
@@ -190,14 +196,13 @@ export default function ContactMessagesPage() {
             </TableHeader>
 
             <TableBody
+              emptyContent="No contact messages"
               isLoading={isLoading}
               items={messages}
               loadingContent={<Spinner label="Loading..." />}
-              emptyContent="No contact messages"
             >
               {(msg: ContactMessage) => (
                 <TableRow key={msg.contact_message_id}>
-
                   <TableCell>
                     <span className="font-mono text-xs">
                       #{msg.contact_message_id}
@@ -214,14 +219,10 @@ export default function ContactMessagesPage() {
                   <TableCell>{msg.email}</TableCell>
 
                   <TableCell>
-                    <div>
-                      {msg.subject}
-                    </div>
+                    <div>{msg.subject}</div>
                   </TableCell>
 
-                  <TableCell>
-                    {formatDate(msg.created_at)}
-                  </TableCell>
+                  <TableCell>{formatDate(msg.created_at)}</TableCell>
 
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -229,44 +230,43 @@ export default function ContactMessagesPage() {
                         <Button
                           isIconOnly
                           size="sm"
+                          startContent={
+                            <Icon height={16} icon="mdi:eye" width={16} />
+                          }
                           variant="flat"
                           onPress={() => handleView(msg.contact_message_id)}
-                          startContent={
-                            <Icon icon="mdi:eye" width={16} height={16} />
-                          }
-                        >
-                        </Button>
+                        />
                       </Tooltip>
 
                       <Tooltip content="Delete message">
                         <Button
                           isIconOnly
-                          size="sm"
                           color="danger"
-                          variant="flat"
                           isDisabled={deletingMessageId !== null}
-                          isLoading={deletingMessageId === msg.contact_message_id}
-                          onPress={() =>
-                            handleOpenDeleteModal(
-                              msg.contact_message_id,
-                              msg.subject
-                            )
+                          isLoading={
+                            deletingMessageId === msg.contact_message_id
                           }
+                          size="sm"
                           startContent={
                             deletingMessageId !== msg.contact_message_id ? (
                               <Icon
+                                height={16}
                                 icon="mdi:delete-outline"
                                 width={16}
-                                height={16}
                               />
                             ) : undefined
                           }
-                        >
-                        </Button>
+                          variant="flat"
+                          onPress={() =>
+                            handleOpenDeleteModal(
+                              msg.contact_message_id,
+                              msg.subject,
+                            )
+                          }
+                        />
                       </Tooltip>
                     </div>
                   </TableCell>
-
                 </TableRow>
               )}
             </TableBody>
@@ -275,13 +275,14 @@ export default function ContactMessagesPage() {
           {/* Pagination */}
           <div className="flex w-full items-end justify-between gap-4">
             <Select
-              label="Limit"
-              size="sm"
               disallowEmptySelection
-              selectedKeys={[String(limit)]}
               className="w-28"
+              label="Limit"
+              selectedKeys={[String(limit)]}
+              size="sm"
               onChange={(event) => {
                 const nextLimit = Number(event.target.value);
+
                 if (nextLimit !== limit) {
                   setLimit(nextLimit);
                   setPage(1);
@@ -295,30 +296,29 @@ export default function ContactMessagesPage() {
 
             <div className="flex justify-end w-full">
               <Pagination
-                total={Math.max(totalPages, 1)}
-                page={page}
-                onChange={setPage}
-                isDisabled={isLoading}
                 showControls
                 color="primary"
+                isDisabled={isLoading}
+                page={page}
+                total={Math.max(totalPages, 1)}
+                onChange={setPage}
               />
             </div>
           </div>
-
         </CardBody>
       </Card>
 
       <ContactMessageModal
         isOpen={isOpen}
-        onOpenChange={onOpenChange}
         messageId={selectedId}
+        onOpenChange={onOpenChange}
       />
 
       <Modal
+        hideCloseButton={deletingMessageId !== null}
+        isDismissable={deletingMessageId === null}
         isOpen={isDeleteModalOpen}
         onOpenChange={onDeleteModalOpenChange}
-        isDismissable={deletingMessageId === null}
-        hideCloseButton={deletingMessageId !== null}
       >
         <ModalContent>
           <ModalHeader className="text-base font-semibold">
@@ -335,16 +335,16 @@ export default function ContactMessagesPage() {
           </ModalBody>
           <ModalFooter>
             <Button
+              isDisabled={deletingMessageId !== null}
               variant="flat"
               onPress={closeDeleteModal}
-              isDisabled={deletingMessageId !== null}
             >
               Cancel
             </Button>
             <Button
               color="danger"
-              onPress={handleDeleteMessage}
               isLoading={deletingMessageId === pendingDeleteMessage?.id}
+              onPress={handleDeleteMessage}
             >
               Delete
             </Button>

@@ -15,6 +15,8 @@ function getPageTitle(pathname: string): string {
   if (pathname === "/dashboard/contact") return "Contact Messages";
   if (pathname === "/dashboard/live-users") return "Live Users";
   if (pathname === "/dashboard/devices-analytics") return "Devices Analytics";
+  if (pathname === "/dashboard/beta-plans") return "Beta Plans";
+  if (pathname === "/dashboard/activity-feed") return "Activity Feed";
 
   return "Admin Panel";
 }
@@ -51,7 +53,9 @@ function DashboardLayout() {
                 />
               </Button>
 
-              <h1 className="text-xl font-semibold">{getPageTitle(pathname)}</h1>
+              <h1 className="text-xl font-semibold">
+                {getPageTitle(pathname)}
+              </h1>
             </div>
 
             {/* Right Side */}

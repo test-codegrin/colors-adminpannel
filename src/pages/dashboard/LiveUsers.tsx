@@ -1,9 +1,10 @@
+import type { LiveUsersData } from "@/types/analytics.types";
+
 import { Button, Card, CardBody, Chip, Spinner } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getAnalyticsErrorMessage, getLiveUsers } from "@/api/analytics.api";
-import type { LiveUsersData } from "@/types/analytics.types";
 
 interface MetricCard {
   key: string;
@@ -114,7 +115,9 @@ function formatValue(value: number | undefined): string {
 }
 
 export default function LiveUsers() {
-  const [liveUsersData, setLiveUsersData] = useState<LiveUsersData | null>(null);
+  const [liveUsersData, setLiveUsersData] = useState<LiveUsersData | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -165,16 +168,18 @@ export default function LiveUsers() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Chip variant="flat" radius="sm" className="font-mono text-xs">
+            <Chip className="font-mono text-xs" radius="sm" variant="flat">
               Last Updated: {lastUpdated}
             </Chip>
 
             <Button
+              isLoading={isLoading}
               size="sm"
+              startContent={
+                !isLoading && <Icon icon="solar:refresh-bold" width="16" />
+              }
               variant="flat"
               onPress={loadLiveUsers}
-              isLoading={isLoading}
-              startContent={!isLoading && <Icon icon="solar:refresh-bold" width="16" />}
             >
               Refresh
             </Button>
@@ -192,15 +197,25 @@ export default function LiveUsers() {
         {!isLoading && !error && (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {metricCards.map((metric) => (
-              <Card key={metric.key} shadow="sm" className="border border-default-200">
+              <Card
+                key={metric.key}
+                className="border border-default-200"
+                shadow="sm"
+              >
                 <CardBody className="gap-3">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-default-600">{metric.label}</p>
-                    <Icon icon={metric.icon} width="18" className="text-default-500" />
+                    <Icon
+                      className="text-default-500"
+                      icon={metric.icon}
+                      width="18"
+                    />
                   </div>
 
                   <p className="text-2xl font-semibold text-foreground">
-                    {formatValue(metric.getValue(liveUsersData ?? emptyLiveUsersData))}
+                    {formatValue(
+                      metric.getValue(liveUsersData ?? emptyLiveUsersData),
+                    )}
                   </p>
                 </CardBody>
               </Card>

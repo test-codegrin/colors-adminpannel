@@ -1,6 +1,16 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import type {
+  Admin,
+  AuthContextValue,
+  LoginResponse,
+} from "@/types/auth.types";
 
-import type { Admin, AuthContextValue, LoginResponse } from "@/types/auth.types";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -25,8 +35,12 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [token, setToken] = useState<string>(() => localStorage.getItem("adminToken") ?? "");
-  const [admin, setAdmin] = useState<Admin | null>(() => parseAdminFromStorage());
+  const [token, setToken] = useState<string>(
+    () => localStorage.getItem("adminToken") ?? "",
+  );
+  const [admin, setAdmin] = useState<Admin | null>(() =>
+    parseAdminFromStorage(),
+  );
 
   const login = ({ token: nextToken, admin: nextAdmin }: LoginResponse) => {
     localStorage.setItem("adminToken", nextToken);

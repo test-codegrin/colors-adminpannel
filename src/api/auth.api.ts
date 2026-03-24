@@ -1,5 +1,10 @@
+import type {
+  LoginRequest,
+  LoginResponse,
+  OtpResponse,
+} from "@/types/auth.types";
+
 import api from "@/lib/axios";
-import type { LoginRequest, LoginResponse, OtpResponse } from "@/types/auth.types";
 
 const FALLBACK_ERROR = "Login failed. Please try again.";
 
@@ -10,7 +15,9 @@ export async function loginAdmin(data: LoginRequest): Promise<LoginResponse> {
 }
 
 export async function sendAdminLoginOtp(email: string): Promise<OtpResponse> {
-  const response = await api.post<OtpResponse>("/admin/auth/send-otp", { email });
+  const response = await api.post<OtpResponse>("/admin/auth/send-otp", {
+    email,
+  });
 
   return response.data;
 }

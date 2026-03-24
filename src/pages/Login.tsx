@@ -1,10 +1,23 @@
-import { Button, Card, CardBody, Input, InputOtp, REGEXP_ONLY_DIGITS, addToast } from "@heroui/react";
+import type { LoginRequest } from "@/types/auth.types";
+
+import {
+  Button,
+  Card,
+  CardBody,
+  Input,
+  InputOtp,
+  REGEXP_ONLY_DIGITS,
+  addToast,
+} from "@heroui/react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { getLoginErrorMessage, loginAdmin, sendAdminLoginOtp } from "@/api/auth.api";
+import {
+  getLoginErrorMessage,
+  loginAdmin,
+  sendAdminLoginOtp,
+} from "@/api/auth.api";
 import { useAuth } from "@/context/AuthContext";
-import type { LoginRequest } from "@/types/auth.types";
 
 type LoginMode = "password" | "otp";
 
@@ -118,6 +131,7 @@ function Login() {
           : { email: email.trim(), otp: otp.trim() };
 
       const result = await loginAdmin(payload);
+
       login(result);
 
       addToast({
@@ -187,7 +201,9 @@ function Login() {
         <CardBody className="gap-4 p-6">
           <div>
             <h1 className="text-2xl font-semibold">Admin Login</h1>
-            <p className="text-sm text-default-500">Sign in to access the dashboard</p>
+            <p className="text-sm text-default-500">
+              Sign in to access the dashboard
+            </p>
           </div>
 
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -212,27 +228,27 @@ function Login() {
 
             <Input
               isRequired
+              errorMessage={errors.email}
+              isInvalid={Boolean(errors.email)}
               label="Email"
               labelPlacement="outside"
               placeholder="admin@example.com"
               type="email"
               value={email}
               onValueChange={setEmail}
-              isInvalid={Boolean(errors.email)}
-              errorMessage={errors.email}
             />
 
             {mode === "password" ? (
               <Input
                 isRequired
+                errorMessage={errors.password}
+                isInvalid={Boolean(errors.password)}
                 label="Password"
                 labelPlacement="outside"
                 placeholder="Enter your password"
                 type="password"
                 value={password}
                 onValueChange={setPassword}
-                isInvalid={Boolean(errors.password)}
-                errorMessage={errors.password}
               />
             ) : (
               <>
@@ -244,28 +260,35 @@ function Login() {
                   variant="faded"
                   onPress={handleSendOtp}
                 >
-                  {otpCooldown > 0 ? `Resend OTP in ${otpCooldown}s` : otpSent ? "Resend OTP" : "Send OTP"}
+                  {otpCooldown > 0
+                    ? `Resend OTP in ${otpCooldown}s`
+                    : otpSent
+                      ? "Resend OTP"
+                      : "Send OTP"}
                 </Button>
-
-                
 
                 <InputOtp
                   isRequired
+                  allowedKeys={REGEXP_ONLY_DIGITS}
+                  errorMessage={errors.otp}
+                  isInvalid={Boolean(errors.otp)}
                   label="OTP"
                   length={6}
-                  size="lg"
                   radius="lg"
-                  allowedKeys={REGEXP_ONLY_DIGITS}
+                  size="lg"
                   value={otp}
                   variant="faded"
                   onValueChange={setOtp}
-                  isInvalid={Boolean(errors.otp)}
-                  errorMessage={errors.otp}
                 />
               </>
             )}
 
-            <Button color="primary" isLoading={isLoading} type="submit" className="mt-2">
+            <Button
+              className="mt-2"
+              color="primary"
+              isLoading={isLoading}
+              type="submit"
+            >
               {mode === "password" ? "Login" : "Login with OTP"}
             </Button>
           </form>

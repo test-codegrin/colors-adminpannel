@@ -1,5 +1,10 @@
+import type {
+  UpdateUserPayload,
+  User,
+  UsersApiResponse,
+} from "@/types/user.types";
+
 import api from "@/lib/axios";
-import type { UpdateUserPayload, User, UsersApiResponse } from "@/types/user.types";
 
 interface UserByIdApiResponse {
   success?: boolean;
@@ -52,7 +57,9 @@ export async function getUserById(userId: number): Promise<User> {
 export async function deleteUserById(
   userId: number,
 ): Promise<DeleteUserApiResponse> {
-  const response = await api.delete<DeleteUserApiResponse>(`/admin/users/${userId}`);
+  const response = await api.delete<DeleteUserApiResponse>(
+    `/admin/users/${userId}`,
+  );
 
   return response.data;
 }
@@ -61,7 +68,10 @@ export async function updateUserById(
   userId: number,
   payload: UpdateUserPayload,
 ): Promise<UpdateUserApiResponse> {
-  const response = await api.patch<UpdateUserApiResponse>(`/admin/users/${userId}`, payload);
+  const response = await api.patch<UpdateUserApiResponse>(
+    `/admin/users/${userId}`,
+    payload,
+  );
 
   return response.data;
 }
@@ -75,5 +85,3 @@ export function getUsersErrorMessage(error: unknown): string {
 
   return "Failed to load users.";
 }
-
-

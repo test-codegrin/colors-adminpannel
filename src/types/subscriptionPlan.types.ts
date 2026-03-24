@@ -33,4 +33,3 @@ export interface SingleSubscriptionPlanApiResponse {
   plan?: SubscriptionPlan;
   data?: SubscriptionPlan;
 }
-

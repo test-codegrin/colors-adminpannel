@@ -1,10 +1,11 @@
-import api from "@/lib/axios";
 import type {
   SingleSubscriptionPlanApiResponse,
   SubscriptionPlan,
   SubscriptionPlanPayload,
   SubscriptionPlansApiResponse,
 } from "@/types/subscriptionPlan.types";
+
+import api from "@/lib/axios";
 
 interface DeleteSubscriptionPlanApiResponse {
   success: boolean;
@@ -75,10 +76,12 @@ export async function getSubscriptionPlans(
   };
 }
 
-export async function getSubscriptionPlanById(id: number): Promise<SubscriptionPlan> {
-  const response = await api.get<SubscriptionPlan | SingleSubscriptionPlanApiResponse>(
-    `/admin/subscription-plans/${id}`,
-  );
+export async function getSubscriptionPlanById(
+  id: number,
+): Promise<SubscriptionPlan> {
+  const response = await api.get<
+    SubscriptionPlan | SingleSubscriptionPlanApiResponse
+  >(`/admin/subscription-plans/${id}`);
   const data = response.data;
 
   if (
@@ -141,9 +144,11 @@ export function getSubscriptionPlansErrorMessage(error: unknown): string {
   if (typeof error === "object" && error !== null && "response" in error) {
     const err = error as { response?: { data?: { message?: string } } };
 
-    return err.response?.data?.message ?? "Failed to process subscription plans request.";
+    return (
+      err.response?.data?.message ??
+      "Failed to process subscription plans request."
+    );
   }
 
   return "Failed to process subscription plans request.";
 }
-

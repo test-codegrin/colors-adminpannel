@@ -1,6 +1,6 @@
-import api from "@/lib/axios";
 import type { PaymentsApiResponse } from "@/types/payment.types";
 
+import api from "@/lib/axios";
 
 export async function getAllPayments(
   page: number,
@@ -16,20 +16,19 @@ export async function getAllPayments(
 export function getPaymentsErrorMessage(error: unknown): string {
   if (typeof error === "object" && error !== null && "response" in error) {
     const err = error as { response?: { data?: { message?: string } } };
+
     return err.response?.data?.message ?? "Failed to load payments.";
   }
 
   return "Failed to load payments.";
 }
 
-
-
 // NEW: Get receipt URL for a payment
 export async function getPaymentReceipt(
-  paymentId: number
+  paymentId: number,
 ): Promise<{ receipt_url: string }> {
   const response = await api.get<{ receipt_url: string }>(
-    `/payments/${paymentId}/receipt`
+    `/payments/${paymentId}/receipt`,
   );
 
   return response.data;

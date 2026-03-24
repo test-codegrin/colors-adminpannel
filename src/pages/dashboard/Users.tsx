@@ -1,3 +1,5 @@
+import type { UpdateUserPayload, User } from "@/types/user.types";
+
 import {
   Avatar,
   Button,
@@ -34,12 +36,13 @@ import {
   getUsersErrorMessage,
   updateUserById,
 } from "@/api/users.api";
-import type { UpdateUserPayload, User } from "@/types/user.types";
 
 function formatDate(value?: string): string {
   if (!value) return "-";
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleString();
 }
 
@@ -60,7 +63,11 @@ function isUserPaid(value: unknown): boolean {
 }
 
 function getUserId(user: User): number | null {
-  const source = user as User & { user_id?: unknown; id?: unknown; _id?: unknown };
+  const source = user as User & {
+    user_id?: unknown;
+    id?: unknown;
+    _id?: unknown;
+  };
   const candidate = source.user_id ?? source.id ?? source._id;
 
   if (typeof candidate === "number" && Number.isFinite(candidate)) {
@@ -130,6 +137,7 @@ function Users() {
   useEffect(() => {
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
+
       return;
     }
 
@@ -150,6 +158,7 @@ function Users() {
 
     try {
       const user = await getUserById(userId);
+
       setSelectedUser(user);
     } finally {
       setIsUserLoading(false);
@@ -178,6 +187,7 @@ function Users() {
 
     try {
       const result = await updateUserById(userId, payload);
+
       setSelectedUser(result.user);
       await usersList.reload();
 
@@ -262,7 +272,7 @@ function Users() {
           {error && <p className="text-danger text-sm">{error}</p>}
 
           <div className="min-h-[300px]">
-            <Table aria-label="Users table" removeWrapper>
+            <Table removeWrapper aria-label="Users table">
               <TableHeader>
                 <TableColumn>User</TableColumn>
                 <TableColumn>Email</TableColumn>
@@ -273,10 +283,10 @@ function Users() {
               </TableHeader>
 
               <TableBody
+                emptyContent="No users found"
                 isLoading={usersList.isLoading}
                 items={usersList.items}
                 loadingContent={<Spinner label="Loading users..." />}
-                emptyContent="No users found"
               >
                 {(user: User) => {
                   const userId = getUserId(user);
@@ -286,11 +296,11 @@ function Users() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar
-                            src={user.picture ?? ""}
-                            name={getInitials(user.name)}
-                            size="sm"
-                            radius="full"
                             className="bg-primary text-white font-semibold"
+                            name={getInitials(user.name)}
+                            radius="full"
+                            size="sm"
+                            src={user.picture ?? ""}
                           />
                           <span>{user.name}</span>
                         </div>
@@ -301,7 +311,9 @@ function Users() {
 
                       <TableCell>
                         <Chip
-                          color={isUserPaid(user.is_paid) ? "success" : "danger"}
+                          color={
+                            isUserPaid(user.is_paid) ? "success" : "danger"
+                          }
                           size="sm"
                           variant="flat"
                         >
@@ -315,35 +327,41 @@ function Users() {
                         <div className="flex items-center gap-2">
                           <Button
                             isIconOnly
-                            size="sm"
-                            variant="flat"
                             isDisabled={!userId}
+                            size="sm"
+                            startContent={
+                              <Icon height={16} icon="mdi:eye" width={16} />
+                            }
+                            variant="flat"
                             onPress={() => {
                               if (userId) {
                                 handleViewUser(userId);
                               }
                             }}
-                            startContent={<Icon icon="mdi:eye" width={16} height={16} />}
-                          ></Button>
+                          />
 
                           <Button
                             isIconOnly
-                            size="sm"
                             color="danger"
-                            variant="flat"
                             isDisabled={!userId || deletingUserId !== null}
                             isLoading={deletingUserId === userId}
+                            size="sm"
+                            startContent={
+                              deletingUserId !== userId ? (
+                                <Icon
+                                  height={16}
+                                  icon="mdi:delete-outline"
+                                  width={16}
+                                />
+                              ) : undefined
+                            }
+                            variant="flat"
                             onPress={() => {
                               if (userId) {
                                 handleOpenDeleteModal(userId, user.name);
                               }
                             }}
-                            startContent={
-                              deletingUserId !== userId ? (
-                                <Icon icon="mdi:delete-outline" width={16} height={16} />
-                              ) : undefined
-                            }
-                          ></Button>
+                          />
                         </div>
                       </TableCell>
                     </TableRow>
@@ -355,13 +373,14 @@ function Users() {
 
           <div className="flex w-full items-end justify-between gap-4">
             <Select
-              label="Limit"
-              size="sm"
               disallowEmptySelection
-              selectedKeys={[String(limit)]}
               className="w-28"
+              label="Limit"
+              selectedKeys={[String(limit)]}
+              size="sm"
               onChange={(event) => {
                 const nextLimit = Number(event.target.value);
+
                 if (nextLimit !== limit) {
                   setLimit(nextLimit);
                   setPage(1);
@@ -374,12 +393,12 @@ function Users() {
             </Select>
 
             <Pagination
-              total={Math.max(totalPages, 1)}
-              page={page}
-              onChange={setPage}
-              isDisabled={usersList.isLoading}
               showControls
               color="primary"
+              isDisabled={usersList.isLoading}
+              page={page}
+              total={Math.max(totalPages, 1)}
+              onChange={setPage}
             />
           </div>
         </CardBody>
@@ -387,22 +406,24 @@ function Users() {
 
       <UserDetailsModal
         isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        selectedUser={selectedUser}
-        isUserLoading={isUserLoading}
         isUpdatingUser={isUpdatingUser}
+        isUserLoading={isUserLoading}
+        selectedUser={selectedUser}
+        onOpenChange={onOpenChange}
         onUpdateUser={handleUpdateUser}
       />
 
       <Modal
         backdrop="blur"
+        hideCloseButton={deletingUserId !== null}
+        isDismissable={deletingUserId === null}
         isOpen={isDeleteModalOpen}
         onOpenChange={onDeleteModalOpenChange}
-        isDismissable={deletingUserId === null}
-        hideCloseButton={deletingUserId !== null}
       >
         <ModalContent>
-          <ModalHeader className="text-base font-semibold">Delete User</ModalHeader>
+          <ModalHeader className="text-base font-semibold">
+            Delete User
+          </ModalHeader>
           <ModalBody>
             <p className="text-sm text-default-600">
               Are you sure you want to delete{" "}
@@ -414,16 +435,16 @@ function Users() {
           </ModalBody>
           <ModalFooter>
             <Button
+              isDisabled={deletingUserId !== null}
               variant="flat"
               onPress={closeDeleteModal}
-              isDisabled={deletingUserId !== null}
             >
               Cancel
             </Button>
             <Button
               color="danger"
-              onPress={handleDeleteUser}
               isLoading={deletingUserId === pendingDeleteUser?.id}
+              onPress={handleDeleteUser}
             >
               Delete
             </Button>

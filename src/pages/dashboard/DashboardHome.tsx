@@ -1,3 +1,27 @@
+import type {
+  AnalyticsOverview,
+  DayRange,
+  DeviceAnalyticsPayload,
+  FeatureUsageData,
+  FeatureUsageItem,
+  LiveUsersData,
+  LocationsData,
+  MessagesGrowthPoint,
+  MinutesRange,
+  PageViewsSummary,
+  PerformanceData,
+  RecentMessage,
+  RecentPayment,
+  RecentUser,
+  RevenueGrowthPoint,
+  SessionsSummary,
+  TopPage,
+  TrafficSourcesData,
+  UserActivityData,
+  UsersGrowthPoint,
+} from "@/types/analytics.types";
+import type { PaginationPayload } from "@/types/pagination.types";
+
 import {
   Button,
   Chip,
@@ -10,10 +34,16 @@ import {
   TableRow,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import {
-  getActivityFeed,
   getAnalyticsErrorMessage,
   getAnalyticsOverview,
   getDevices,
@@ -47,36 +77,10 @@ import {
   MetricCard,
   SegmentedFilter,
 } from "@/components/analytics/AnalyticsShell";
-import type {
-  ActivityFeedData,
-  ActivityFeedItem,
-  AnalyticsOverview,
-  DayRange,
-  DeviceAnalyticsPayload,
-  FeatureUsageData,
-  FeatureUsageItem,
-  LiveUsersData,
-  LocationsData,
-  MessagesGrowthPoint,
-  MinutesRange,
-  PageViewsSummary,
-  PerformanceData,
-  RecentMessage,
-  RecentPayment,
-  RecentUser,
-  RevenueGrowthPoint,
-  SessionsSummary,
-  TopPage,
-  TrafficSourcesData,
-  UserActivityData,
-  UsersGrowthPoint,
-} from "@/types/analytics.types";
-import type { PaginationPayload } from "@/types/pagination.types";
 
 const DAY_OPTIONS: DayRange[] = [7, 30, 90, 180, 365];
 const MINUTE_OPTIONS: MinutesRange[] = [15, 30, 60, 180, 360, 1440];
 const TOP_LIMIT_OPTIONS = [5, 10, 20];
-const ACTIVITY_LIMIT_OPTIONS = [10, 25, 50];
 const PAGE_SIZE = 10;
 
 const numberFormatter = new Intl.NumberFormat("en-IN");
@@ -111,7 +115,6 @@ interface DashboardCoreState {
   locations: AsyncState<LocationsData | null>;
   trafficSources: AsyncState<TrafficSourcesData | null>;
   performance: AsyncState<PerformanceData | null>;
-  activityFeed: AsyncState<ActivityFeedData | null>;
 }
 
 interface PaginatedSectionState<T> {
@@ -170,7 +173,6 @@ function createCoreState(): DashboardCoreState {
     locations: createAsyncState<LocationsData | null>(null),
     trafficSources: createAsyncState<TrafficSourcesData | null>(null),
     performance: createAsyncState<PerformanceData | null>(null),
-    activityFeed: createAsyncState<ActivityFeedData | null>(null),
   };
 }
 
@@ -268,7 +270,9 @@ function getTotalPages(pagination: PaginationPayload): number {
   return Math.max(1, pagination.total_pages ?? pagination.totalPages ?? 1);
 }
 
-function buildFeatureUsageItems(data: FeatureUsageData | null): FeatureUsageItem[] {
+function buildFeatureUsageItems(
+  data: FeatureUsageData | null,
+): FeatureUsageItem[] {
   if (!data) {
     return [];
   }
@@ -290,13 +294,17 @@ function buildFeatureUsageItems(data: FeatureUsageData | null): FeatureUsageItem
   return metrics.sort((first, second) => second.usage - first.usage);
 }
 
-function buildSourceItems(data: TrafficSourcesData | null): { source: string; count: number }[] {
+function buildSourceItems(
+  data: TrafficSourcesData | null,
+): { source: string; count: number }[] {
   if (!data) {
     return [];
   }
 
   if (data.top_sources.length) {
-    return [...data.top_sources].sort((first, second) => second.count - first.count);
+    return [...data.top_sources].sort(
+      (first, second) => second.count - first.count,
+    );
   }
 
   return Object.entries(data.sources)
@@ -344,7 +352,7 @@ function renderTableFrame<T>({
   }
 
   if (!items.length) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />;
+    return <EmptyState description={emptyDescription} title={emptyTitle} />;
   }
 
   return children;
@@ -354,19 +362,22 @@ function DashboardHome() {
   const [days, setDays] = useState<DayRange>(30);
   const [minutes, setMinutes] = useState<MinutesRange>(60);
   const [topLimit, setTopLimit] = useState<number>(10);
-  const [activityLimit, setActivityLimit] = useState<number>(50);
-
   const [recentUsersPage, setRecentUsersPage] = useState(1);
   const [recentPaymentsPage, setRecentPaymentsPage] = useState(1);
   const [recentMessagesPage, setRecentMessagesPage] = useState(1);
 
-  const [coreState, setCoreState] = useState<DashboardCoreState>(() => createCoreState());
-  const [recentUsersState, setRecentUsersState] =
-    useState<PaginatedSectionState<RecentUser>>(createPaginatedSectionState);
-  const [recentPaymentsState, setRecentPaymentsState] =
-    useState<PaginatedSectionState<RecentPayment>>(createPaginatedSectionState);
-  const [recentMessagesState, setRecentMessagesState] =
-    useState<PaginatedSectionState<RecentMessage>>(createPaginatedSectionState);
+  const [coreState, setCoreState] = useState<DashboardCoreState>(() =>
+    createCoreState(),
+  );
+  const [recentUsersState, setRecentUsersState] = useState<
+    PaginatedSectionState<RecentUser>
+  >(createPaginatedSectionState);
+  const [recentPaymentsState, setRecentPaymentsState] = useState<
+    PaginatedSectionState<RecentPayment>
+  >(createPaginatedSectionState);
+  const [recentMessagesState, setRecentMessagesState] = useState<
+    PaginatedSectionState<RecentMessage>
+  >(createPaginatedSectionState);
 
   const coreRequestRef = useRef(0);
   const usersRequestRef = useRef(0);
@@ -380,7 +391,11 @@ function DashboardHome() {
       overview: { ...previous.overview, isLoading: true, error: "" },
       usersGrowth: { ...previous.usersGrowth, isLoading: true, error: "" },
       revenueGrowth: { ...previous.revenueGrowth, isLoading: true, error: "" },
-      messagesGrowth: { ...previous.messagesGrowth, isLoading: true, error: "" },
+      messagesGrowth: {
+        ...previous.messagesGrowth,
+        isLoading: true,
+        error: "",
+      },
       pageViews: { ...previous.pageViews, isLoading: true, error: "" },
       topPages: { ...previous.topPages, isLoading: true, error: "" },
       devices: { ...previous.devices, isLoading: true, error: "" },
@@ -389,9 +404,12 @@ function DashboardHome() {
       userActivity: { ...previous.userActivity, isLoading: true, error: "" },
       sessions: { ...previous.sessions, isLoading: true, error: "" },
       locations: { ...previous.locations, isLoading: true, error: "" },
-      trafficSources: { ...previous.trafficSources, isLoading: true, error: "" },
+      trafficSources: {
+        ...previous.trafficSources,
+        isLoading: true,
+        error: "",
+      },
       performance: { ...previous.performance, isLoading: true, error: "" },
-      activityFeed: { ...previous.activityFeed, isLoading: true, error: "" },
     }));
 
     const results = await Promise.allSettled([
@@ -409,7 +427,6 @@ function DashboardHome() {
       getLocations(days, topLimit),
       getTrafficSources(days, topLimit),
       getPerformance(minutes),
-      getActivityFeed(activityLimit),
     ]);
 
     if (requestId !== coreRequestRef.current) {
@@ -431,7 +448,6 @@ function DashboardHome() {
       locationsResult,
       trafficSourcesResult,
       performanceResult,
-      activityFeedResult,
     ] = results;
 
     setCoreState({
@@ -449,9 +465,8 @@ function DashboardHome() {
       locations: resolveAsyncResult(locationsResult, null),
       trafficSources: resolveAsyncResult(trafficSourcesResult, null),
       performance: resolveAsyncResult(performanceResult, null),
-      activityFeed: resolveAsyncResult(activityFeedResult, null),
     });
-  }, [activityLimit, days, minutes, topLimit]);
+  }, [days, minutes, topLimit]);
 
   const loadRecentUsers = useCallback(async (page: number) => {
     const requestId = ++usersRequestRef.current;
@@ -586,13 +601,15 @@ function DashboardHome() {
   const locations = coreState.locations.data;
   const trafficSources = coreState.trafficSources.data;
   const performance = coreState.performance.data;
-  const activityFeed = coreState.activityFeed.data;
 
   const featureUsageItems = useMemo(
     () => buildFeatureUsageItems(coreState.featureUsage.data),
     [coreState.featureUsage.data],
   );
-  const sourceItems = useMemo(() => buildSourceItems(trafficSources), [trafficSources]);
+  const sourceItems = useMemo(
+    () => buildSourceItems(trafficSources),
+    [trafficSources],
+  );
   const countryRows = useMemo(
     () => buildLocationRows(locations?.countries, "country"),
     [locations],
@@ -601,18 +618,23 @@ function DashboardHome() {
     () => buildLocationRows(locations?.regions, "region"),
     [locations],
   );
-  const cityRows = useMemo(() => buildLocationRows(locations?.cities, "city"), [locations]);
+  const cityRows = useMemo(
+    () => buildLocationRows(locations?.cities, "city"),
+    [locations],
+  );
 
   const usersGrowthLabels = useMemo(
     () => coreState.usersGrowth.data.map((item) => formatDateLabel(item.date)),
     [coreState.usersGrowth.data],
   );
   const revenueGrowthLabels = useMemo(
-    () => coreState.revenueGrowth.data.map((item) => formatDateLabel(item.date)),
+    () =>
+      coreState.revenueGrowth.data.map((item) => formatDateLabel(item.date)),
     [coreState.revenueGrowth.data],
   );
   const messagesGrowthLabels = useMemo(
-    () => coreState.messagesGrowth.data.map((item) => formatDateLabel(item.date)),
+    () =>
+      coreState.messagesGrowth.data.map((item) => formatDateLabel(item.date)),
     [coreState.messagesGrowth.data],
   );
   const apiUsageLabels = useMemo(
@@ -658,7 +680,9 @@ function DashboardHome() {
       },
       {
         label: "Total Messages",
-        value: formatCompactNumber(overview?.contact_support_analytics.total_messages),
+        value: formatCompactNumber(
+          overview?.contact_support_analytics.total_messages,
+        ),
         hint: overview?.contact_support_analytics.unread_messages_supported
           ? `${formatNumber(overview?.contact_support_analytics.unread_messages)} unread`
           : "Unread tracking unavailable",
@@ -666,7 +690,9 @@ function DashboardHome() {
       },
       {
         label: "Total Requests",
-        value: formatCompactNumber(overview?.platform_usage_analytics.total_requests),
+        value: formatCompactNumber(
+          overview?.platform_usage_analytics.total_requests,
+        ),
         hint: `${formatCompactNumber(
           overview?.platform_usage_analytics.unique_api_requests,
         )} unique requests`,
@@ -674,7 +700,10 @@ function DashboardHome() {
       },
       {
         label: "Failure Rate",
-        value: formatPercent(overview?.platform_usage_analytics.failure_rate, 2),
+        value: formatPercent(
+          overview?.platform_usage_analytics.failure_rate,
+          2,
+        ),
         hint: overview?.platform_usage_analytics.tracking_enabled
           ? "Session summary tracking enabled"
           : "Tracking disabled or sparse",
@@ -708,50 +737,50 @@ function DashboardHome() {
               Session-summary analytics dashboard
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-default-600">
-              Built against the current <span className="font-mono">/admin/analytics</span>{" "}
-              API. Every section handles aggregated, sparse, and zero-value datasets without
-              collapsing charts or tables.
+              Built against the current{" "}
+              <span className="font-mono">/admin/analytics</span> API. Every
+              section handles aggregated, sparse, and zero-value datasets
+              without collapsing charts or tables.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
             <SegmentedFilter
+              isDisabled={coreState.overview.isLoading}
               label="Days"
-              options={DAY_OPTIONS.map((value) => ({ label: `${value}D`, value }))}
+              options={DAY_OPTIONS.map((value) => ({
+                label: `${value}D`,
+                value,
+              }))}
               value={days}
               onChange={setDays}
-              isDisabled={coreState.overview.isLoading}
             />
             <SegmentedFilter
+              isDisabled={coreState.performance.isLoading}
               label="Minutes"
-              options={MINUTE_OPTIONS.map((value) => ({ label: `${value}m`, value }))}
+              options={MINUTE_OPTIONS.map((value) => ({
+                label: `${value}m`,
+                value,
+              }))}
               value={minutes}
               onChange={setMinutes}
-              isDisabled={coreState.performance.isLoading}
             />
             <SegmentedFilter
-              label="Top N"
-              options={TOP_LIMIT_OPTIONS.map((value) => ({ label: String(value), value }))}
-              value={topLimit}
-              onChange={setTopLimit}
               isDisabled={coreState.topPages.isLoading}
-            />
-            <SegmentedFilter
-              label="Feed Limit"
-              options={ACTIVITY_LIMIT_OPTIONS.map((value) => ({
+              label="Top N"
+              options={TOP_LIMIT_OPTIONS.map((value) => ({
                 label: String(value),
                 value,
               }))}
-              value={activityLimit}
-              onChange={setActivityLimit}
-              isDisabled={coreState.activityFeed.isLoading}
+              value={topLimit}
+              onChange={setTopLimit}
             />
             <div className="flex items-end">
               <Button
                 color="primary"
                 radius="full"
-                onPress={loadCoreDashboard}
                 startContent={<Icon icon="solar:refresh-bold" width="18" />}
+                onPress={loadCoreDashboard}
               >
                 Refresh Dashboard
               </Button>
@@ -765,8 +794,8 @@ function DashboardHome() {
           ? Array.from({ length: 8 }).map((_, index) => (
               <DashboardPanel
                 key={`kpi-loading-${index + 1}`}
-                title="Loading"
                 className="min-h-[140px]"
+                title="Loading"
               >
                 <LoadingBlock lines={4} />
               </DashboardPanel>
@@ -774,33 +803,38 @@ function DashboardHome() {
           : kpiCards.map((card) => (
               <MetricCard
                 key={card.label}
-                label={card.label}
-                value={card.value}
                 hint={card.hint}
                 icon={card.icon}
+                label={card.label}
                 tone={card.tone}
+                value={card.value}
               />
             ))}
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <DashboardPanel
-          title="Users Growth"
-          subtitle={`Daily user growth for the last ${days} days`}
           action={
-            <Chip variant="flat" radius="full">
+            <Chip radius="full" variant="flat">
               {coreState.usersGrowth.data.length} points
             </Chip>
           }
+          subtitle={`Daily user growth for the last ${days} days`}
+          title="Users Growth"
         >
           {coreState.usersGrowth.isLoading ? (
             <LoadingBlock lines={8} />
           ) : coreState.usersGrowth.error ? (
-            <ErrorState message={coreState.usersGrowth.error} onRetry={loadCoreDashboard} />
-          ) : !hasPositiveValues(coreState.usersGrowth.data.map((item) => item.users)) ? (
+            <ErrorState
+              message={coreState.usersGrowth.error}
+              onRetry={loadCoreDashboard}
+            />
+          ) : !hasPositiveValues(
+              coreState.usersGrowth.data.map((item) => item.users),
+            ) ? (
             <EmptyState
-              title="No user growth data"
               description="The selected window has no recorded user growth yet."
+              title="No user growth data"
             />
           ) : (
             <AnalyticsLineChart
@@ -818,39 +852,50 @@ function DashboardHome() {
         </DashboardPanel>
 
         <DashboardPanel
-          title="Revenue Growth"
-          subtitle="Revenue and payments by date"
           action={
-            <Chip variant="flat" radius="full">
-              {formatCurrency(overview?.payment_analytics.revenue_7d)} 7D revenue
+            <Chip radius="full" variant="flat">
+              {formatCurrency(overview?.payment_analytics.revenue_7d)} 7D
+              revenue
             </Chip>
           }
+          subtitle="Revenue and payments by date"
+          title="Revenue Growth"
         >
           {coreState.revenueGrowth.isLoading ? (
             <LoadingBlock lines={8} />
           ) : coreState.revenueGrowth.error ? (
-            <ErrorState message={coreState.revenueGrowth.error} onRetry={loadCoreDashboard} />
+            <ErrorState
+              message={coreState.revenueGrowth.error}
+              onRetry={loadCoreDashboard}
+            />
           ) : !hasPositiveValues(
-              coreState.revenueGrowth.data.flatMap((item) => [item.revenue, item.payments]),
+              coreState.revenueGrowth.data.flatMap((item) => [
+                item.revenue,
+                item.payments,
+              ]),
             ) ? (
             <EmptyState
-              title="No revenue data"
               description="Payment analytics are empty for the selected period."
+              title="No revenue data"
             />
           ) : (
             <AnalyticsLineChart
-              labels={revenueGrowthLabels}
               dualAxis
+              labels={revenueGrowthLabels}
               series={[
                 {
                   label: "Revenue",
-                  values: coreState.revenueGrowth.data.map((item) => item.revenue),
+                  values: coreState.revenueGrowth.data.map(
+                    (item) => item.revenue,
+                  ),
                   color: "#2563eb",
                   fill: true,
                 },
                 {
                   label: "Payments",
-                  values: coreState.revenueGrowth.data.map((item) => item.payments),
+                  values: coreState.revenueGrowth.data.map(
+                    (item) => item.payments,
+                  ),
                   color: "#d97706",
                   yAxisID: "y1",
                 },
@@ -860,17 +905,22 @@ function DashboardHome() {
         </DashboardPanel>
 
         <DashboardPanel
-          title="Messages Growth"
           subtitle="Contact message volume across the selected range"
+          title="Messages Growth"
         >
           {coreState.messagesGrowth.isLoading ? (
             <LoadingBlock lines={8} />
           ) : coreState.messagesGrowth.error ? (
-            <ErrorState message={coreState.messagesGrowth.error} onRetry={loadCoreDashboard} />
-          ) : !hasPositiveValues(coreState.messagesGrowth.data.map((item) => item.messages)) ? (
+            <ErrorState
+              message={coreState.messagesGrowth.error}
+              onRetry={loadCoreDashboard}
+            />
+          ) : !hasPositiveValues(
+              coreState.messagesGrowth.data.map((item) => item.messages),
+            ) ? (
             <EmptyState
-              title="No message growth data"
               description="No support message activity has been recorded for this filter."
+              title="No message growth data"
             />
           ) : (
             <AnalyticsLineChart
@@ -878,7 +928,9 @@ function DashboardHome() {
               series={[
                 {
                   label: "Messages",
-                  values: coreState.messagesGrowth.data.map((item) => item.messages),
+                  values: coreState.messagesGrowth.data.map(
+                    (item) => item.messages,
+                  ),
                   color: "#db2777",
                   fill: true,
                 },
@@ -888,33 +940,40 @@ function DashboardHome() {
         </DashboardPanel>
 
         <DashboardPanel
-          title="API Usage Stats"
-          subtitle="Overview platform usage analytics"
           action={
-            <Chip variant="flat" radius="full">
-              {overview?.platform_usage_analytics.tracking_enabled ? "Tracking On" : "Tracking Off"}
+            <Chip radius="full" variant="flat">
+              {overview?.platform_usage_analytics.tracking_enabled
+                ? "Tracking On"
+                : "Tracking Off"}
             </Chip>
           }
+          subtitle="Overview platform usage analytics"
+          title="API Usage Stats"
         >
           {coreState.overview.isLoading ? (
             <LoadingBlock lines={8} />
           ) : coreState.overview.error ? (
-            <ErrorState message={coreState.overview.error} onRetry={loadCoreDashboard} />
+            <ErrorState
+              message={coreState.overview.error}
+              onRetry={loadCoreDashboard}
+            />
           ) : !hasPositiveValues(
-              overview?.platform_usage_analytics.api_usage_stats.flatMap((item) => [
-                item.requests,
-                item.unique_api_requests,
-                item.errors,
-              ]) ?? [],
+              overview?.platform_usage_analytics.api_usage_stats.flatMap(
+                (item) => [
+                  item.requests,
+                  item.unique_api_requests,
+                  item.errors,
+                ],
+              ) ?? [],
             ) ? (
             <EmptyState
-              title="No platform usage data"
               description="API usage tracking is disabled or the selected range has no request summaries."
+              title="No platform usage data"
             />
           ) : (
             <AnalyticsLineChart
-              labels={apiUsageLabels}
               dualAxis
+              labels={apiUsageLabels}
               series={[
                 {
                   label: "Requests",
@@ -942,60 +1001,69 @@ function DashboardHome() {
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_1fr]">
         <DashboardPanel
-          title="Page Views"
-          subtitle="Aggregated page-view metrics and most viewed pages"
           action={
-            <Chip variant="flat" radius="full">
+            <Chip radius="full" variant="flat">
               {formatNumber(pageViews?.unique_page_views)} unique views
             </Chip>
           }
+          subtitle="Aggregated page-view metrics and most viewed pages"
+          title="Page Views"
         >
           {coreState.pageViews.isLoading ? (
             <LoadingBlock lines={10} />
           ) : coreState.pageViews.error ? (
-            <ErrorState message={coreState.pageViews.error} onRetry={loadCoreDashboard} />
+            <ErrorState
+              message={coreState.pageViews.error}
+              onRetry={loadCoreDashboard}
+            />
           ) : (
             <div className="space-y-6">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                 <MetricCard
-                  label="Total Page Views"
-                  value={formatCompactNumber(pageViews?.total_page_views)}
                   hint={`${formatNumber(pageViews?.page_views_today)} today`}
                   icon="mdi:file-eye-outline"
+                  label="Total Page Views"
+                  value={formatCompactNumber(pageViews?.total_page_views)}
                 />
                 <MetricCard
-                  label="Unique Page Views"
-                  value={formatCompactNumber(pageViews?.unique_page_views)}
                   hint={`${formatNumber(pageViews?.page_views_7d)} in 7 days`}
                   icon="mdi:account-eye-outline"
+                  label="Unique Page Views"
+                  value={formatCompactNumber(pageViews?.unique_page_views)}
                 />
                 <MetricCard
-                  label="Page Views Today"
-                  value={formatNumber(pageViews?.page_views_today)}
                   hint={`Last ${days} days`}
                   icon="mdi:calendar-today-outline"
+                  label="Page Views Today"
+                  value={formatNumber(pageViews?.page_views_today)}
                 />
                 <MetricCard
-                  label="Page Views 7D"
-                  value={formatNumber(pageViews?.page_views_7d)}
                   hint={`Top ${topLimit} pages`}
                   icon="mdi:chart-line"
+                  label="Page Views 7D"
+                  value={formatNumber(pageViews?.page_views_7d)}
                 />
               </div>
 
-              {!hasPositiveValues((pageViews?.most_viewed_pages ?? []).map((item) => item.views)) ? (
+              {!hasPositiveValues(
+                (pageViews?.most_viewed_pages ?? []).map((item) => item.views),
+              ) ? (
                 <EmptyState
-                  title="No page-view distribution"
                   description="Most-viewed pages will appear here when aggregated page views are available."
+                  title="No page-view distribution"
                 />
               ) : (
                 <AnalyticsBarChart
                   horizontal
-                  labels={(pageViews?.most_viewed_pages ?? []).map((item) => item.page)}
+                  labels={(pageViews?.most_viewed_pages ?? []).map(
+                    (item) => item.page,
+                  )}
                   series={[
                     {
                       label: "Views",
-                      values: (pageViews?.most_viewed_pages ?? []).map((item) => item.views),
+                      values: (pageViews?.most_viewed_pages ?? []).map(
+                        (item) => item.views,
+                      ),
                       color: "#0f766e",
                     },
                   ]}
@@ -1006,17 +1074,22 @@ function DashboardHome() {
         </DashboardPanel>
 
         <DashboardPanel
-          title="Top Pages"
           subtitle="Top pages endpoint rendered as a horizontal bar chart"
+          title="Top Pages"
         >
           {coreState.topPages.isLoading ? (
             <LoadingBlock lines={10} />
           ) : coreState.topPages.error ? (
-            <ErrorState message={coreState.topPages.error} onRetry={loadCoreDashboard} />
-          ) : !hasPositiveValues(coreState.topPages.data.map((item) => item.views)) ? (
+            <ErrorState
+              message={coreState.topPages.error}
+              onRetry={loadCoreDashboard}
+            />
+          ) : !hasPositiveValues(
+              coreState.topPages.data.map((item) => item.views),
+            ) ? (
             <EmptyState
-              title="No top page data"
               description="The backend returned no ranked pages for the selected filters."
+              title="No top page data"
             />
           ) : (
             <AnalyticsBarChart
@@ -1036,44 +1109,54 @@ function DashboardHome() {
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <DashboardPanel
-          title="Traffic Sources"
-          subtitle="Traffic source distribution"
           action={
-            <Chip variant="flat" radius="full">
+            <Chip radius="full" variant="flat">
               {sourceItems.length} sources
             </Chip>
           }
+          subtitle="Traffic source distribution"
+          title="Traffic Sources"
         >
           {coreState.trafficSources.isLoading ? (
             <LoadingBlock lines={7} />
           ) : coreState.trafficSources.error ? (
-            <ErrorState message={coreState.trafficSources.error} onRetry={loadCoreDashboard} />
+            <ErrorState
+              message={coreState.trafficSources.error}
+              onRetry={loadCoreDashboard}
+            />
           ) : !hasPositiveValues(sourceItems.map((item) => item.count)) ? (
             <EmptyState
-              title="No traffic source data"
               description="Traffic sources will populate here when session summaries include attribution."
+              title="No traffic source data"
             />
           ) : (
             <AnalyticsDoughnutChart
-              labels={sourceItems.map((item) => prettifyFeatureName(item.source))}
-              values={sourceItems.map((item) => item.count)}
               colors={buildChartPalette(sourceItems.length)}
+              labels={sourceItems.map((item) =>
+                prettifyFeatureName(item.source),
+              )}
+              values={sourceItems.map((item) => item.count)}
             />
           )}
         </DashboardPanel>
 
         <DashboardPanel
-          title="Feature Usage"
           subtitle="Most used product features across the selected range"
+          title="Feature Usage"
         >
           {coreState.featureUsage.isLoading ? (
             <LoadingBlock lines={7} />
           ) : coreState.featureUsage.error ? (
-            <ErrorState message={coreState.featureUsage.error} onRetry={loadCoreDashboard} />
-          ) : !hasPositiveValues(featureUsageItems.map((item) => item.usage)) ? (
+            <ErrorState
+              message={coreState.featureUsage.error}
+              onRetry={loadCoreDashboard}
+            />
+          ) : !hasPositiveValues(
+              featureUsageItems.map((item) => item.usage),
+            ) ? (
             <EmptyState
-              title="No feature usage data"
               description="Feature counters are currently empty for this period."
+              title="No feature usage data"
             />
           ) : (
             <AnalyticsBarChart
@@ -1091,36 +1174,47 @@ function DashboardHome() {
         </DashboardPanel>
 
         <DashboardPanel
-          title="Performance Endpoints"
-          subtitle="Top endpoints by requests in the selected minutes window"
           action={
-            <Chip variant="flat" radius="full">
+            <Chip radius="full" variant="flat">
               {minutes} minute window
             </Chip>
           }
+          subtitle="Top endpoints by requests in the selected minutes window"
+          title="Performance Endpoints"
         >
           {coreState.performance.isLoading ? (
             <LoadingBlock lines={7} />
           ) : coreState.performance.error ? (
-            <ErrorState message={coreState.performance.error} onRetry={loadCoreDashboard} />
-          ) : !hasPositiveValues((performance?.top_endpoints ?? []).map((item) => item.requests)) ? (
+            <ErrorState
+              message={coreState.performance.error}
+              onRetry={loadCoreDashboard}
+            />
+          ) : !hasPositiveValues(
+              (performance?.top_endpoints ?? []).map((item) => item.requests),
+            ) ? (
             <EmptyState
-              title="No performance endpoint data"
               description="Endpoint performance will render here when recent request summaries are available."
+              title="No performance endpoint data"
             />
           ) : (
             <AnalyticsBarChart
               horizontal
-              labels={(performance?.top_endpoints ?? []).map((item) => item.endpoint)}
+              labels={(performance?.top_endpoints ?? []).map(
+                (item) => item.endpoint,
+              )}
               series={[
                 {
                   label: "Requests",
-                  values: (performance?.top_endpoints ?? []).map((item) => item.requests),
+                  values: (performance?.top_endpoints ?? []).map(
+                    (item) => item.requests,
+                  ),
                   color: "#7c3aed",
                 },
                 {
                   label: "Errors",
-                  values: (performance?.top_endpoints ?? []).map((item) => item.errors),
+                  values: (performance?.top_endpoints ?? []).map(
+                    (item) => item.errors,
+                  ),
                   color: "#dc2626",
                 },
               ]}
@@ -1131,69 +1225,77 @@ function DashboardHome() {
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.3fr_1fr]">
         <DashboardPanel
-          title="Sessions"
           subtitle="Session analytics cards from the sessions summary endpoint"
+          title="Sessions"
         >
           {coreState.sessions.isLoading ? (
             <LoadingBlock lines={8} />
           ) : coreState.sessions.error ? (
-            <ErrorState message={coreState.sessions.error} onRetry={loadCoreDashboard} />
+            <ErrorState
+              message={coreState.sessions.error}
+              onRetry={loadCoreDashboard}
+            />
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <MetricCard
+                icon="mdi:monitor-dashboard"
                 label="Total Sessions"
                 value={formatCompactNumber(sessions?.total_sessions)}
-                icon="mdi:monitor-dashboard"
               />
               <MetricCard
-                label="Avg Session Time"
-                value={sessions?.avg_session_time || formatDurationFromSeconds(0)}
                 hint={`${formatDurationFromSeconds(sessions?.avg_session_time_seconds)} raw`}
                 icon="mdi:timer-outline"
+                label="Avg Session Time"
+                value={
+                  sessions?.avg_session_time || formatDurationFromSeconds(0)
+                }
               />
               <MetricCard
+                icon="mdi:file-document-multiple-outline"
                 label="Pages / Session"
                 value={toSafeNumber(sessions?.pages_per_session).toFixed(2)}
-                icon="mdi:file-document-multiple-outline"
               />
               <MetricCard
+                icon="mdi:arrow-u-left-top"
                 label="Bounce Rate"
                 value={formatPercent(sessions?.bounce_rate)}
-                icon="mdi:arrow-u-left-top"
               />
             </div>
           )}
         </DashboardPanel>
 
         <DashboardPanel
-          title="Live Analytics"
           subtitle="Current live-user session snapshot"
+          title="Live Analytics"
         >
           {coreState.liveUsers.isLoading ? (
             <LoadingBlock lines={8} />
           ) : coreState.liveUsers.error ? (
-            <ErrorState message={coreState.liveUsers.error} onRetry={loadCoreDashboard} />
+            <ErrorState
+              message={coreState.liveUsers.error}
+              onRetry={loadCoreDashboard}
+            />
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <MetricCard
+                icon="mdi:account-group-outline"
                 label="Active Users Now"
                 value={formatNumber(liveUsers?.active_users_now)}
-                icon="mdi:account-group-outline"
               />
               <MetricCard
+                icon="mdi:monitor-cellphone"
                 label="Active Sessions"
                 value={formatNumber(liveUsers?.active_sessions)}
-                icon="mdi:monitor-cellphone"
               />
               <MetricCard
+                icon="mdi:account-check-outline"
                 label="Logged In Users"
                 value={formatNumber(liveUsers?.logged_in_users_now)}
-                icon="mdi:account-check-outline"
               />
               <MetricCard
+                icon="mdi:account-outline"
                 label="Guest Users"
                 value={formatNumber(liveUsers?.guest_users_now)}
-                icon="mdi:account-outline"
               />
             </div>
           )}
@@ -1202,84 +1304,97 @@ function DashboardHome() {
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_1fr]">
         <DashboardPanel
-          title="Devices, Browsers, and OS"
           subtitle="Session-summary breakdown from the devices endpoint"
+          title="Devices, Browsers, and OS"
         >
           {coreState.devices.isLoading ? (
             <LoadingBlock lines={9} />
           ) : coreState.devices.error ? (
-            <ErrorState message={coreState.devices.error} onRetry={loadCoreDashboard} />
+            <ErrorState
+              message={coreState.devices.error}
+              onRetry={loadCoreDashboard}
+            />
           ) : (
             <div className="space-y-6">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <MetricCard
+                  icon="mdi:account-group-outline"
                   label="Total Users"
                   value={formatCompactNumber(devices?.summary.total_users)}
-                  icon="mdi:account-group-outline"
                 />
                 <MetricCard
+                  icon="mdi:account-check-outline"
                   label="Logged In"
                   value={formatCompactNumber(devices?.summary.logged_in_users)}
-                  icon="mdi:account-check-outline"
                 />
                 <MetricCard
+                  icon="mdi:account-outline"
                   label="Guests"
                   value={formatCompactNumber(devices?.summary.guest_users)}
-                  icon="mdi:account-outline"
                 />
                 <MetricCard
+                  icon="mdi:monitor-dashboard"
                   label="Total Sessions"
                   value={formatCompactNumber(devices?.summary.total_sessions)}
-                  icon="mdi:monitor-dashboard"
                 />
                 <MetricCard
-                  label="Avg Sessions / User"
-                  value={toSafeNumber(devices?.summary.avg_sessions_per_user).toFixed(2)}
                   icon="mdi:chart-bell-curve-cumulative"
+                  label="Avg Sessions / User"
+                  value={toSafeNumber(
+                    devices?.summary.avg_sessions_per_user,
+                  ).toFixed(2)}
                 />
               </div>
 
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                {!hasPositiveValues((devices?.devices ?? []).map((item) => item.users)) ? (
+                {!hasPositiveValues(
+                  (devices?.devices ?? []).map((item) => item.users),
+                ) ? (
                   <EmptyState
-                    title="No device distribution"
                     description="Device segmentation will appear when users and sessions are tracked."
+                    title="No device distribution"
                   />
                 ) : (
                   <AnalyticsDoughnutChart
+                    colors={buildChartPalette((devices?.devices ?? []).length)}
                     labels={(devices?.devices ?? []).map((item) =>
                       prettifyFeatureName(item.device),
                     )}
                     values={(devices?.devices ?? []).map((item) => item.users)}
-                    colors={buildChartPalette((devices?.devices ?? []).length)}
                   />
                 )}
 
-                {!hasPositiveValues((devices?.browsers ?? []).map((item) => item.users)) ? (
+                {!hasPositiveValues(
+                  (devices?.browsers ?? []).map((item) => item.users),
+                ) ? (
                   <EmptyState
-                    title="No browser breakdown"
                     description="Browser analytics are empty for the selected range."
+                    title="No browser breakdown"
                   />
                 ) : (
                   <AnalyticsDoughnutChart
+                    colors={buildChartPalette((devices?.browsers ?? []).length)}
                     labels={(devices?.browsers ?? []).map((item) =>
                       prettifyFeatureName(item.browser),
                     )}
                     values={(devices?.browsers ?? []).map((item) => item.users)}
-                    colors={buildChartPalette((devices?.browsers ?? []).length)}
                   />
                 )}
 
-                {!hasPositiveValues((devices?.os ?? []).map((item) => item.users)) ? (
+                {!hasPositiveValues(
+                  (devices?.os ?? []).map((item) => item.users),
+                ) ? (
                   <EmptyState
-                    title="No OS breakdown"
                     description="Operating system analytics are empty for the selected range."
+                    title="No OS breakdown"
                   />
                 ) : (
                   <AnalyticsDoughnutChart
-                    labels={(devices?.os ?? []).map((item) => prettifyFeatureName(item.os))}
-                    values={(devices?.os ?? []).map((item) => item.users)}
                     colors={buildChartPalette((devices?.os ?? []).length)}
+                    labels={(devices?.os ?? []).map((item) =>
+                      prettifyFeatureName(item.os),
+                    )}
+                    values={(devices?.os ?? []).map((item) => item.users)}
                   />
                 )}
               </div>
@@ -1288,32 +1403,35 @@ function DashboardHome() {
         </DashboardPanel>
 
         <DashboardPanel
-          title="Audience Activity"
           subtitle="Daily, weekly, and monthly active users"
+          title="Audience Activity"
         >
           {coreState.userActivity.isLoading ? (
             <LoadingBlock lines={8} />
           ) : coreState.userActivity.error ? (
-            <ErrorState message={coreState.userActivity.error} onRetry={loadCoreDashboard} />
+            <ErrorState
+              message={coreState.userActivity.error}
+              onRetry={loadCoreDashboard}
+            />
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <MetricCard
-                label="DAU"
-                value={formatCompactNumber(userActivity?.dau)}
                 hint="Daily active users"
                 icon="mdi:calendar-today-outline"
+                label="DAU"
+                value={formatCompactNumber(userActivity?.dau)}
               />
               <MetricCard
-                label="WAU"
-                value={formatCompactNumber(userActivity?.wau)}
                 hint="Weekly active users"
                 icon="mdi:calendar-week-outline"
+                label="WAU"
+                value={formatCompactNumber(userActivity?.wau)}
               />
               <MetricCard
-                label="MAU"
-                value={formatCompactNumber(userActivity?.mau)}
                 hint="Monthly active users"
                 icon="mdi:calendar-month-outline"
+                label="MAU"
+                value={formatCompactNumber(userActivity?.mau)}
               />
             </div>
           )}
@@ -1321,16 +1439,20 @@ function DashboardHome() {
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <DashboardPanel title="Countries" subtitle="Top countries by aggregated location count">
+        <DashboardPanel
+          subtitle="Top countries by aggregated location count"
+          title="Countries"
+        >
           {renderTableFrame({
             isLoading: coreState.locations.isLoading,
             error: coreState.locations.error,
             items: countryRows,
             emptyTitle: "No country data",
-            emptyDescription: "Country-level location aggregation is empty for this range.",
+            emptyDescription:
+              "Country-level location aggregation is empty for this range.",
             onRetry: loadCoreDashboard,
             children: (
-              <Table aria-label="Countries table" removeWrapper>
+              <Table removeWrapper aria-label="Countries table">
                 <TableHeader>
                   <TableColumn>Country</TableColumn>
                   <TableColumn>Count</TableColumn>
@@ -1348,16 +1470,20 @@ function DashboardHome() {
           })}
         </DashboardPanel>
 
-        <DashboardPanel title="Regions" subtitle="Top regions by aggregated location count">
+        <DashboardPanel
+          subtitle="Top regions by aggregated location count"
+          title="Regions"
+        >
           {renderTableFrame({
             isLoading: coreState.locations.isLoading,
             error: coreState.locations.error,
             items: regionRows,
             emptyTitle: "No region data",
-            emptyDescription: "Region-level aggregation is empty for this range.",
+            emptyDescription:
+              "Region-level aggregation is empty for this range.",
             onRetry: loadCoreDashboard,
             children: (
-              <Table aria-label="Regions table" removeWrapper>
+              <Table removeWrapper aria-label="Regions table">
                 <TableHeader>
                   <TableColumn>Region</TableColumn>
                   <TableColumn>Count</TableColumn>
@@ -1375,7 +1501,10 @@ function DashboardHome() {
           })}
         </DashboardPanel>
 
-        <DashboardPanel title="Cities" subtitle="Top cities by aggregated location count">
+        <DashboardPanel
+          subtitle="Top cities by aggregated location count"
+          title="Cities"
+        >
           {renderTableFrame({
             isLoading: coreState.locations.isLoading,
             error: coreState.locations.error,
@@ -1384,7 +1513,7 @@ function DashboardHome() {
             emptyDescription: "City-level aggregation is empty for this range.",
             onRetry: loadCoreDashboard,
             children: (
-              <Table aria-label="Cities table" removeWrapper>
+              <Table removeWrapper aria-label="Cities table">
                 <TableHeader>
                   <TableColumn>City</TableColumn>
                   <TableColumn>Count</TableColumn>
@@ -1403,75 +1532,27 @@ function DashboardHome() {
         </DashboardPanel>
       </section>
 
-      <DashboardPanel
-        title="Activity Feed"
-        subtitle="Latest analytics events from the activity feed endpoint"
-        action={
-          <Chip variant="flat" radius="full">
-            {activityFeed?.limit ?? activityLimit} rows
-          </Chip>
-        }
-      >
-        {renderTableFrame({
-          isLoading: coreState.activityFeed.isLoading,
-          error: coreState.activityFeed.error,
-          items: activityFeed?.items ?? [],
-          emptyTitle: "No activity feed items",
-          emptyDescription: "No recent feed items were returned for the current limit.",
-          onRetry: loadCoreDashboard,
-          children: (
-            <Table aria-label="Activity feed table" removeWrapper>
-              <TableHeader>
-                <TableColumn>Event</TableColumn>
-                <TableColumn>Page / Endpoint</TableColumn>
-                <TableColumn>Context</TableColumn>
-                <TableColumn>Created</TableColumn>
-              </TableHeader>
-              <TableBody items={activityFeed?.items ?? []}>
-                {(item: ActivityFeedItem) => (
-                  <TableRow key={item.analytics_event_id}>
-                    <TableCell>{prettifyFeatureName(item.event_type)}</TableCell>
-                    <TableCell>{item.page || item.endpoint || "-"}</TableCell>
-                    <TableCell>
-                      {[
-                        item.device,
-                        item.browser,
-                        item.os,
-                        item.source,
-                        item.status_code ? String(item.status_code) : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" | ") || "-"}
-                    </TableCell>
-                    <TableCell>{formatDateTime(item.created_at)}</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          ),
-        })}
-      </DashboardPanel>
-
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <DashboardPanel
-          title="Recent Users"
-          subtitle="Paginated recent users list"
           action={
-            <Chip variant="flat" radius="full">
+            <Chip radius="full" variant="flat">
               {formatNumber(recentUsersState.pagination.total)} total
             </Chip>
           }
+          subtitle="Paginated recent users list"
+          title="Recent Users"
         >
           {renderTableFrame({
             isLoading: recentUsersState.isLoading,
             error: recentUsersState.error,
             items: recentUsersState.items,
             emptyTitle: "No recent users",
-            emptyDescription: "The backend returned no recent users for the current page.",
+            emptyDescription:
+              "The backend returned no recent users for the current page.",
             onRetry: () => loadRecentUsers(recentUsersPage),
             children: (
               <div className="space-y-4">
-                <Table aria-label="Recent users table" removeWrapper>
+                <Table removeWrapper aria-label="Recent users table">
                   <TableHeader>
                     <TableColumn>User</TableColumn>
                     <TableColumn>Email</TableColumn>
@@ -1481,7 +1562,9 @@ function DashboardHome() {
                   <TableBody items={recentUsersState.items}>
                     {(item: RecentUser) => (
                       <TableRow key={item.user_id}>
-                        <TableCell>{String(item.name ?? `User #${item.user_id}`)}</TableCell>
+                        <TableCell>
+                          {String(item.name ?? `User #${item.user_id}`)}
+                        </TableCell>
                         <TableCell>{String(item.email ?? "-")}</TableCell>
                         <TableCell>{item.is_paid ? "Paid" : "Free"}</TableCell>
                         <TableCell>{formatDateTime(item.created_at)}</TableCell>
@@ -1494,10 +1577,12 @@ function DashboardHome() {
                     Page {recentUsersState.pagination.page} of {userTablePages}
                   </p>
                   <Pagination
+                    showControls
+                    boundaries={1}
                     color="primary"
                     page={recentUsersPage}
+                    siblings={0}
                     total={userTablePages}
-                    showControls
                     onChange={setRecentUsersPage}
                   />
                 </div>
@@ -1507,24 +1592,25 @@ function DashboardHome() {
         </DashboardPanel>
 
         <DashboardPanel
-          title="Recent Payments"
-          subtitle="Paginated recent payments list"
           action={
-            <Chip variant="flat" radius="full">
+            <Chip radius="full" variant="flat">
               {formatNumber(recentPaymentsState.pagination.total)} total
             </Chip>
           }
+          subtitle="Paginated recent payments list"
+          title="Recent Payments"
         >
           {renderTableFrame({
             isLoading: recentPaymentsState.isLoading,
             error: recentPaymentsState.error,
             items: recentPaymentsState.items,
             emptyTitle: "No recent payments",
-            emptyDescription: "The backend returned no recent payments for the current page.",
+            emptyDescription:
+              "The backend returned no recent payments for the current page.",
             onRetry: () => loadRecentPayments(recentPaymentsPage),
             children: (
               <div className="space-y-4">
-                <Table aria-label="Recent payments table" removeWrapper>
+                <Table removeWrapper aria-label="Recent payments table">
                   <TableHeader>
                     <TableColumn>Name</TableColumn>
                     <TableColumn>Email</TableColumn>
@@ -1534,23 +1620,30 @@ function DashboardHome() {
                   <TableBody items={recentPaymentsState.items}>
                     {(item: RecentPayment) => (
                       <TableRow key={item.payment_id}>
-                        <TableCell>{item.name || `User #${item.user_id}`}</TableCell>
+                        <TableCell>
+                          {item.name || `User #${item.user_id}`}
+                        </TableCell>
                         <TableCell>{item.email || "-"}</TableCell>
                         <TableCell>{formatCurrency(item.amount)}</TableCell>
-                        <TableCell>{prettifyFeatureName(item.status)}</TableCell>
+                        <TableCell>
+                          {prettifyFeatureName(item.status)}
+                        </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-default-500">
-                    Page {recentPaymentsState.pagination.page} of {paymentsTablePages}
+                    Page {recentPaymentsState.pagination.page} of{" "}
+                    {paymentsTablePages}
                   </p>
                   <Pagination
+                    showControls
+                    boundaries={1}
                     color="primary"
                     page={recentPaymentsPage}
+                    siblings={0}
                     total={paymentsTablePages}
-                    showControls
                     onChange={setRecentPaymentsPage}
                   />
                 </div>
@@ -1560,24 +1653,25 @@ function DashboardHome() {
         </DashboardPanel>
 
         <DashboardPanel
-          title="Recent Messages"
-          subtitle="Paginated recent support messages"
           action={
-            <Chip variant="flat" radius="full">
+            <Chip radius="full" variant="flat">
               {formatNumber(recentMessagesState.pagination.total)} total
             </Chip>
           }
+          subtitle="Paginated recent support messages"
+          title="Recent Messages"
         >
           {renderTableFrame({
             isLoading: recentMessagesState.isLoading,
             error: recentMessagesState.error,
             items: recentMessagesState.items,
             emptyTitle: "No recent messages",
-            emptyDescription: "The backend returned no recent support messages for the current page.",
+            emptyDescription:
+              "The backend returned no recent support messages for the current page.",
             onRetry: () => loadRecentMessages(recentMessagesPage),
             children: (
               <div className="space-y-4">
-                <Table aria-label="Recent messages table" removeWrapper>
+                <Table removeWrapper aria-label="Recent messages table">
                   <TableHeader>
                     <TableColumn>Name</TableColumn>
                     <TableColumn>Email</TableColumn>
@@ -1597,13 +1691,16 @@ function DashboardHome() {
                 </Table>
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-default-500">
-                    Page {recentMessagesState.pagination.page} of {messagesTablePages}
+                    Page {recentMessagesState.pagination.page} of{" "}
+                    {messagesTablePages}
                   </p>
                   <Pagination
+                    showControls
+                    boundaries={1}
                     color="primary"
                     page={recentMessagesPage}
+                    siblings={0}
                     total={messagesTablePages}
-                    showControls
                     onChange={setRecentMessagesPage}
                   />
                 </div>

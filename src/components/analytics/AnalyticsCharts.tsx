@@ -105,14 +105,17 @@ export function AnalyticsLineChart({
         ticks: { color: tickColor, maxTicksLimit: 8 },
       },
       y: {
+        type: "linear" as const,
         beginAtZero: true,
         grid: { color: gridColor },
         ticks: { color: tickColor },
       },
       y1: dualAxis
         ? {
+            type: "linear" as const,
+            display: true,
+            position: "right" as const,
             beginAtZero: true,
-            position: "right",
             grid: { drawOnChartArea: false },
             ticks: { color: tickColor },
           }
@@ -239,5 +242,8 @@ export function AnalyticsDoughnutChart({
 }
 
 export function buildChartPalette(size: number): string[] {
-  return Array.from({ length: size }, (_, index) => defaultPalette[index % defaultPalette.length]);
+  return Array.from(
+    { length: size },
+    (_, index) => defaultPalette[index % defaultPalette.length],
+  );
 }

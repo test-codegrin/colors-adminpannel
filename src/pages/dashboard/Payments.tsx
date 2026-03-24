@@ -1,5 +1,7 @@
 "use client";
 
+import type { Payment } from "@/types/payment.types";
+
 import {
   Button,
   Card,
@@ -19,19 +21,21 @@ import {
 } from "@heroui/react";
 import { useEffect, useRef, useState } from "react";
 import { useAsyncList } from "@react-stately/data";
+
 import {
   getAllPayments,
   getPaymentsErrorMessage,
   getPaymentReceipt,
 } from "@/api/payments.api";
-import type { Payment } from "@/types/payment.types";
 
 /* ---------- Utility ---------- */
 
 function formatDate(value?: string): string {
   if (!value) return "-";
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleString();
 }
 
@@ -40,15 +44,15 @@ function formatDate(value?: string): string {
 function ReceiptIcon() {
   return (
     <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
       fill="none"
+      height="16"
       stroke="currentColor"
-      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      width="16"
+      xmlns="http://www.w3.org/2000/svg"
     >
       <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z" />
       <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
@@ -96,6 +100,7 @@ export default function PaymentsTable() {
   useEffect(() => {
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
+
       return;
     }
 
@@ -113,13 +118,14 @@ export default function PaymentsTable() {
   const openStripeReceipt = async (payment: Payment) => {
     if (payment.receipt_url) {
       window.open(payment.receipt_url, "_blank");
+
       return;
     }
 
     setLoadingReceipt(payment.payment_id);
     try {
       const { receipt_url } = await getPaymentReceipt(payment.payment_id);
-      
+
       if (receipt_url) {
         window.open(receipt_url, "_blank");
       } else {
@@ -143,7 +149,7 @@ export default function PaymentsTable() {
         <div className="min-h-[300px]">
           {error && <p className="text-danger text-sm">{error}</p>}
 
-          <Table aria-label="Payments table" removeWrapper>
+          <Table removeWrapper aria-label="Payments table">
             <TableHeader>
               <TableColumn>ID</TableColumn>
               <TableColumn>Name</TableColumn>
@@ -155,10 +161,10 @@ export default function PaymentsTable() {
             </TableHeader>
 
             <TableBody
+              emptyContent="No payments found"
               isLoading={paymentsList.isLoading}
               items={paymentsList.items}
               loadingContent={<Spinner label="Loading payments..." />}
-              emptyContent="No payments found"
             >
               {(payment: Payment) => (
                 <TableRow key={String(payment.payment_id)}>
@@ -173,11 +179,11 @@ export default function PaymentsTable() {
                         payment.status === "paid"
                           ? "success"
                           : payment.status === "pending"
-                          ? "warning"
-                          : "danger"
+                            ? "warning"
+                            : "danger"
                       }
-                      variant="flat"
                       size="sm"
+                      variant="flat"
                     >
                       {payment.status}
                     </Chip>
@@ -187,25 +193,27 @@ export default function PaymentsTable() {
 
                   {/* ── Receipt Button ── */}
                   <TableCell>
-                    <Tooltip 
+                    <Tooltip
                       content={
-                        payment.status === "paid" 
-                          ? "View Stripe Receipt" 
+                        payment.status === "paid"
+                          ? "View Stripe Receipt"
                           : "Receipt only available for paid transactions"
-                      } 
+                      }
                       placement="left"
                     >
                       <Button
                         isIconOnly
-                        size="sm"
-                        variant="flat"
-                        color="primary"
                         aria-label="View receipt"
-                        onPress={() => openStripeReceipt(payment)}
+                        color="primary"
                         isDisabled={payment.status !== "paid"}
                         isLoading={loadingReceipt === payment.payment_id}
+                        size="sm"
+                        variant="flat"
+                        onPress={() => openStripeReceipt(payment)}
                       >
-                        {loadingReceipt !== payment.payment_id && <ReceiptIcon />}
+                        {loadingReceipt !== payment.payment_id && (
+                          <ReceiptIcon />
+                        )}
                       </Button>
                     </Tooltip>
                   </TableCell>
@@ -219,13 +227,14 @@ export default function PaymentsTable() {
 
         <div className="flex w-full items-end justify-between gap-4">
           <Select
-            label="Limit"
-            size="sm"
             disallowEmptySelection
-            selectedKeys={[String(limit)]}
             className="w-28"
+            label="Limit"
+            selectedKeys={[String(limit)]}
+            size="sm"
             onChange={(event) => {
               const nextLimit = Number(event.target.value);
+
               if (nextLimit !== limit) {
                 setLimit(nextLimit);
                 setPage(1);
@@ -239,12 +248,12 @@ export default function PaymentsTable() {
 
           <div className="flex justify-end w-full">
             <Pagination
-              total={Math.max(totalPages, 1)}
-              page={page}
-              onChange={setPage}
-              isDisabled={paymentsList.isLoading}
               showControls
               color="primary"
+              isDisabled={paymentsList.isLoading}
+              page={page}
+              total={Math.max(totalPages, 1)}
+              onChange={setPage}
             />
           </div>
         </div>

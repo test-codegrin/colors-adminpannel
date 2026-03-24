@@ -1,6 +1,7 @@
 import { Button } from "@heroui/react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
+
 import { useAuth } from "@/context/AuthContext";
 
 interface SidebarProps {
@@ -49,6 +50,16 @@ const navItems: NavItem[] = [
     path: "/dashboard/devices-analytics",
     icon: "mdi:desktop-mac-dashboard",
   },
+  {
+    label: "Beta Plans",
+    path: "/dashboard/beta-plans",
+    icon: "mdi:beta",
+  },
+  {
+    label: "Activity Feed",
+    path: "/dashboard/activity-feed",
+    icon: "mdi:pulse",
+  },
 ];
 
 function Sidebar({ isOpen }: SidebarProps) {
@@ -86,16 +97,16 @@ function Sidebar({ isOpen }: SidebarProps) {
               key={item.path}
               className="justify-start gap-3 text-base font-medium"
               color={isActive ? "primary" : "default"}
-              variant={isActive ? "solid" : "light"}
               radius="md"
-              onPress={() => navigate(item.path)}
               startContent={
                 <Icon
+                  className={isActive ? "text-white" : "text-default-500"}
                   icon={item.icon}
                   width="23"
-                  className={isActive ? "text-white" : "text-default-500"}
                 />
               }
+              variant={isActive ? "solid" : "light"}
+              onPress={() => navigate(item.path)}
             >
               {item.label}
             </Button>
@@ -107,8 +118,6 @@ function Sidebar({ isOpen }: SidebarProps) {
       <div className="mt-auto pt-6">
         <Button
           fullWidth
-          variant="flat"
-          onPress={handleLogout}
           className="
             justify-start gap-3
             bg-danger/10 
@@ -117,11 +126,13 @@ function Sidebar({ isOpen }: SidebarProps) {
             hover:text-danger
             text-md
           "
+          variant="flat"
+          onPress={handleLogout}
         >
           <Icon
+            className="text-danger"
             icon="ic:outline-remove-circle-outline"
             width="20"
-            className="text-danger"
           />
           Log Out
         </Button>

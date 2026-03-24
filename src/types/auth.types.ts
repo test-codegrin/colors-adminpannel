@@ -43,7 +43,6 @@ export interface AuthContextValue {
   logout: () => void;
 }
 
-
 /* ================= USER DETAILS VIEW ================= */
 
 export interface UserDetails {

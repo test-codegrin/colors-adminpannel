@@ -1,6 +1,6 @@
 "use client";
 
-import type { ContactMessage } from "@/types/contactMessages.types";
+import type { BetaPlan } from "@/types/betaPlans.types";
 
 import {
   Avatar,
@@ -15,18 +15,7 @@ import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
 
 import Loader from "@/components/Loader";
-import { getContactMessageById } from "@/api/contactMessages.api";
-
-/* ---------- Utility ---------- */
-
-function formatDate(value?: string): string {
-  if (!value) return "-";
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleString();
-}
+import { getBetaPlanById } from "@/api/betaPlans.api";
 
 function getInitials(name?: string): string {
   if (!name) return "U";
@@ -40,48 +29,39 @@ function getInitials(name?: string): string {
     .toUpperCase();
 }
 
-/* ---------- Props ---------- */
-
 interface Props {
   isOpen: boolean;
   onOpenChange: () => void;
-  messageId: number | null;
+  betaPlanId: number | null;
 }
 
-/* ---------- Component ---------- */
-
-export default function ContactMessageModal({
+export default function BetaPlanModal({
   isOpen,
   onOpenChange,
-  messageId,
+  betaPlanId,
 }: Props) {
-  const [message, setMessage] = useState<ContactMessage | null>(null);
+  const [betaPlan, setBetaPlan] = useState<BetaPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  /* ---------- Fetch Message ---------- */
-
   useEffect(() => {
-    if (!messageId) return;
+    if (!betaPlanId) return;
 
-    const fetchMessage = async () => {
+    const fetchBetaPlan = async () => {
       try {
         setIsLoading(true);
+        const data = await getBetaPlanById(betaPlanId);
 
-        const data = await getContactMessageById(messageId);
-
-        setMessage(data);
+        setBetaPlan(data);
       } catch (error) {
-        console.error("Failed to load message", error);
-        setMessage(null);
+        console.error("Failed to load beta plan", error);
+        setBetaPlan(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchMessage();
-  }, [messageId]);
-
-  /* ---------- Render ---------- */
+    fetchBetaPlan();
+  }, [betaPlanId]);
 
   return (
     <Modal
@@ -96,8 +76,7 @@ export default function ContactMessageModal({
         {(onClose) => (
           <>
             <ModalHeader className="flex items-center justify-between">
-              <h3 className="text-base font-semibold">Contact Message</h3>
-
+              <h3 className="text-base font-semibold">Beta Plan Details</h3>
               <Button
                 isIconOnly
                 radius="full"
@@ -111,64 +90,48 @@ export default function ContactMessageModal({
             <ModalBody className="py-5">
               {isLoading ? (
                 <Loader />
-              ) : message ? (
+              ) : betaPlan ? (
                 <div className="space-y-4">
-                  {/* Avatar */}
                   <div className="flex justify-center">
                     <Avatar
                       className="w-20 h-20 text-white text-xl font-semibold"
                       color="primary"
-                      name={getInitials(message.name)}
+                      name={getInitials(betaPlan.name)}
                       radius="full"
                     />
                   </div>
 
                   <Input
                     isReadOnly
+                    label="Beta Claim ID"
+                    value={String(betaPlan.beta_claim_id)}
+                    variant="flat"
+                  />
+
+                  <Input
+                    isReadOnly
+                    label="User ID"
+                    value={String(betaPlan.user_id)}
+                    variant="flat"
+                  />
+
+                  <Input
+                    isReadOnly
                     label="Full Name"
-                    value={message.name ?? "-"}
+                    value={betaPlan.name ?? "-"}
                     variant="flat"
                   />
 
                   <Input
                     isReadOnly
                     label="Email"
-                    value={message.email ?? "-"}
-                    variant="flat"
-                  />
-
-                  <Input
-                    isReadOnly
-                    label="Subject"
-                    value={message.subject ?? "-"}
-                    variant="flat"
-                  />
-
-                  <Input
-                    isReadOnly
-                    label="Message"
-                    value={message.description ?? "-"}
-                    variant="flat"
-                  />
-
-                  {/* <Textarea
-                    label="Message"
-                    value={message.description ?? "-"}
-                    variant="flat"
-                    isReadOnly
-                    minRows={3}
-                  /> */}
-
-                  <Input
-                    isReadOnly
-                    label="Received At"
-                    value={formatDate(message.created_at)}
+                    value={betaPlan.email ?? "-"}
                     variant="flat"
                   />
                 </div>
               ) : (
                 <div className="text-center text-default-400 py-6">
-                  No message found
+                  No beta plan found
                 </div>
               )}
             </ModalBody>

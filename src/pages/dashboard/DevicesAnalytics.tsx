@@ -1,3 +1,11 @@
+import type {
+  BrowserBreakdownItem,
+  DayRange,
+  DeviceAnalyticsPayload,
+  DeviceBreakdownItem,
+  OsBreakdownItem,
+} from "@/types/analytics.types";
+
 import {
   Button,
   Card,
@@ -14,14 +22,10 @@ import {
 import { Icon } from "@iconify/react";
 import { useCallback, useEffect, useState } from "react";
 
-import { getAnalyticsErrorMessage, getDevicesAnalytics } from "@/api/analytics.api";
-import type {
-  BrowserBreakdownItem,
-  DayRange,
-  DeviceAnalyticsPayload,
-  DeviceBreakdownItem,
-  OsBreakdownItem,
-} from "@/types/analytics.types";
+import {
+  getAnalyticsErrorMessage,
+  getDevicesAnalytics,
+} from "@/api/analytics.api";
 
 const DAY_OPTIONS: DayRange[] = [7, 30, 90];
 const numberFormatter = new Intl.NumberFormat("en-IN");
@@ -77,7 +81,8 @@ export default function DevicesAnalytics() {
           <div>
             <h2 className="text-lg font-semibold">Devices Analytics</h2>
             <p className="text-sm text-default-500">
-              Full response view for <span className="font-mono">/admin/analytics/devices</span>
+              Full response view for{" "}
+              <span className="font-mono">/admin/analytics/devices</span>
             </p>
           </div>
 
@@ -85,21 +90,23 @@ export default function DevicesAnalytics() {
             {DAY_OPTIONS.map((option) => (
               <Button
                 key={option}
-                size="sm"
                 color={days === option ? "primary" : "default"}
+                isDisabled={isLoading}
+                size="sm"
                 variant={days === option ? "solid" : "flat"}
                 onPress={() => setDays(option)}
-                isDisabled={isLoading}
               >
                 {option}D
               </Button>
             ))}
             <Button
+              isLoading={isLoading}
               size="sm"
+              startContent={
+                !isLoading && <Icon icon="solar:refresh-bold" width="16" />
+              }
               variant="flat"
               onPress={loadDeviceAnalytics}
-              isLoading={isLoading}
-              startContent={!isLoading && <Icon icon="solar:refresh-bold" width="16" />}
             >
               Refresh
             </Button>
@@ -124,33 +131,51 @@ export default function DevicesAnalytics() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <Card shadow="none" className="border border-default-200">
+              <Card className="border border-default-200" shadow="none">
                 <CardBody className="gap-1">
-                  <p className="text-xs uppercase text-default-500">Total Users</p>
-                  <p className="text-xl font-semibold">{formatNumber(summary?.total_users)}</p>
+                  <p className="text-xs uppercase text-default-500">
+                    Total Users
+                  </p>
+                  <p className="text-xl font-semibold">
+                    {formatNumber(summary?.total_users)}
+                  </p>
                 </CardBody>
               </Card>
-              <Card shadow="none" className="border border-default-200">
+              <Card className="border border-default-200" shadow="none">
                 <CardBody className="gap-1">
-                  <p className="text-xs uppercase text-default-500">Logged-In Users</p>
-                  <p className="text-xl font-semibold">{formatNumber(summary?.logged_in_users)}</p>
+                  <p className="text-xs uppercase text-default-500">
+                    Logged-In Users
+                  </p>
+                  <p className="text-xl font-semibold">
+                    {formatNumber(summary?.logged_in_users)}
+                  </p>
                 </CardBody>
               </Card>
-              <Card shadow="none" className="border border-default-200">
+              <Card className="border border-default-200" shadow="none">
                 <CardBody className="gap-1">
-                  <p className="text-xs uppercase text-default-500">Guest Users</p>
-                  <p className="text-xl font-semibold">{formatNumber(summary?.guest_users)}</p>
+                  <p className="text-xs uppercase text-default-500">
+                    Guest Users
+                  </p>
+                  <p className="text-xl font-semibold">
+                    {formatNumber(summary?.guest_users)}
+                  </p>
                 </CardBody>
               </Card>
-              <Card shadow="none" className="border border-default-200">
+              <Card className="border border-default-200" shadow="none">
                 <CardBody className="gap-1">
-                  <p className="text-xs uppercase text-default-500">Total Sessions</p>
-                  <p className="text-xl font-semibold">{formatNumber(summary?.total_sessions)}</p>
+                  <p className="text-xs uppercase text-default-500">
+                    Total Sessions
+                  </p>
+                  <p className="text-xl font-semibold">
+                    {formatNumber(summary?.total_sessions)}
+                  </p>
                 </CardBody>
               </Card>
-              <Card shadow="none" className="border border-default-200">
+              <Card className="border border-default-200" shadow="none">
                 <CardBody className="gap-1">
-                  <p className="text-xs uppercase text-default-500">Avg Sessions/User</p>
+                  <p className="text-xs uppercase text-default-500">
+                    Avg Sessions/User
+                  </p>
                   <p className="text-xl font-semibold">
                     {typeof summary?.avg_sessions_per_user === "number"
                       ? summary.avg_sessions_per_user.toFixed(2)
@@ -166,7 +191,7 @@ export default function DevicesAnalytics() {
       <Card shadow="sm">
         <CardBody className="gap-4">
           <h3 className="text-base font-semibold">Devices</h3>
-          <Table aria-label="Devices analytics table" removeWrapper>
+          <Table removeWrapper aria-label="Devices analytics table">
             <TableHeader>
               <TableColumn>Device</TableColumn>
               <TableColumn>Users</TableColumn>
@@ -177,10 +202,10 @@ export default function DevicesAnalytics() {
               <TableColumn>User Share</TableColumn>
             </TableHeader>
             <TableBody
+              emptyContent="No device data"
               isLoading={isLoading && !payload}
               items={payload?.devices ?? []}
               loadingContent={<Spinner label="Loading devices..." />}
-              emptyContent="No device data"
             >
               {(item: DeviceBreakdownItem) => (
                 <TableRow key={item.device}>
@@ -208,7 +233,7 @@ export default function DevicesAnalytics() {
         <Card shadow="sm">
           <CardBody className="gap-4">
             <h3 className="text-base font-semibold">Browsers</h3>
-            <Table aria-label="Browser analytics table" removeWrapper>
+            <Table removeWrapper aria-label="Browser analytics table">
               <TableHeader>
                 <TableColumn>Browser</TableColumn>
                 <TableColumn>Users</TableColumn>
@@ -216,10 +241,10 @@ export default function DevicesAnalytics() {
                 <TableColumn>User Share</TableColumn>
               </TableHeader>
               <TableBody
+                emptyContent="No browser data"
                 isLoading={isLoading && !payload}
                 items={payload?.browsers ?? []}
                 loadingContent={<Spinner label="Loading browsers..." />}
-                emptyContent="No browser data"
               >
                 {(item: BrowserBreakdownItem) => (
                   <TableRow key={item.browser}>
@@ -227,7 +252,9 @@ export default function DevicesAnalytics() {
                     <TableCell>{formatNumber(item.users)}</TableCell>
                     <TableCell>{formatNumber(item.sessions)}</TableCell>
                     <TableCell>
-                      {formatPercent(item.users_share_percent ?? item.percentage)}
+                      {formatPercent(
+                        item.users_share_percent ?? item.percentage,
+                      )}
                     </TableCell>
                   </TableRow>
                 )}
@@ -239,7 +266,7 @@ export default function DevicesAnalytics() {
         <Card shadow="sm">
           <CardBody className="gap-4">
             <h3 className="text-base font-semibold">Operating Systems</h3>
-            <Table aria-label="OS analytics table" removeWrapper>
+            <Table removeWrapper aria-label="OS analytics table">
               <TableHeader>
                 <TableColumn>OS</TableColumn>
                 <TableColumn>Users</TableColumn>
@@ -247,10 +274,12 @@ export default function DevicesAnalytics() {
                 <TableColumn>User Share</TableColumn>
               </TableHeader>
               <TableBody
+                emptyContent="No OS data"
                 isLoading={isLoading && !payload}
                 items={payload?.os ?? []}
-                loadingContent={<Spinner label="Loading operating systems..." />}
-                emptyContent="No OS data"
+                loadingContent={
+                  <Spinner label="Loading operating systems..." />
+                }
               >
                 {(item: OsBreakdownItem) => (
                   <TableRow key={item.os}>
@@ -258,7 +287,9 @@ export default function DevicesAnalytics() {
                     <TableCell>{formatNumber(item.users)}</TableCell>
                     <TableCell>{formatNumber(item.sessions)}</TableCell>
                     <TableCell>
-                      {formatPercent(item.users_share_percent ?? item.percentage)}
+                      {formatPercent(
+                        item.users_share_percent ?? item.percentage,
+                      )}
                     </TableCell>
                   </TableRow>
                 )}

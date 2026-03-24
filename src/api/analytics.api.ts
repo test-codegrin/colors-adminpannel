@@ -1,6 +1,6 @@
-import api from "@/lib/axios";
 import type {
   ActivityFeedData,
+  ActivityFeedItem,
   AnalyticsOverview,
   ApiEnvelope,
   ApiErrorEnvelope,
@@ -25,6 +25,8 @@ import type {
   UsersGrowthResponse,
 } from "@/types/analytics.types";
 import type { PaginationPayload } from "@/types/pagination.types";
+
+import api from "@/lib/axios";
 
 const FALLBACK_ERROR = "Failed to load analytics data.";
 const DEFAULT_PAGE_SIZE = 10;
@@ -70,7 +72,9 @@ async function fetchAnalytics<T>(
   }
 
   if (payload.success === false) {
-    throw new Error(typeof payload.message === "string" ? payload.message : FALLBACK_ERROR);
+    throw new Error(
+      typeof payload.message === "string" ? payload.message : FALLBACK_ERROR,
+    );
   }
 
   if (payload.success === true && "data" in payload) {
@@ -80,8 +84,12 @@ async function fetchAnalytics<T>(
   throw new Error(FALLBACK_ERROR);
 }
 
-export async function getAnalyticsOverview(days: DayRange): Promise<AnalyticsOverview> {
-  return fetchAnalytics<AnalyticsOverview>("/admin/analytics/overview", { days });
+export async function getAnalyticsOverview(
+  days: DayRange,
+): Promise<AnalyticsOverview> {
+  return fetchAnalytics<AnalyticsOverview>("/admin/analytics/overview", {
+    days,
+  });
 }
 
 export async function getUsersGrowth(
@@ -131,16 +139,20 @@ export async function getTopPages(
   days: DayRange,
   limit = DEFAULT_PAGE_SIZE,
 ): Promise<TopPage[]> {
-  const data = await fetchAnalytics<{ range_days: number; top_pages: TopPage[] }>(
-    "/admin/analytics/top-pages",
-    { days, limit },
-  );
+  const data = await fetchAnalytics<{
+    range_days: number;
+    top_pages: TopPage[];
+  }>("/admin/analytics/top-pages", { days, limit });
 
   return data.top_pages ?? [];
 }
 
-export async function getDevices(days: DayRange): Promise<DeviceAnalyticsPayload> {
-  return fetchAnalytics<DeviceAnalyticsPayload>("/admin/analytics/devices", { days });
+export async function getDevices(
+  days: DayRange,
+): Promise<DeviceAnalyticsPayload> {
+  return fetchAnalytics<DeviceAnalyticsPayload>("/admin/analytics/devices", {
+    days,
+  });
 }
 
 export async function getDevicesAnalytics(
@@ -153,8 +165,12 @@ export async function getLiveUsers(): Promise<LiveUsersData> {
   return fetchAnalytics<LiveUsersData>("/admin/analytics/live-users");
 }
 
-export async function getFeatureUsage(days: DayRange): Promise<FeatureUsageData> {
-  return fetchAnalytics<FeatureUsageData>("/admin/analytics/feature-usage", { days });
+export async function getFeatureUsage(
+  days: DayRange,
+): Promise<FeatureUsageData> {
+  return fetchAnalytics<FeatureUsageData>("/admin/analytics/feature-usage", {
+    days,
+  });
 }
 
 export async function getUserActivity(): Promise<UserActivityData> {
@@ -179,10 +195,13 @@ export async function getTrafficSources(
   days: DayRange,
   limit = DEFAULT_PAGE_SIZE,
 ): Promise<TrafficSourcesData> {
-  return fetchAnalytics<TrafficSourcesData>("/admin/analytics/traffic-sources", {
-    days,
-    limit,
-  });
+  return fetchAnalytics<TrafficSourcesData>(
+    "/admin/analytics/traffic-sources",
+    {
+      days,
+      limit,
+    },
+  );
 }
 
 export async function getPerformance(
@@ -194,7 +213,40 @@ export async function getPerformance(
 }
 
 export async function getActivityFeed(limit = 50): Promise<ActivityFeedData> {
-  return fetchAnalytics<ActivityFeedData>("/admin/analytics/activity-feed", { limit });
+  const response = await api.get("/admin/analytics/activity-feed", {
+    params: { limit },
+  });
+  const payload = response.data;
+
+  // handle { success, data: { limit, items } }
+  if (isRecord(payload) && payload.success === true && isRecord(payload.data)) {
+    return payload.data as unknown as ActivityFeedData;
+  }
+
+  // handle { success, data: [...] } — items array directly
+  if (
+    isRecord(payload) &&
+    payload.success === true &&
+    Array.isArray(payload.data)
+  ) {
+    return { limit, items: payload.data as ActivityFeedItem[] };
+  }
+
+  // handle { limit, items } directly at root
+  if (isRecord(payload) && Array.isArray(payload.items)) {
+    return payload as unknown as ActivityFeedData;
+  }
+
+  // handle { success, items } at root
+  if (
+    isRecord(payload) &&
+    payload.success === true &&
+    Array.isArray(payload.items)
+  ) {
+    return { limit, items: payload.items as ActivityFeedItem[] };
+  }
+
+  return { limit, items: [] };
 }
 
 export async function getRecentUsers(
@@ -211,7 +263,12 @@ export async function getRecentUsers(
 
   return {
     items: data.users ?? [],
-    pagination: normalizePagination(data.pagination, page, limit, data.users?.length ?? 0),
+    pagination: normalizePagination(
+      data.pagination,
+      page,
+      limit,
+      data.users?.length ?? 0,
+    ),
   };
 }
 

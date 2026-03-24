@@ -307,7 +307,10 @@ export interface ActivityFeedData {
 }
 
 export interface RecentUser
-  extends Omit<User, "user_id" | "mobile" | "is_paid" | "picture" | "created_at"> {
+  extends Omit<
+    User,
+    "user_id" | "mobile" | "is_paid" | "picture" | "created_at"
+  > {
   user_id: number;
   mobile: string;
   is_paid: number | boolean;

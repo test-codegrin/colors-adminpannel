@@ -1,8 +1,9 @@
-import api from "@/lib/axios";
 import type {
   ContactMessagesApiResponse,
   ContactMessage,
 } from "@/types/contactMessages.types";
+
+import api from "@/lib/axios";
 
 interface DeleteContactMessageApiResponse {
   success: boolean;
@@ -13,13 +14,13 @@ interface DeleteContactMessageApiResponse {
 /* Get all messages */
 export async function getContactMessages(
   page: number,
-  limit: number
+  limit: number,
 ): Promise<ContactMessagesApiResponse> {
   const response = await api.get<ContactMessagesApiResponse>(
     `/contact/contact-messages`,
     {
       params: { page, limit },
-    }
+    },
   );
 
   return response.data;
@@ -27,10 +28,10 @@ export async function getContactMessages(
 
 /* Get message by ID */
 export async function getContactMessageById(
-  id: number
+  id: number,
 ): Promise<ContactMessage> {
   const response = await api.get<{ success: boolean; data: ContactMessage }>(
-    `/contact/contact-messages/${id}`
+    `/contact/contact-messages/${id}`,
   );
 
   return response.data.data;
@@ -38,10 +39,10 @@ export async function getContactMessageById(
 
 /* Delete message by ID */
 export async function deleteContactMessageById(
-  id: number
+  id: number,
 ): Promise<DeleteContactMessageApiResponse> {
   const response = await api.delete<DeleteContactMessageApiResponse>(
-    `/contact/contact-messages/${id}`
+    `/contact/contact-messages/${id}`,
   );
 
   return response.data;
