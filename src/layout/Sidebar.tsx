@@ -14,6 +14,8 @@ interface NavItem {
   icon: string;
 }
 
+const USERS_ROUTE_PATH = "/dashboard/users";
+
 const navItems: NavItem[] = [
   {
     label: "Analytics",
@@ -67,6 +69,21 @@ function Sidebar({ isOpen }: SidebarProps) {
   const navigate = useNavigate();
   const { logout } = useAuth();
 
+  const handleNavigate = (path: string) => {
+    if (path === USERS_ROUTE_PATH) {
+      navigate(path, {
+        replace: path === pathname,
+        state: {
+          usersResetAt: Date.now(),
+        },
+      });
+
+      return;
+    }
+
+    navigate(path);
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/login", { replace: true });
@@ -106,7 +123,7 @@ function Sidebar({ isOpen }: SidebarProps) {
                 />
               }
               variant={isActive ? "solid" : "light"}
-              onPress={() => navigate(item.path)}
+              onPress={() => handleNavigate(item.path)}
             >
               {item.label}
             </Button>
