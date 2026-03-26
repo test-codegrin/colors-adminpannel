@@ -794,22 +794,21 @@ function Users() {
                               {isUserPaid(user.is_paid) ? "Paid" : "Unpaid"}
                             </Chip>
 
-                            <div className="flex items-center gap-2">
+                            <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-default-200 bg-default-50 p-1">
                               <Button
                                 isIconOnly
                                 isDisabled={!userId}
                                 radius="full"
                                 size="sm"
-                                startContent={
-                                  <Icon height={16} icon="mdi:eye" width={16} />
-                                }
                                 variant="flat"
                                 onPress={() => {
                                   if (userId) {
                                     handleViewUser(userId);
                                   }
                                 }}
-                              />
+                              >
+                                <Icon height={16} icon="mdi:eye" width={16} />
+                              </Button>
 
                               <Button
                                 isIconOnly
@@ -818,22 +817,21 @@ function Users() {
                                 isLoading={deletingUserId === userId}
                                 radius="full"
                                 size="sm"
-                                startContent={
-                                  deletingUserId !== userId ? (
-                                    <Icon
-                                      height={16}
-                                      icon="mdi:delete-outline"
-                                      width={16}
-                                    />
-                                  ) : undefined
-                                }
                                 variant="flat"
                                 onPress={() => {
                                   if (userId) {
                                     handleOpenDeleteModal(userId, user.name);
                                   }
                                 }}
-                              />
+                              >
+                                {deletingUserId !== userId ? (
+                                  <Icon
+                                    height={16}
+                                    icon="mdi:delete-outline"
+                                    width={16}
+                                  />
+                                ) : null}
+                              </Button>
                             </div>
                           </div>
                         </CardBody>
@@ -857,13 +855,13 @@ function Users() {
                 }}
               >
                 <TableHeader>
-                  <TableColumn className="w-[24%]">User</TableColumn>
-                  <TableColumn className="w-[20%]">Email</TableColumn>
-                  <TableColumn className="w-[14%]">Mobile Number</TableColumn>
-                  <TableColumn className="w-[12%]">Status</TableColumn>
-                  <TableColumn className="w-[10%]">Paid</TableColumn>
-                  <TableColumn className="w-[14%]">Created</TableColumn>
-                  <TableColumn className="w-[6%]">Action</TableColumn>
+                  <TableColumn className="w-[20%]">User</TableColumn>
+                  <TableColumn className="w-[22%]">Email</TableColumn>
+                  <TableColumn className="w-[15%]">Mobile Number</TableColumn>
+                  <TableColumn className="w-[10%]">Status</TableColumn>
+                  <TableColumn className="w-[8%]">Paid</TableColumn>
+                  <TableColumn className="w-[13%]">Created</TableColumn>
+                  <TableColumn className="w-[12%] text-right">Action</TableColumn>
                 </TableHeader>
 
                 <TableBody
@@ -952,22 +950,21 @@ function Users() {
                         </TableCell>
 
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-default-200 bg-default-50 p-1">
                             <Button
                               isIconOnly
                               isDisabled={!userId}
                               radius="full"
                               size="sm"
-                              startContent={
-                                <Icon height={16} icon="mdi:eye" width={16} />
-                              }
                               variant="flat"
                               onPress={() => {
                                 if (userId) {
                                   handleViewUser(userId);
                                 }
                               }}
-                            />
+                            >
+                              <Icon height={16} icon="mdi:eye" width={16} />
+                            </Button>
 
                             <Button
                               isIconOnly
@@ -976,22 +973,21 @@ function Users() {
                               isLoading={deletingUserId === userId}
                               radius="full"
                               size="sm"
-                              startContent={
-                                deletingUserId !== userId ? (
-                                  <Icon
-                                    height={16}
-                                    icon="mdi:delete-outline"
-                                    width={16}
-                                  />
-                                ) : undefined
-                              }
                               variant="flat"
                               onPress={() => {
                                 if (userId) {
                                   handleOpenDeleteModal(userId, user.name);
                                 }
                               }}
-                            />
+                            >
+                              {deletingUserId !== userId ? (
+                                <Icon
+                                  height={16}
+                                  icon="mdi:delete-outline"
+                                  width={16}
+                                />
+                              ) : null}
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1087,4 +1083,8 @@ function Users() {
 }
 
 export default Users;
+
+
+
+
 

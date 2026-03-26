@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   UserPaymentStatusFilter,
   UserStatusFilter,
   UsersFiltersFormValues,
@@ -86,12 +86,12 @@ export default function UsersFilters({
         ) : null}
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,2.05fr)_minmax(170px,210px)_minmax(160px,190px)_minmax(150px,170px)_minmax(150px,170px)_max-content] lg:items-end">
+      <div className="grid gap-3">
         <Input
           isClearable
           className="w-full"
           label="Search users"
-          placeholder="Type a name, email, or mobile number"
+          placeholder="Search name, email, or mobile"
           size="sm"
           startContent={
             <Icon
@@ -107,69 +107,71 @@ export default function UsersFilters({
           onValueChange={onSearchChange}
         />
 
-        <Select
-          disallowEmptySelection
-          label="Payment status"
-          selectedKeys={[values.paymentStatus]}
-          size="sm"
-          variant="bordered"
-          onSelectionChange={handlePaymentSelectionChange}
-        >
-          <SelectItem key="all">All</SelectItem>
-          <SelectItem key="paid">Paid</SelectItem>
-          <SelectItem key="unpaid">Unpaid</SelectItem>
-        </Select>
-
-        <Select
-          disallowEmptySelection
-          label="Status"
-          selectedKeys={[values.status]}
-          size="sm"
-          variant="bordered"
-          onSelectionChange={handleStatusSelectionChange}
-        >
-          <SelectItem key="all">All</SelectItem>
-          <SelectItem key="online">Online</SelectItem>
-          <SelectItem key="offline">Offline</SelectItem>
-        </Select>
-
-        <Input
-          label="Start date"
-          max={values.endDate || undefined}
-          size="sm"
-          type="date"
-          value={values.startDate}
-          variant="bordered"
-          onValueChange={onStartDateChange}
-        />
-
-        <Input
-          label="End date"
-          min={values.startDate || undefined}
-          size="sm"
-          type="date"
-          value={values.endDate}
-          variant="bordered"
-          onValueChange={onEndDateChange}
-        />
-
-        <div className="flex items-end">
-          <Button
-            className="h-10 w-full justify-center whitespace-nowrap px-4 lg:min-w-[148px]"
-            isDisabled={!hasActiveFilters || isLoading}
+        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(160px,0.85fr)_minmax(160px,0.85fr)_auto] 2xl:items-end">
+          <Select
+            disallowEmptySelection
+            label="Payment status"
+            selectedKeys={[values.paymentStatus]}
             size="sm"
-            startContent={
-              <Icon
-                height={18}
-                icon="mdi:filter-remove-outline"
-                width={18}
-              />
-            }
-            variant="flat"
-            onPress={onClear}
+            variant="bordered"
+            onSelectionChange={handlePaymentSelectionChange}
           >
-            Clear filters
-          </Button>
+            <SelectItem key="all">All</SelectItem>
+            <SelectItem key="paid">Paid</SelectItem>
+            <SelectItem key="unpaid">Unpaid</SelectItem>
+          </Select>
+
+          <Select
+            disallowEmptySelection
+            label="Status"
+            selectedKeys={[values.status]}
+            size="sm"
+            variant="bordered"
+            onSelectionChange={handleStatusSelectionChange}
+          >
+            <SelectItem key="all">All</SelectItem>
+            <SelectItem key="online">Online</SelectItem>
+            <SelectItem key="offline">Offline</SelectItem>
+          </Select>
+
+          <Input
+            label="Start date"
+            max={values.endDate || undefined}
+            size="sm"
+            type="date"
+            value={values.startDate}
+            variant="bordered"
+            onValueChange={onStartDateChange}
+          />
+
+          <Input
+            label="End date"
+            min={values.startDate || undefined}
+            size="sm"
+            type="date"
+            value={values.endDate}
+            variant="bordered"
+            onValueChange={onEndDateChange}
+          />
+
+          <div className="flex justify-start sm:col-span-2 2xl:col-span-1 2xl:justify-end">
+            <Button
+              className="h-10 w-full justify-center whitespace-nowrap px-4 sm:w-auto sm:min-w-[148px] 2xl:min-w-[156px]"
+              isDisabled={!hasActiveFilters || isLoading}
+              size="sm"
+              startContent={
+                <Icon
+                  height={18}
+                  icon="mdi:filter-remove-outline"
+                  width={18}
+                />
+              }
+              variant="flat"
+              onPress={onClear}
+            >
+              Clear filters
+            </Button>
+          </div>
         </div>
       </div>
     </div>
