@@ -173,6 +173,9 @@ export interface DeviceAnalyticsPayload {
 
 export interface LiveUsersData {
   live_users?: number;
+  window_minutes?: number;
+  total_online_users?: number;
+  user_ids?: number[];
   active_users_now: number;
   active_sessions: number;
   users_last_5_minutes: number;

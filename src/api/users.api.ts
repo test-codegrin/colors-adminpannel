@@ -146,6 +146,10 @@ export async function getUsers(
     queryParams.is_paid = request.is_paid;
   }
 
+  if (request.status) {
+    queryParams.status = request.status;
+  }
+
   if (request.start_date) {
     queryParams.start_date = request.start_date;
   }

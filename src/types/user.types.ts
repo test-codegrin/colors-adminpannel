@@ -1,6 +1,7 @@
 import type { PaginationPayload } from "./pagination.types";
 
 export type UserPaymentStatusFilter = "all" | "paid" | "unpaid";
+export type UserStatusFilter = "all" | "online" | "offline";
 
 export interface User {
   user_id?: number | string;
@@ -30,6 +31,7 @@ export interface GetUsersParams {
   limit: number;
   search?: string;
   is_paid?: 0 | 1;
+  status?: Exclude<UserStatusFilter, "all">;
   start_date?: string;
   end_date?: string;
   signal?: AbortSignal;
@@ -38,6 +40,7 @@ export interface GetUsersParams {
 export interface UsersFiltersFormValues {
   search: string;
   paymentStatus: UserPaymentStatusFilter;
+  status: UserStatusFilter;
   startDate: string;
   endDate: string;
 }

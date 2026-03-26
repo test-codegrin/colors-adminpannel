@@ -1,10 +1,12 @@
-import type {
+﻿import type {
   UserPaymentStatusFilter,
+  UserStatusFilter,
   UsersFiltersFormValues,
 } from "@/types/user.types";
 
 import { Button, Input, Select, SelectItem } from "@heroui/react";
 import { Icon } from "@iconify/react";
+import type { Key } from "react";
 
 interface UsersFiltersProps {
   hasActiveFilters: boolean;
@@ -13,6 +15,7 @@ interface UsersFiltersProps {
   onClear: () => void;
   onEndDateChange: (value: string) => void;
   onPaymentStatusChange: (value: UserPaymentStatusFilter) => void;
+  onStatusChange: (value: UserStatusFilter) => void;
   onSearchChange: (value: string) => void;
   onStartDateChange: (value: string) => void;
 }
@@ -24,9 +27,46 @@ export default function UsersFilters({
   onClear,
   onEndDateChange,
   onPaymentStatusChange,
+  onStatusChange,
   onSearchChange,
   onStartDateChange,
 }: UsersFiltersProps) {
+  const handlePaymentSelectionChange = (keys: "all" | Set<Key>) => {
+    if (keys === "all") {
+      onPaymentStatusChange("all");
+
+      return;
+    }
+
+    const [selectedKey] = Array.from(keys);
+    const nextValue =
+      selectedKey === "paid" ||
+      selectedKey === "unpaid" ||
+      selectedKey === "all"
+        ? selectedKey
+        : "all";
+
+    onPaymentStatusChange(nextValue);
+  };
+
+  const handleStatusSelectionChange = (keys: "all" | Set<Key>) => {
+    if (keys === "all") {
+      onStatusChange("all");
+
+      return;
+    }
+
+    const [selectedKey] = Array.from(keys);
+    const nextValue =
+      selectedKey === "online" ||
+      selectedKey === "offline" ||
+      selectedKey === "all"
+        ? selectedKey
+        : "all";
+
+    onStatusChange(nextValue);
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -35,7 +75,7 @@ export default function UsersFilters({
             Filters
           </span>
           <p className="text-sm text-default-500">
-            Search, payment status, and created date range.
+            Search, payment status, live status, and created date range.
           </p>
         </div>
 
@@ -46,7 +86,7 @@ export default function UsersFilters({
         ) : null}
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,2.2fr)_minmax(170px,210px)_minmax(150px,170px)_minmax(150px,170px)_max-content] lg:items-end">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,2.05fr)_minmax(170px,210px)_minmax(160px,190px)_minmax(150px,170px)_minmax(150px,170px)_max-content] lg:items-end">
         <Input
           isClearable
           className="w-full"
@@ -73,13 +113,24 @@ export default function UsersFilters({
           selectedKeys={[values.paymentStatus]}
           size="sm"
           variant="bordered"
-          onChange={(event) =>
-            onPaymentStatusChange(event.target.value as UserPaymentStatusFilter)
-          }
+          onSelectionChange={handlePaymentSelectionChange}
         >
           <SelectItem key="all">All</SelectItem>
           <SelectItem key="paid">Paid</SelectItem>
           <SelectItem key="unpaid">Unpaid</SelectItem>
+        </Select>
+
+        <Select
+          disallowEmptySelection
+          label="Status"
+          selectedKeys={[values.status]}
+          size="sm"
+          variant="bordered"
+          onSelectionChange={handleStatusSelectionChange}
+        >
+          <SelectItem key="all">All</SelectItem>
+          <SelectItem key="online">Online</SelectItem>
+          <SelectItem key="offline">Offline</SelectItem>
         </Select>
 
         <Input
@@ -104,7 +155,7 @@ export default function UsersFilters({
 
         <div className="flex items-end">
           <Button
-            className="h-10 w-full justify-center px-4 whitespace-nowrap lg:min-w-[148px]"
+            className="h-10 w-full justify-center whitespace-nowrap px-4 lg:min-w-[148px]"
             isDisabled={!hasActiveFilters || isLoading}
             size="sm"
             startContent={

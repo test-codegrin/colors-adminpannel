@@ -35,6 +35,48 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function normalizeUserIds(value: unknown): number[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen = new Set<number>();
+
+  return value.reduce<number[]>((result, item) => {
+    const parsed =
+      typeof item === "number"
+        ? item
+        : typeof item === "string" && item.trim()
+          ? Number(item)
+          : Number.NaN;
+
+    if (!Number.isInteger(parsed) || parsed <= 0 || seen.has(parsed)) {
+      return result;
+    }
+
+    seen.add(parsed);
+    result.push(parsed);
+
+    return result;
+  }, []);
+}
+
+function normalizeLiveUsersData(data: LiveUsersData): LiveUsersData {
+  const userIds = normalizeUserIds(
+    (data as LiveUsersData & { user_ids?: unknown }).user_ids,
+  );
+
+  return {
+    ...data,
+    total_online_users:
+      typeof data.total_online_users === "number" &&
+      Number.isFinite(data.total_online_users)
+        ? data.total_online_users
+        : userIds.length,
+    user_ids: userIds,
+  };
+}
+
 function normalizePagination(
   pagination: PaginationPayload | undefined,
   page: number,
@@ -162,7 +204,9 @@ export async function getDevicesAnalytics(
 }
 
 export async function getLiveUsers(): Promise<LiveUsersData> {
-  return fetchAnalytics<LiveUsersData>("/admin/analytics/live-users");
+  const data = await fetchAnalytics<LiveUsersData>("/admin/analytics/live-users");
+
+  return normalizeLiveUsersData(data);
 }
 
 export async function getFeatureUsage(
