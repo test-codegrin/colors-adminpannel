@@ -128,16 +128,6 @@ function getPaidFilterValue(
   return undefined;
 }
 
-function getStatusFilterValue(
-  status: UserStatusFilter,
-): Exclude<UserStatusFilter, "all"> | undefined {
-  if (status === "online" || status === "offline") {
-    return status;
-  }
-
-  return undefined;
-}
-
 function Users() {
   const location = useLocation();
   const [users, setUsers] = useState<User[]>([]);
@@ -184,7 +174,6 @@ function Users() {
 
   const debouncedSearch = useDebounce(filters.search.trim(), 400);
   const paidFilterValue = getPaidFilterValue(filters.paymentStatus);
-  const statusFilterValue = getStatusFilterValue(filters.status);
   const startDateFilter = filters.startDate || undefined;
   const endDateFilter = filters.endDate || undefined;
   const hasActiveFilters = Boolean(
@@ -271,33 +260,81 @@ function Users() {
       setError("");
 
       try {
+        if (filters.status === "online") {
+          // Fetch all users across pages to find online ones
+          const onlineIds = Array.from(onlineUserIds);
+          if (onlineIds.length === 0) {
+            setUsers([]);
+            setTotalUsers(0);
+            setTotalPages(1);
+            return;
+          }
+          // Fetch enough pages to cover all users (max limit=100 per backend)
+          const firstResult = await getUsers({
+            page: 1,
+            limit: 100,
+            search: debouncedSearch || undefined,
+            is_paid: paidFilterValue,
+            start_date: startDateFilter,
+            end_date: endDateFilter,
+            signal: controller.signal,
+          });
+          if (!isActive) return;
+          const totalPagesToFetch = Math.min(firstResult.totalPages, 10);
+          const allFetched = [...firstResult.users];
+          for (let p = 2; p <= totalPagesToFetch; p++) {
+            // eslint-disable-next-line no-await-in-loop
+            const r = await getUsers({
+              page: p,
+              limit: 100,
+              search: debouncedSearch || undefined,
+              is_paid: paidFilterValue,
+              start_date: startDateFilter,
+              end_date: endDateFilter,
+              signal: controller.signal,
+            });
+            if (!isActive) return;
+            allFetched.push(...r.users);
+          }
+          const onlineUsers = allFetched.filter((u) => {
+            const uid = getUserId(u);
+            return uid !== null && onlineUserIds.has(uid);
+          });
+          setUsers(onlineUsers);
+          setTotalUsers(onlineUsers.length);
+          setTotalPages(1);
+          return;
+        }
+
         const result = await getUsers({
           page,
           limit,
           search: debouncedSearch || undefined,
           is_paid: paidFilterValue,
-          status: statusFilterValue,
           start_date: startDateFilter,
           end_date: endDateFilter,
           signal: controller.signal,
         });
 
-        if (!isActive) {
-          return;
-        }
+        if (!isActive) return;
 
         const nextTotalPages = Math.max(result.totalPages, 1);
-
         setTotalUsers(result.total);
         setTotalPages(nextTotalPages);
 
         if (page > nextTotalPages) {
           setPage(nextTotalPages);
-
           return;
         }
 
-        setUsers(result.users);
+        if (filters.status === "offline") {
+          setUsers(result.users.filter((u) => {
+            const uid = getUserId(u);
+            return uid === null || !onlineUserIds.has(uid);
+          }));
+        } else {
+          setUsers(result.users);
+        }
       } catch (err) {
         if (!isActive || isUsersRequestCancelled(err)) {
           return;
@@ -342,7 +379,7 @@ function Users() {
     paidFilterValue,
     reloadToken,
     startDateFilter,
-    statusFilterValue,
+    onlineUserIds,
   ]);
 
   const reloadUsers = () => {

@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   ActivityFeedData,
   ActivityFeedItem,
   AnalyticsOverview,
@@ -392,3 +392,4 @@ export function getAnalyticsErrorMessage(error: unknown): string {
 
   return FALLBACK_ERROR;
 }
+
