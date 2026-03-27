@@ -203,8 +203,12 @@ export async function getDevicesAnalytics(
   return getDevices(days);
 }
 
+const LIVE_USERS_ANALYTICS_ENDPOINT = "/admin/analytics/live-users";
+
 export async function getLiveUsers(): Promise<LiveUsersData> {
-  const data = await fetchAnalytics<LiveUsersData>("/analytics/online-users");
+  const data = await fetchAnalytics<LiveUsersData>(
+    LIVE_USERS_ANALYTICS_ENDPOINT,
+  );
 
   return normalizeLiveUsersData(data);
 }
