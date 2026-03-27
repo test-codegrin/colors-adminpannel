@@ -204,7 +204,7 @@ export async function getDevicesAnalytics(
 }
 
 export async function getLiveUsers(): Promise<LiveUsersData> {
-  const data = await fetchAnalytics<LiveUsersData>("/admin/analytics/live-users");
+  const data = await fetchAnalytics<LiveUsersData>("/analytics/online-users");
 
   return normalizeLiveUsersData(data);
 }
@@ -381,3 +381,4 @@ export function getAnalyticsErrorMessage(error: unknown): string {
 
   return FALLBACK_ERROR;
 }
+
