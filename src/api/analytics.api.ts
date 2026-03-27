@@ -224,6 +224,10 @@ export async function getLiveUsers(): Promise<LiveUsersData> {
   return normalizeLiveUsersData(data as LiveUsersData);
 }
 
+export async function getAnalyticsLiveUsers(): Promise<LiveUsersData> {
+  return fetchAnalytics<LiveUsersData>("/admin/analytics/live-users");
+}
+
 export async function getFeatureUsage(
   days: DayRange,
 ): Promise<FeatureUsageData> {

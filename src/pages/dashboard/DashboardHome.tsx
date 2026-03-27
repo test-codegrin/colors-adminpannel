@@ -45,10 +45,10 @@ import {
 
 import {
   getAnalyticsErrorMessage,
+  getAnalyticsLiveUsers,
   getAnalyticsOverview,
   getDevices,
   getFeatureUsage,
-  getLiveUsers,
   getLocations,
   getMessagesGrowth,
   getPageViews,
@@ -420,7 +420,7 @@ function DashboardHome() {
       getPageViews(days, topLimit),
       getTopPages(days, topLimit),
       getDevices(days),
-      getLiveUsers(),
+      getAnalyticsLiveUsers(),
       getFeatureUsage(days),
       getUserActivity(),
       getSessions(days),
