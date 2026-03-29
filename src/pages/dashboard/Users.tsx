@@ -35,6 +35,7 @@ import { Icon } from "@iconify/react";
 import { useLocation } from "react-router-dom";
 
 import UserDetailsModal from "@/components/UserDetailsModal";
+import UserLibraryModal from "@/components/UserLibraryModal";
 import UsersFilters from "@/components/users/UsersFilters";
 import { getAnalyticsErrorMessage, getLiveUsers } from "@/api/analytics.api";
 import {
@@ -163,6 +164,8 @@ function Users() {
     id: number;
     name: string;
   } | null>(null);
+  const [libraryUserId, setLibraryUserId] = useState<number | null>(null);
+  const [libraryUser, setLibraryUser] = useState<User | null>(null);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const {
@@ -170,6 +173,11 @@ function Users() {
     onOpen: openDeleteModal,
     onOpenChange: onDeleteModalOpenChange,
     onClose: closeDeleteModal,
+  } = useDisclosure();
+  const {
+    isOpen: isLibraryOpen,
+    onOpen: openLibrary,
+    onOpenChange: onLibraryOpenChange,
   } = useDisclosure();
 
   const debouncedSearch = useDebounce(filters.search.trim(), 400);
@@ -469,6 +477,12 @@ function Users() {
       name: name?.trim() ? name : "this user",
     });
     openDeleteModal();
+  };
+
+  const handleOpenLibrary = (user: User, userId: number) => {
+    setLibraryUserId(userId);
+    setLibraryUser(user);
+    openLibrary();
   };
 
   const handleDeleteUser = async () => {
@@ -849,6 +863,20 @@ function Users() {
 
                               <Button
                                 isIconOnly
+                                color="secondary"
+                                isDisabled={!userId}
+                                radius="full"
+                                size="sm"
+                                variant="flat"
+                                onPress={() => {
+                                  if (userId) handleOpenLibrary(user, userId);
+                                }}
+                              >
+                                <Icon height={16} icon="mdi:bookshelf" width={16} />
+                              </Button>
+
+                              <Button
+                                isIconOnly
                                 color="danger"
                                 isDisabled={!userId || deletingUserId !== null}
                                 isLoading={deletingUserId === userId}
@@ -1005,6 +1033,20 @@ function Users() {
 
                             <Button
                               isIconOnly
+                              color="secondary"
+                              isDisabled={!userId}
+                              radius="full"
+                              size="sm"
+                              variant="flat"
+                              onPress={() => {
+                                if (userId) handleOpenLibrary(user, userId);
+                              }}
+                            >
+                              <Icon height={16} icon="mdi:bookshelf" width={16} />
+                            </Button>
+
+                            <Button
+                              isIconOnly
                               color="danger"
                               isDisabled={!userId || deletingUserId !== null}
                               isLoading={deletingUserId === userId}
@@ -1077,9 +1119,17 @@ function Users() {
         onUpdateUser={handleUpdateUser}
       />
 
+      <UserLibraryModal
+        isOpen={isLibraryOpen}
+        onOpenChange={onLibraryOpenChange}
+        userId={libraryUserId}
+        userName={libraryUser?.name}
+        userEmail={libraryUser?.email}
+        userMobile={libraryUser?.mobile}
+        userPicture={libraryUser?.picture ?? undefined}
+      />
+
       <Modal
-        backdrop="blur"
-        hideCloseButton={deletingUserId !== null}
         isDismissable={deletingUserId === null}
         isOpen={isDeleteModalOpen}
         onOpenChange={onDeleteModalOpenChange}
