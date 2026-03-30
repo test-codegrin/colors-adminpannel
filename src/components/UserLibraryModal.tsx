@@ -49,9 +49,6 @@ interface Props {
     onOpenChange: (open: boolean) => void;
     userId: number | null;
     userName?: string;
-    userEmail?: string;
-    userMobile?: string;
-    userPicture?: string;
 }
 
 function parseGradientColors(code: string): string[] {
@@ -67,9 +64,6 @@ export default function UserLibraryModal({
     onOpenChange,
     userId,
     userName,
-    userEmail,
-    userMobile,
-    userPicture,
 }: Props) {
     const [data, setData] = useState<UserLibraryData | null>(null);
     const [isLoading, setIsLoading] = useState(false);

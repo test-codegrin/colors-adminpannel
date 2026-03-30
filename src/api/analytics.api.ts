@@ -14,7 +14,6 @@ import type {
   PageViewsSummary,
   PaginatedItems,
   PerformanceData,
-  RecentMessage,
   RecentPayment,
   RecentUser,
   RevenueGrowthResponse,
@@ -216,12 +215,16 @@ export async function getDevicesAnalytics(
   return getDevices(days);
 }
 
-export async function getLiveUsers(): Promise<LiveUsersData> {
+export async function getOnlineUsers(): Promise<LiveUsersData> {
   const response = await api.get("/analytics/online-users");
   const payload = response.data;
   const data = isRecord(payload) && "data" in payload ? payload.data : payload;
 
   return normalizeLiveUsersData(data as LiveUsersData);
+}
+
+export async function getLiveUsers(): Promise<LiveUsersData> {
+  return getOnlineUsers();
 }
 
 export async function getAnalyticsLiveUsers(): Promise<LiveUsersData> {
@@ -350,29 +353,6 @@ export async function getRecentPayments(
       page,
       limit,
       data.payments?.length ?? 0,
-    ),
-  };
-}
-
-export async function getRecentMessages(
-  page: number,
-  limit = DEFAULT_PAGE_SIZE,
-): Promise<PaginatedItems<RecentMessage>> {
-  const data = await fetchAnalytics<{
-    messages: RecentMessage[];
-    pagination?: PaginationPayload;
-  }>("/admin/analytics/recent-messages", {
-    page,
-    limit,
-  });
-
-  return {
-    items: data.messages ?? [],
-    pagination: normalizePagination(
-      data.pagination,
-      page,
-      limit,
-      data.messages?.length ?? 0,
     ),
   };
 }

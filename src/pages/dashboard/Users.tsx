@@ -1124,9 +1124,6 @@ function Users() {
         onOpenChange={onLibraryOpenChange}
         userId={libraryUserId}
         userName={libraryUser?.name}
-        userEmail={libraryUser?.email}
-        userMobile={libraryUser?.mobile}
-        userPicture={libraryUser?.picture ?? undefined}
       />
 
       <Modal

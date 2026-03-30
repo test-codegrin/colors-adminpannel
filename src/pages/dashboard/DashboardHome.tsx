@@ -10,7 +10,6 @@ import type {
   MinutesRange,
   PageViewsSummary,
   PerformanceData,
-  RecentMessage,
   RecentPayment,
   RecentUser,
   RevenueGrowthPoint,
@@ -53,7 +52,6 @@ import {
   getMessagesGrowth,
   getPageViews,
   getPerformance,
-  getRecentMessages,
   getRecentPayments,
   getRecentUsers,
   getRevenueGrowth,
@@ -364,7 +362,7 @@ function DashboardHome() {
   const [topLimit, setTopLimit] = useState<number>(10);
   const [recentUsersPage, setRecentUsersPage] = useState(1);
   const [recentPaymentsPage, setRecentPaymentsPage] = useState(1);
-  const [recentMessagesPage, setRecentMessagesPage] = useState(1);
+
 
   const [coreState, setCoreState] = useState<DashboardCoreState>(() =>
     createCoreState(),
@@ -375,15 +373,11 @@ function DashboardHome() {
   const [recentPaymentsState, setRecentPaymentsState] = useState<
     PaginatedSectionState<RecentPayment>
   >(createPaginatedSectionState);
-  const [recentMessagesState, setRecentMessagesState] = useState<
-    PaginatedSectionState<RecentMessage>
-  >(createPaginatedSectionState);
+  
 
   const coreRequestRef = useRef(0);
   const usersRequestRef = useRef(0);
   const paymentsRequestRef = useRef(0);
-  const messagesRequestRef = useRef(0);
-
   const loadCoreDashboard = useCallback(async () => {
     const requestId = ++coreRequestRef.current;
 
@@ -540,42 +534,6 @@ function DashboardHome() {
     }
   }, []);
 
-  const loadRecentMessages = useCallback(async (page: number) => {
-    const requestId = ++messagesRequestRef.current;
-
-    setRecentMessagesState((previous) => ({
-      ...previous,
-      isLoading: true,
-      error: "",
-    }));
-
-    try {
-      const response = await getRecentMessages(page, PAGE_SIZE);
-
-      if (requestId !== messagesRequestRef.current) {
-        return;
-      }
-
-      setRecentMessagesState({
-        items: response.items,
-        pagination: response.pagination,
-        isLoading: false,
-        error: "",
-      });
-    } catch (error) {
-      if (requestId !== messagesRequestRef.current) {
-        return;
-      }
-
-      setRecentMessagesState({
-        items: [],
-        pagination: { ...emptyPagination, page },
-        isLoading: false,
-        error: getAnalyticsErrorMessage(error),
-      });
-    }
-  }, []);
-
   useEffect(() => {
     loadCoreDashboard();
   }, [loadCoreDashboard]);
@@ -587,10 +545,6 @@ function DashboardHome() {
   useEffect(() => {
     loadRecentPayments(recentPaymentsPage);
   }, [loadRecentPayments, recentPaymentsPage]);
-
-  useEffect(() => {
-    loadRecentMessages(recentMessagesPage);
-  }, [loadRecentMessages, recentMessagesPage]);
 
   const overview = coreState.overview.data;
   const pageViews = coreState.pageViews.data;
@@ -719,8 +673,6 @@ function DashboardHome() {
 
   const userTablePages = getTotalPages(recentUsersState.pagination);
   const paymentsTablePages = getTotalPages(recentPaymentsState.pagination);
-  const messagesTablePages = getTotalPages(recentMessagesState.pagination);
-
   return (
     <div className="space-y-6 pb-8">
       <section className="overflow-hidden rounded-[28px] border border-default-200 bg-[linear-gradient(135deg,rgba(3,105,161,0.10),rgba(245,158,11,0.10),rgba(255,255,255,0.7))] p-6 shadow-sm">
@@ -1532,7 +1484,7 @@ function DashboardHome() {
         </DashboardPanel>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <DashboardPanel
           action={
             <Chip radius="full" variant="flat">
@@ -1652,62 +1604,6 @@ function DashboardHome() {
           })}
         </DashboardPanel>
 
-        <DashboardPanel
-          action={
-            <Chip radius="full" variant="flat">
-              {formatNumber(recentMessagesState.pagination.total)} total
-            </Chip>
-          }
-          subtitle="Paginated recent support messages"
-          title="Recent Messages"
-        >
-          {renderTableFrame({
-            isLoading: recentMessagesState.isLoading,
-            error: recentMessagesState.error,
-            items: recentMessagesState.items,
-            emptyTitle: "No recent messages",
-            emptyDescription:
-              "The backend returned no recent support messages for the current page.",
-            onRetry: () => loadRecentMessages(recentMessagesPage),
-            children: (
-              <div className="space-y-4">
-                <Table removeWrapper aria-label="Recent messages table">
-                  <TableHeader>
-                    <TableColumn>Name</TableColumn>
-                    <TableColumn>Email</TableColumn>
-                    <TableColumn>Subject</TableColumn>
-                    <TableColumn>Created</TableColumn>
-                  </TableHeader>
-                  <TableBody items={recentMessagesState.items}>
-                    {(item: RecentMessage) => (
-                      <TableRow key={item.contact_message_id}>
-                        <TableCell>{item.name || "-"}</TableCell>
-                        <TableCell>{item.email || "-"}</TableCell>
-                        <TableCell>{item.subject || "-"}</TableCell>
-                        <TableCell>{formatDateTime(item.created_at)}</TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-default-500">
-                    Page {recentMessagesState.pagination.page} of{" "}
-                    {messagesTablePages}
-                  </p>
-                  <Pagination
-                    showControls
-                    boundaries={1}
-                    color="primary"
-                    page={recentMessagesPage}
-                    siblings={0}
-                    total={messagesTablePages}
-                    onChange={setRecentMessagesPage}
-                  />
-                </div>
-              </div>
-            ),
-          })}
-        </DashboardPanel>
       </section>
     </div>
   );

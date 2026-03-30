@@ -4,7 +4,7 @@ import { Button, Card, CardBody, Chip, Spinner } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { getAnalyticsErrorMessage, getLiveUsers } from "@/api/analytics.api";
+import { getAnalyticsErrorMessage, getAnalyticsLiveUsers } from "@/api/analytics.api";
 
 interface MetricCard {
   key: string;
@@ -126,7 +126,7 @@ export default function LiveUsers() {
     setError("");
 
     try {
-      const response = await getLiveUsers();
+      const response = await getAnalyticsLiveUsers();
 
       setLiveUsersData(response);
     } catch (fetchError) {
