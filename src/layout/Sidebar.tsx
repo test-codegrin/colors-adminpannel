@@ -38,6 +38,11 @@ const navItems: NavItem[] = [
     icon: "mdi:ticket-confirmation-outline",
   },
   {
+    label: "Color Stories",
+    path: "/dashboard/color-stories",
+    icon: "mdi:book-open-page-variant-outline",
+  },
+  {
     label: "Contact Messages",
     path: "/dashboard/contact",
     icon: "fluent-mdl2:contact",
