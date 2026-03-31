@@ -12,6 +12,7 @@ function getPageTitle(pathname: string): string {
   if (pathname === "/dashboard/users") return "Users";
   if (pathname === "/dashboard/payments") return "Payments";
   if (pathname === "/dashboard/subscription-plans") return "Subscription Plans";
+  if (pathname === "/dashboard/color-stories") return "Color Stories";
   if (pathname === "/dashboard/contact") return "Contact Messages";
   if (pathname === "/dashboard/live-users") return "Live Users";
   if (pathname === "/dashboard/devices-analytics") return "Devices Analytics";

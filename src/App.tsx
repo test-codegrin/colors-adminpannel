@@ -7,6 +7,7 @@ import DevicesAnalytics from "./pages/dashboard/DevicesAnalytics";
 import SubscriptionPlans from "./pages/dashboard/SubscriptionPlans";
 import BetaPlans from "./pages/dashboard/BetaPlans";
 import ActivityFeed from "./pages/dashboard/ActivityFeed";
+import ColorStories from "./pages/dashboard/ColorStories";
 
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import Users from "@/pages/dashboard/Users";
@@ -32,6 +33,7 @@ function App() {
           <Route element={<Users />} path="users" />
           <Route element={<Payments />} path="payments" />
           <Route element={<SubscriptionPlans />} path="subscription-plans" />
+          <Route element={<ColorStories />} path="color-stories" />
           <Route element={<ContactMessages />} path="contact" />
           <Route element={<LiveUsers />} path="live-users" />
           <Route element={<DevicesAnalytics />} path="devices-analytics" />
