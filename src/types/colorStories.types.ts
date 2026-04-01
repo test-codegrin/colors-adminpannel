@@ -29,7 +29,10 @@ export interface ColorStoryPayload {
   excerpt: string;
   palette: string[];
   category: string;
-  author: ColorStoryAuthor;
+  author_name: string;
+  author_avatar: string | null;
+  author_date: string | null;
+  read_time: string;
   tags: string[];
   status: ColorStoryStatus;
   published_at: string | null;

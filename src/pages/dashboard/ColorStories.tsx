@@ -275,9 +275,13 @@ export default function ColorStories() {
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
   const [categoryDraftName, setCategoryDraftName] = useState("");
-  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(
+    null,
+  );
   const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
-  const [deletingCategoryId, setDeletingCategoryId] = useState<number | null>(null);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<number | null>(
+    null,
+  );
   const [filters, setFilters] =
     useState<ColorStoriesFiltersFormValues>(INITIAL_FILTERS);
   const previousFiltersKeyRef = useRef(
@@ -313,7 +317,6 @@ export default function ColorStories() {
   const {
     isOpen: isFormModalOpen,
     onOpen: onFormOpen,
-    onOpenChange: onFormOpenChange,
     onClose: onFormClose,
   } = useDisclosure();
   const {
@@ -325,55 +328,28 @@ export default function ColorStories() {
   const {
     isOpen: isCategoriesModalOpen,
     onOpen: onCategoriesOpen,
-    onOpenChange: onCategoriesOpenChange,
     onClose: onCategoriesClose,
   } = useDisclosure();
 
   const debouncedSearch = useDebounce(filters.search.trim(), 400);
   const hasActiveFilters = Boolean(
-    filters.search.trim() || filters.status !== "all" || filters.category.trim(),
+    filters.search.trim() ||
+      filters.status !== "all" ||
+      filters.category.trim(),
   );
   const activeFilterCount = [
     filters.search.trim(),
     filters.status !== "all" ? filters.status : "",
     filters.category.trim(),
   ].filter(Boolean).length;
-  const publishedStoriesOnPage = stories.filter((story) => story.status === 1)
-    .length;
-  const draftStoriesOnPage = stories.filter((story) => story.status === 0)
-    .length;
+  const publishedStoriesOnPage = stories.filter(
+    (story) => story.status === 1,
+  ).length;
+  const draftStoriesOnPage = stories.filter(
+    (story) => story.status === 0,
+  ).length;
   const totalStoriesLabel =
-    totalStories === 1
-      ? "1 story"
-      : `${totalStories.toLocaleString()} stories`;
-  const categoryOptions = categories.map((category) => ({
-    key: category.name,
-    label: category.name,
-  }));
-  const categoryDropdownItems = [
-    ...categoryOptions.map((category) => ({
-      key: `category:${category.key}`,
-      label: category.label,
-    })),
-    {
-      key: "add-category",
-      label: "Add Category",
-    },
-    {
-      key: "edit-category",
-      label: "Edit Selected",
-    },
-    {
-      key: "delete-category",
-      label: "Remove Selected",
-    },
-    {
-      key: "manage-categories",
-      label: "Manage All",
-    },
-  ];
-  const selectedFormCategory =
-    categories.find((category) => category.name === formState.category) ?? null;
+    totalStories === 1 ? "1 story" : `${totalStories.toLocaleString()} stories`;
   const visibleCategories = categories.filter((category) =>
     category.name.toLowerCase().includes(categorySearch.trim().toLowerCase()),
   );
@@ -457,7 +433,14 @@ export default function ColorStories() {
     return () => {
       isActive = false;
     };
-  }, [page, limit, debouncedSearch, filters.category, filters.status, reloadToken]);
+  }, [
+    page,
+    limit,
+    debouncedSearch,
+    filters.category,
+    filters.status,
+    reloadToken,
+  ]);
 
   useEffect(() => {
     let isActive = true;
@@ -650,13 +633,17 @@ export default function ColorStories() {
     const currentCategory =
       editingCategoryId === null
         ? null
-        : categories.find((category) => category.id === editingCategoryId) ?? null;
+        : (categories.find((category) => category.id === editingCategoryId) ??
+          null);
 
     setIsSubmittingCategory(true);
 
     try {
       if (editingCategoryId !== null) {
-        const result = await updateColorStoryCategoryById(editingCategoryId, nextName);
+        const result = await updateColorStoryCategoryById(
+          editingCategoryId,
+          nextName,
+        );
 
         if (currentCategory && currentCategory.name !== nextName) {
           if (filters.category === currentCategory.name) {
@@ -670,7 +657,8 @@ export default function ColorStories() {
 
         addToast({
           title: "Category Updated",
-          description: result.message ?? "Color story category updated successfully.",
+          description:
+            result.message ?? "Color story category updated successfully.",
           color: "success",
           radius: "full",
           timeout: 3000,
@@ -684,7 +672,8 @@ export default function ColorStories() {
 
         addToast({
           title: "Category Created",
-          description: result.message ?? "Color story category created successfully.",
+          description:
+            result.message ?? "Color story category created successfully.",
           color: "success",
           radius: "full",
           timeout: 3000,
@@ -723,7 +712,8 @@ export default function ColorStories() {
 
       addToast({
         title: "Category Deleted",
-        description: result.message ?? "Color story category deleted successfully.",
+        description:
+          result.message ?? "Color story category deleted successfully.",
         color: "success",
         radius: "full",
         timeout: 3000,
@@ -776,7 +766,8 @@ export default function ColorStories() {
     if (palette.length === 0) {
       nextErrors.palette = "Add at least one hex color.";
     } else if (palette.some((color) => !isValidHexColor(color))) {
-      nextErrors.palette = "Palette colors must be valid hex values like #FF6B6B.";
+      nextErrors.palette =
+        "Palette colors must be valid hex values like #FF6B6B.";
     }
 
     if (!authorName) {
@@ -792,7 +783,8 @@ export default function ColorStories() {
     }
 
     if (status === 1 && !publishedAt) {
-      nextErrors.publishedAt = "Published stories need a publish date and time.";
+      nextErrors.publishedAt =
+        "Published stories need a publish date and time.";
     }
 
     setFormErrors(nextErrors);
@@ -819,12 +811,10 @@ export default function ColorStories() {
       excerpt,
       palette,
       category,
-      author: {
-        name: authorName,
-        ...(authorAvatar ? { avatar: authorAvatar } : {}),
-        ...(authorReadTime ? { readTime: authorReadTime } : {}),
-        ...(authorDate ? { date: authorDate } : {}),
-      },
+      author_name: authorName,
+      author_avatar: authorAvatar || null,
+      author_date: authorDate || null,
+      read_time: authorReadTime,
       tags,
       status,
       published_at: publishedAt,
@@ -985,7 +975,9 @@ export default function ColorStories() {
                     <DropdownItem
                       key="create-category"
                       description="Add a new category option for stories"
-                      startContent={<Icon icon="mdi:plus-circle-outline" width={16} />}
+                      startContent={
+                        <Icon icon="mdi:plus-circle-outline" width={16} />
+                      }
                       onPress={startCategoryCreate}
                     >
                       Add Category
@@ -1039,7 +1031,9 @@ export default function ColorStories() {
               hasActiveFilters={hasActiveFilters}
               isLoading={isLoading}
               values={filters}
-              onCategoryChange={(value) => handleFilterChange("category", value)}
+              onCategoryChange={(value) =>
+                handleFilterChange("category", value)
+              }
               onClear={handleClearFilters}
               onSearchChange={(value) => handleFilterChange("search", value)}
               onStatusChange={(value) => handleFilterChange("status", value)}
@@ -1225,16 +1219,15 @@ export default function ColorStories() {
 
                       <Tooltip
                         content={
-                          story.status === 1
-                            ? "Move to draft"
-                            : "Publish story"
+                          story.status === 1 ? "Move to draft" : "Publish story"
                         }
                       >
                         <Button
                           isIconOnly
                           color={story.status === 1 ? "warning" : "success"}
                           isDisabled={
-                            statusUpdatingId !== null || deletingStoryId !== null
+                            statusUpdatingId !== null ||
+                            deletingStoryId !== null
                           }
                           isLoading={statusUpdatingId === story.id}
                           size="sm"
@@ -1262,7 +1255,8 @@ export default function ColorStories() {
                           isIconOnly
                           color="danger"
                           isDisabled={
-                            deletingStoryId !== null || statusUpdatingId !== null
+                            deletingStoryId !== null ||
+                            statusUpdatingId !== null
                           }
                           isLoading={deletingStoryId === story.id}
                           size="sm"
@@ -1482,14 +1476,16 @@ export default function ColorStories() {
         size="2xl"
         classNames={{
           base: "h-[800px]",
-          body: "overflow-y-auto"
+          body: "overflow-y-auto",
         }}
-        onOpenChange={() => {
-          if (isFormModalOpen && !isSubmittingForm) {
+        onOpenChange={(isOpen) => {
+          if (!isOpen && !isSubmittingForm) {
             resetForm();
           }
 
-          onFormOpenChange();
+          if (!isOpen) {
+            onFormClose();
+          }
         }}
       >
         <ModalContent>
@@ -1509,7 +1505,9 @@ export default function ColorStories() {
                   isInvalid={Boolean(formErrors.title)}
                   label="Title"
                   value={formState.title}
-                  onValueChange={(value) => handleFormValueChange("title", value)}
+                  onValueChange={(value) =>
+                    handleFormValueChange("title", value)
+                  }
                 />
 
                 <Textarea
@@ -1528,11 +1526,6 @@ export default function ColorStories() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-3">
                     <div className="space-y-1">
-                      <label className="text-sm font-medium text-foreground">
-                        Category
-                        <span className="text-danger">*</span>
-                      </label>
-
                       <Dropdown placement="bottom-start">
                         <DropdownTrigger>
                           <Button
@@ -1566,98 +1559,32 @@ export default function ColorStories() {
                         </DropdownTrigger>
                         <DropdownMenu
                           aria-label="Category selection"
-                          disabledKeys={
-                            selectedFormCategory
-                              ? []
-                              : ["edit-category", "delete-category"]
+                          items={categories}
+                          onAction={(key) =>
+                            handleFormValueChange("category", String(key))
                           }
-                          items={categoryDropdownItems}
-                          onAction={(key) => {
-                            const action = String(key);
-
-                            if (action.startsWith("category:")) {
-                              handleFormValueChange(
-                                "category",
-                                action.replace("category:", ""),
-                              );
-                              return;
-                            }
-
-                            if (action === "add-category") {
-                              startCategoryCreate();
-                              return;
-                            }
-
-                            if (action === "edit-category") {
-                              if (selectedFormCategory) {
-                                startCategoryEdit(selectedFormCategory);
-                              }
-                              return;
-                            }
-
-                            if (action === "delete-category") {
-                              if (selectedFormCategory) {
-                                void handleDeleteCategory(selectedFormCategory);
-                              }
-                              return;
-                            }
-
-                            if (action === "manage-categories") {
-                              openCategoriesModal();
-                            }
-                          }}
                         >
                           {(item) => (
                             <DropdownItem
-                              key={item.key}
-                              className={
-                                item.key === "delete-category"
-                                  ? "text-danger"
-                                  : undefined
-                              }
-                              color={
-                                item.key === "delete-category"
-                                  ? "danger"
-                                  : "default"
-                              }
+                              key={item.name}
                               startContent={
-                                item.key.startsWith("category:") ? (
-                                  formState.category === item.label ? (
-                                    <Icon icon="mdi:check" width={16} />
-                                  ) : undefined
-                                ) : item.key === "add-category" ? (
-                                  <Icon icon="mdi:shape-plus-outline" width={16} />
-                                ) : item.key === "edit-category" ? (
-                                  <Icon icon="mdi:pencil-outline" width={16} />
-                                ) : item.key === "delete-category" ? (
-                                  deletingCategoryId === selectedFormCategory?.id ? (
-                                    <Spinner size="sm" />
-                                  ) : (
-                                    <Icon icon="mdi:delete-outline" width={16} />
-                                  )
-                                ) : (
-                                  <Icon icon="mdi:shape-outline" width={16} />
-                                )
+                                formState.category === item.name ? (
+                                  <Icon icon="mdi:check" width={16} />
+                                ) : undefined
                               }
                             >
-                              {item.label}
+                              {item.name}
                             </DropdownItem>
                           )}
                         </DropdownMenu>
                       </Dropdown>
-
                       {formErrors.category ? (
-                        <p className="text-xs text-danger">{formErrors.category}</p>
+                        <p className="text-xs text-danger">
+                          {formErrors.category}
+                        </p>
                       ) : null}
                     </div>
 
-                    <p className="text-xs text-default-500">
-                      {selectedFormCategory
-                        ? `${selectedFormCategory.name} is selected. ${getCategoryStoriesLabel(selectedFormCategory.stories_count)} currently use it.`
-                        : categories.length > 0
-                          ? `${categories.length} saved categor${categories.length === 1 ? "y" : "ies"} available.`
-                          : "No categories yet. Add one to continue."}
-                    </p>
                   </div>
 
                   <Select
@@ -1712,7 +1639,9 @@ export default function ColorStories() {
                   minRows={3}
                   placeholder="#FF6B6B, #FFE66D, #4ECDC4"
                   value={formState.palette}
-                  onValueChange={(value) => handleFormValueChange("palette", value)}
+                  onValueChange={(value) =>
+                    handleFormValueChange("palette", value)
+                  }
                 />
 
                 {normalizePaletteValues(formState.palette).length > 0 ? (
@@ -1721,20 +1650,22 @@ export default function ColorStories() {
                       Palette Preview
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {normalizePaletteValues(formState.palette).map((color) => (
-                        <div
-                          key={color}
-                          className="flex items-center gap-2 rounded-full border border-default-200 bg-content1 px-3 py-1.5"
-                        >
-                          <span
-                            className="h-5 w-5 rounded-full border border-default-200"
-                            style={{ backgroundColor: color }}
-                          />
-                          <span className="text-xs font-mono text-default-600">
-                            {color}
-                          </span>
-                        </div>
-                      ))}
+                      {normalizePaletteValues(formState.palette).map(
+                        (color) => (
+                          <div
+                            key={color}
+                            className="flex items-center gap-2 rounded-full border border-default-200 bg-content1 px-3 py-1.5"
+                          >
+                            <span
+                              className="h-5 w-5 rounded-full border border-default-200"
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className="text-xs font-mono text-default-600">
+                              {color}
+                            </span>
+                          </div>
+                        ),
+                      )}
                     </div>
                   </div>
                 ) : null}
@@ -1786,7 +1717,9 @@ export default function ColorStories() {
                   label="Tags"
                   placeholder="Research, UX, Conversion"
                   value={formState.tags}
-                  onValueChange={(value) => handleFormValueChange("tags", value)}
+                  onValueChange={(value) =>
+                    handleFormValueChange("tags", value)
+                  }
                 />
               </div>
             )}
@@ -1823,14 +1756,17 @@ export default function ColorStories() {
             setCategorySearch("");
           }
 
-          onCategoriesOpenChange();
+          if (!isOpen) {
+            onCategoriesClose();
+          }
         }}
       >
         <ModalContent>
           <ModalHeader className="flex flex-col gap-1">
             <span className="text-base font-semibold">Category Management</span>
             <span className="text-sm font-normal text-default-500">
-              Create, edit, and delete the category list connected to Color Stories.
+              Create, edit, and delete the category list connected to Color
+              Stories.
             </span>
           </ModalHeader>
           <ModalBody className="pb-2">
@@ -1919,8 +1855,7 @@ export default function ColorStories() {
                         <Button
                           color="danger"
                           isDisabled={
-                            deletingCategoryId !== null ||
-                            isSubmittingCategory
+                            deletingCategoryId !== null || isSubmittingCategory
                           }
                           isLoading={deletingCategoryId === category.id}
                           size="sm"
