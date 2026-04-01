@@ -8,6 +8,7 @@ import SubscriptionPlans from "./pages/dashboard/SubscriptionPlans";
 import BetaPlans from "./pages/dashboard/BetaPlans";
 import ActivityFeed from "./pages/dashboard/ActivityFeed";
 import ColorStories from "./pages/dashboard/ColorStories";
+import GameScore from "./pages/dashboard/GameScore";
 
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import Users from "@/pages/dashboard/Users";
@@ -37,6 +38,7 @@ function App() {
           <Route element={<ContactMessages />} path="contact" />
           <Route element={<LiveUsers />} path="live-users" />
           <Route element={<DevicesAnalytics />} path="devices-analytics" />
+          <Route element={<GameScore />} path="game-score" />
           <Route element={<BetaPlans />} path="beta-plans" />
           <Route element={<ActivityFeed />} path="activity-feed" />
         </Route>

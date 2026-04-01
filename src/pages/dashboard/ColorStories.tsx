@@ -168,7 +168,7 @@ function toDateTimeLocalValue(value?: string | null): string {
 
   return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}-${padNumber(
     date.getDate(),
-  )}${padNumber(date.getHours())}:${padNumber(date.getMinutes())}`;
+  )}T${padNumber(date.getHours())}:${padNumber(date.getMinutes())}`;
 }
 
 function toIsoDateTime(value: string): string | null {

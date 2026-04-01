@@ -58,6 +58,11 @@ const navItems: NavItem[] = [
     icon: "mdi:desktop-mac-dashboard",
   },
   {
+    label: "Game Score",
+    path: "/dashboard/game-score",
+    icon: "mdi:gamepad-variant-outline",
+  },
+  {
     label: "Beta Plans",
     path: "/dashboard/beta-plans",
     icon: "mdi:beta",
