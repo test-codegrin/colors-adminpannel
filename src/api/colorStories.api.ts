@@ -313,7 +313,7 @@ export async function updateColorStoryStatus(
   const response = await api.patch<ColorStoryMutationResponse>(
     `/admin/color-stories/${id}/status`,
     {
-      status,
+      status: String(status),
     },
   );
 

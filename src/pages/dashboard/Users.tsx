@@ -141,8 +141,9 @@ function Users() {
   const [liveUsersError, setLiveUsersError] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [filters, setFilters] =
-    useState<UsersFiltersFormValues>(INITIAL_USERS_FILTERS);
+  const [filters, setFilters] = useState<UsersFiltersFormValues>(
+    INITIAL_USERS_FILTERS,
+  );
   const [reloadToken, setReloadToken] = useState(0);
   const previousFiltersKeyRef = useRef(
     getUserFiltersKey(
@@ -336,10 +337,12 @@ function Users() {
         }
 
         if (filters.status === "offline") {
-          setUsers(result.users.filter((u) => {
-            const uid = getUserId(u);
-            return uid === null || !onlineUserIds.has(uid);
-          }));
+          setUsers(
+            result.users.filter((u) => {
+              const uid = getUserId(u);
+              return uid === null || !onlineUserIds.has(uid);
+            }),
+          );
         } else {
           setUsers(result.users);
         }
@@ -712,8 +715,8 @@ function Users() {
                       : filters.status === "online"
                         ? "No online users match the current filters."
                         : onlineUsersCount > 0
-                        ? "Online users exist, but they are not on the current page yet."
-                        : "No users are active right now."}
+                          ? "Online users exist, but they are not on the current page yet."
+                          : "No users are active right now."}
                   </p>
                 </div>
 
@@ -773,7 +776,8 @@ function Users() {
                 <div className="grid gap-4 md:grid-cols-2">
                   {users.map((user) => {
                     const userId = getUserId(user);
-                    const isOnline = userId !== null && onlineUserIds.has(userId);
+                    const isOnline =
+                      userId !== null && onlineUserIds.has(userId);
 
                     return (
                       <Card
@@ -838,7 +842,9 @@ function Users() {
 
                           <div className="flex items-center justify-between gap-3 border-t border-default-200 pt-3">
                             <Chip
-                              color={isUserPaid(user.is_paid) ? "success" : "danger"}
+                              color={
+                                isUserPaid(user.is_paid) ? "success" : "danger"
+                              }
                               size="sm"
                               variant="flat"
                             >
@@ -872,7 +878,11 @@ function Users() {
                                   if (userId) handleOpenLibrary(user, userId);
                                 }}
                               >
-                                <Icon height={16} icon="mdi:bookshelf" width={16} />
+                                <Icon
+                                  height={16}
+                                  icon="mdi:bookshelf"
+                                  width={16}
+                                />
                               </Button>
 
                               <Button
@@ -912,8 +922,9 @@ function Users() {
                 aria-label="Users table"
                 classNames={{
                   base: "min-h-[320px]",
-                  wrapper: "overflow-hidden border border-default-200 shadow-none p-0",
-                  table: "w-full table-fixed",
+                  wrapper:
+                    "overflow-hidden border border-default-200 shadow-none p-0",
+                  table: "w-full table-auto",
                   th: "bg-default-100 text-[11px] font-semibold uppercase tracking-[0.16em] text-default-600",
                   td: "py-4 align-middle",
                   emptyWrapper: "py-14 text-default-500",
@@ -921,12 +932,14 @@ function Users() {
               >
                 <TableHeader>
                   <TableColumn className="w-[20%]">User</TableColumn>
-                  <TableColumn className="w-[22%]">Email</TableColumn>
+                  <TableColumn className="w-[24%]">Email</TableColumn>
                   <TableColumn className="w-[15%]">Mobile Number</TableColumn>
                   <TableColumn className="w-[10%]">Status</TableColumn>
                   <TableColumn className="w-[8%]">Paid</TableColumn>
-                  <TableColumn className="w-[13%]">Created</TableColumn>
-                  <TableColumn className="w-[12%] text-right">Action</TableColumn>
+                  <TableColumn className="w-[12%]">Created</TableColumn>
+                  <TableColumn className="w-[1%] whitespace-nowrap">
+                    Action
+                  </TableColumn>
                 </TableHeader>
 
                 <TableBody
@@ -937,7 +950,8 @@ function Users() {
                 >
                   {(user: User) => {
                     const userId = getUserId(user);
-                    const isOnline = userId !== null && onlineUserIds.has(userId);
+                    const isOnline =
+                      userId !== null && onlineUserIds.has(userId);
 
                     return (
                       <TableRow key={String(userId ?? user.email ?? user.name)}>
@@ -1015,58 +1029,64 @@ function Users() {
                         </TableCell>
 
                         <TableCell>
-                          <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-default-200 bg-default-50 p-1">
-                            <Button
-                              isIconOnly
-                              isDisabled={!userId}
-                              radius="full"
-                              size="sm"
-                              variant="flat"
-                              onPress={() => {
-                                if (userId) {
-                                  handleViewUser(userId);
-                                }
-                              }}
-                            >
-                              <Icon height={16} icon="mdi:eye" width={16} />
-                            </Button>
+                          <div className="flex justify-start">
+                            <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-default-200 bg-default-50 p-1">
+                              <Button
+                                isIconOnly
+                                isDisabled={!userId}
+                                radius="full"
+                                size="sm"
+                                variant="flat"
+                                onPress={() => {
+                                  if (userId) {
+                                    handleViewUser(userId);
+                                  }
+                                }}
+                              >
+                                <Icon height={16} icon="mdi:eye" width={16} />
+                              </Button>
 
-                            <Button
-                              isIconOnly
-                              color="secondary"
-                              isDisabled={!userId}
-                              radius="full"
-                              size="sm"
-                              variant="flat"
-                              onPress={() => {
-                                if (userId) handleOpenLibrary(user, userId);
-                              }}
-                            >
-                              <Icon height={16} icon="mdi:bookshelf" width={16} />
-                            </Button>
-
-                            <Button
-                              isIconOnly
-                              color="danger"
-                              isDisabled={!userId || deletingUserId !== null}
-                              isLoading={deletingUserId === userId}
-                              radius="full"
-                              size="sm"
-                              variant="flat"
-                              onPress={() => {
-                                if (userId) {
-                                  handleOpenDeleteModal(userId, user.name);
-                                }
-                              }}
-                            >
-                              {deletingUserId !== userId ? (
+                              <Button
+                                isIconOnly
+                                color="secondary"
+                                isDisabled={!userId}
+                                radius="full"
+                                size="sm"
+                                variant="flat"
+                                onPress={() => {
+                                  if (userId) handleOpenLibrary(user, userId);
+                                }}
+                              >
                                 <Icon
                                   height={16}
-                                  icon="mdi:delete-outline"
+                                  icon="mdi:bookshelf"
                                   width={16}
                                 />
-                              ) : null}
-                            </Button>
+                              </Button>
+
+                              <Button
+                                isIconOnly
+                                color="danger"
+                                isDisabled={!userId || deletingUserId !== null}
+                                isLoading={deletingUserId === userId}
+                                radius="full"
+                                size="sm"
+                                variant="flat"
+                                onPress={() => {
+                                  if (userId) {
+                                    handleOpenDeleteModal(userId, user.name);
+                                  }
+                                }}
+                              >
+                                {deletingUserId !== userId ? (
+                                  <Icon
+                                    height={16}
+                                    icon="mdi:delete-outline"
+                                    width={16}
+                                  />
+                                ) : null}
+                              </Button>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1167,8 +1187,3 @@ function Users() {
 }
 
 export default Users;
-
-
-
-
-
