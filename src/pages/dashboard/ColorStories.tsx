@@ -2,6 +2,7 @@
 
 import type {
   ColorStoriesFiltersFormValues,
+  ColorStoryCategory,
   ColorStory,
   ColorStoryPayload,
   ColorStoryStatus,
@@ -13,6 +14,10 @@ import {
   Card,
   CardBody,
   Chip,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
   Input,
   Modal,
   ModalBody,
@@ -39,11 +44,15 @@ import type { Key } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import {
+  createColorStoryCategory,
   createColorStory,
+  deleteColorStoryCategoryById,
   deleteColorStoryById,
+  getColorStoryCategories,
   getColorStories,
   getColorStoriesErrorMessage,
   getColorStoryById,
+  updateColorStoryCategoryById,
   updateColorStoryById,
   updateColorStoryStatus,
 } from "@/api/colorStories.api";
@@ -159,7 +168,7 @@ function toDateTimeLocalValue(value?: string | null): string {
 
   return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}-${padNumber(
     date.getDate(),
-  )}T${padNumber(date.getHours())}:${padNumber(date.getMinutes())}`;
+  )}${padNumber(date.getHours())}:${padNumber(date.getMinutes())}`;
 }
 
 function toIsoDateTime(value: string): string | null {
@@ -249,6 +258,10 @@ function getFiltersKey(
   return [search, status, category].join("|");
 }
 
+function getCategoryStoriesLabel(count: number): string {
+  return count === 1 ? "1 story" : `${count} stories`;
+}
+
 export default function ColorStories() {
   const [stories, setStories] = useState<ColorStory[]>([]);
   const [error, setError] = useState("");
@@ -258,6 +271,13 @@ export default function ColorStories() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalStories, setTotalStories] = useState(0);
   const [reloadToken, setReloadToken] = useState(0);
+  const [categories, setCategories] = useState<ColorStoryCategory[]>([]);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
+  const [categorySearch, setCategorySearch] = useState("");
+  const [categoryDraftName, setCategoryDraftName] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<number | null>(null);
   const [filters, setFilters] =
     useState<ColorStoriesFiltersFormValues>(INITIAL_FILTERS);
   const previousFiltersKeyRef = useRef(
@@ -302,9 +322,14 @@ export default function ColorStories() {
     onOpenChange: onDeleteOpenChange,
     onClose: onDeleteClose,
   } = useDisclosure();
+  const {
+    isOpen: isCategoriesModalOpen,
+    onOpen: onCategoriesOpen,
+    onOpenChange: onCategoriesOpenChange,
+    onClose: onCategoriesClose,
+  } = useDisclosure();
 
   const debouncedSearch = useDebounce(filters.search.trim(), 400);
-  const debouncedCategory = useDebounce(filters.category.trim(), 400);
   const hasActiveFilters = Boolean(
     filters.search.trim() || filters.status !== "all" || filters.category.trim(),
   );
@@ -321,6 +346,39 @@ export default function ColorStories() {
     totalStories === 1
       ? "1 story"
       : `${totalStories.toLocaleString()} stories`;
+  const categoryOptions = categories.map((category) => ({
+    key: category.name,
+    label: category.name,
+  }));
+  const categoryDropdownItems = [
+    ...categoryOptions.map((category) => ({
+      key: `category:${category.key}`,
+      label: category.label,
+    })),
+    {
+      key: "add-category",
+      label: "Add Category",
+    },
+    {
+      key: "edit-category",
+      label: "Edit Selected",
+    },
+    {
+      key: "delete-category",
+      label: "Remove Selected",
+    },
+    {
+      key: "manage-categories",
+      label: "Manage All",
+    },
+  ];
+  const selectedFormCategory =
+    categories.find((category) => category.name === formState.category) ?? null;
+  const visibleCategories = categories.filter((category) =>
+    category.name.toLowerCase().includes(categorySearch.trim().toLowerCase()),
+  );
+  const isEditMode = editingStoryId !== null;
+  const isEditingCategory = editingCategoryId !== null;
   const emptyStoriesContent = (
     <div className="flex flex-col items-center gap-2 py-4 text-center">
       <p className="text-sm font-medium text-foreground">
@@ -340,7 +398,7 @@ export default function ColorStories() {
     const currentFiltersKey = getFiltersKey(
       debouncedSearch,
       filters.status,
-      debouncedCategory,
+      filters.category.trim(),
     );
 
     if (previousFiltersKeyRef.current !== currentFiltersKey) {
@@ -368,7 +426,7 @@ export default function ColorStories() {
             filters.status === "all"
               ? undefined
               : (Number(filters.status) as ColorStoryStatus),
-          category: debouncedCategory || undefined,
+          category: filters.category.trim() || undefined,
         });
 
         if (!isActive) {
@@ -399,7 +457,47 @@ export default function ColorStories() {
     return () => {
       isActive = false;
     };
-  }, [page, limit, debouncedSearch, debouncedCategory, filters.status, reloadToken]);
+  }, [page, limit, debouncedSearch, filters.category, filters.status, reloadToken]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadCategories = async () => {
+      setIsCategoriesLoading(true);
+
+      try {
+        const result = await getColorStoryCategories();
+
+        if (!isActive) {
+          return;
+        }
+
+        setCategories(result.data);
+      } catch (fetchError) {
+        if (!isActive) {
+          return;
+        }
+
+        addToast({
+          title: "Categories Unavailable",
+          description: getColorStoriesErrorMessage(fetchError),
+          color: "danger",
+          radius: "full",
+          timeout: 3000,
+        });
+      } finally {
+        if (isActive) {
+          setIsCategoriesLoading(false);
+        }
+      }
+    };
+
+    void loadCategories();
+
+    return () => {
+      isActive = false;
+    };
+  }, [reloadToken]);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -415,6 +513,11 @@ export default function ColorStories() {
     setEditingStoryId(null);
     setFormState(defaultFormState);
     setFormErrors(initialFormErrors);
+  };
+
+  const resetCategoryForm = () => {
+    setEditingCategoryId(null);
+    setCategoryDraftName("");
   };
 
   const handleFilterChange = <K extends keyof ColorStoriesFiltersFormValues>(
@@ -449,6 +552,24 @@ export default function ColorStories() {
       ...prev,
       [key]: "",
     }));
+  };
+
+  const openCategoriesModal = () => {
+    resetCategoryForm();
+    setCategorySearch("");
+    onCategoriesOpen();
+  };
+
+  const startCategoryCreate = () => {
+    setEditingCategoryId(null);
+    setCategoryDraftName("");
+    onCategoriesOpen();
+  };
+
+  const startCategoryEdit = (category: ColorStoryCategory) => {
+    setEditingCategoryId(category.id);
+    setCategoryDraftName(category.name);
+    onCategoriesOpen();
   };
 
   const openCreateModal = () => {
@@ -509,6 +630,121 @@ export default function ColorStories() {
       title: story.title?.trim() ? story.title : "this story",
     });
     onDeleteOpen();
+  };
+
+  const handleSaveCategory = async () => {
+    const nextName = categoryDraftName.trim();
+
+    if (!nextName) {
+      addToast({
+        title: "Validation Error",
+        description: "Category name is required.",
+        color: "danger",
+        radius: "full",
+        timeout: 3000,
+      });
+
+      return;
+    }
+
+    const currentCategory =
+      editingCategoryId === null
+        ? null
+        : categories.find((category) => category.id === editingCategoryId) ?? null;
+
+    setIsSubmittingCategory(true);
+
+    try {
+      if (editingCategoryId !== null) {
+        const result = await updateColorStoryCategoryById(editingCategoryId, nextName);
+
+        if (currentCategory && currentCategory.name !== nextName) {
+          if (filters.category === currentCategory.name) {
+            handleFilterChange("category", nextName);
+          }
+
+          if (formState.category === currentCategory.name) {
+            handleFormValueChange("category", nextName);
+          }
+        }
+
+        addToast({
+          title: "Category Updated",
+          description: result.message ?? "Color story category updated successfully.",
+          color: "success",
+          radius: "full",
+          timeout: 3000,
+        });
+      } else {
+        const result = await createColorStoryCategory(nextName);
+
+        if (!formState.category) {
+          handleFormValueChange("category", nextName);
+        }
+
+        addToast({
+          title: "Category Created",
+          description: result.message ?? "Color story category created successfully.",
+          color: "success",
+          radius: "full",
+          timeout: 3000,
+        });
+      }
+
+      setCategoryDraftName("");
+      setEditingCategoryId(null);
+      triggerReload();
+    } catch (submitError) {
+      addToast({
+        title: editingCategoryId !== null ? "Update Failed" : "Create Failed",
+        description: getColorStoriesErrorMessage(submitError),
+        color: "danger",
+        radius: "full",
+        timeout: 3000,
+      });
+    } finally {
+      setIsSubmittingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = async (category: ColorStoryCategory) => {
+    setDeletingCategoryId(category.id);
+
+    try {
+      const result = await deleteColorStoryCategoryById(category.id);
+
+      if (filters.category === category.name) {
+        handleFilterChange("category", "");
+      }
+
+      if (formState.category === category.name) {
+        handleFormValueChange("category", "");
+      }
+
+      addToast({
+        title: "Category Deleted",
+        description: result.message ?? "Color story category deleted successfully.",
+        color: "success",
+        radius: "full",
+        timeout: 3000,
+      });
+
+      if (editingCategoryId === category.id) {
+        resetCategoryForm();
+      }
+
+      triggerReload();
+    } catch (deleteError) {
+      addToast({
+        title: "Delete Failed",
+        description: getColorStoriesErrorMessage(deleteError),
+        color: "danger",
+        radius: "full",
+        timeout: 3000,
+      });
+    } finally {
+      setDeletingCategoryId(null);
+    }
   };
 
   const buildPayload = (): ColorStoryPayload | null => {
@@ -717,8 +953,6 @@ export default function ColorStories() {
     }
   };
 
-  const isEditMode = editingStoryId !== null;
-
   return (
     <>
       <Card shadow="md">
@@ -727,6 +961,37 @@ export default function ColorStories() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-xl font-semibold">Color Stories</h2>
+                <Dropdown placement="bottom-start">
+                  <DropdownTrigger>
+                    <Button
+                      endContent={<Icon icon="mdi:chevron-down" width={16} />}
+                      size="sm"
+                      variant="flat"
+                    >
+                      Categories
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownMenu aria-label="Category actions">
+                    <DropdownItem
+                      key="manage-categories"
+                      description="Search, edit, and remove existing categories"
+                      startContent={
+                        <Icon icon="mdi:shape-outline" width={16} />
+                      }
+                      onPress={openCategoriesModal}
+                    >
+                      Manage Categories
+                    </DropdownItem>
+                    <DropdownItem
+                      key="create-category"
+                      description="Add a new category option for stories"
+                      startContent={<Icon icon="mdi:plus-circle-outline" width={16} />}
+                      onPress={startCategoryCreate}
+                    >
+                      Add Category
+                    </DropdownItem>
+                  </DropdownMenu>
+                </Dropdown>
                 <Chip
                   color={hasActiveFilters ? "primary" : "default"}
                   size="sm"
@@ -770,6 +1035,7 @@ export default function ColorStories() {
 
           <div className="rounded-[22px] border border-default-200 bg-content1 px-4 py-4 sm:px-5 sm:py-4">
             <ColorStoriesFilters
+              categories={categories}
               hasActiveFilters={hasActiveFilters}
               isLoading={isLoading}
               values={filters}
@@ -812,7 +1078,18 @@ export default function ColorStories() {
               loadingContent={<Spinner label="Loading color stories..." />}
             >
               {(story: ColorStory) => (
-                <TableRow key={String(story.id)}>
+                <TableRow
+                  key={String(story.id)}
+                  className="cursor-pointer transition-colors hover:bg-default-50 focus-within:bg-default-50"
+                  tabIndex={0}
+                  onClick={() => openViewModal(story.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      void openViewModal(story.id);
+                    }
+                  }}
+                >
                   <TableCell>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -928,18 +1205,6 @@ export default function ColorStories() {
 
                   <TableCell>
                     <div className="flex justify-end gap-2">
-                      <Tooltip content="View story">
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          startContent={
-                            <Icon height={16} icon="mdi:eye" width={16} />
-                          }
-                          variant="flat"
-                          onPress={() => openViewModal(story.id)}
-                        />
-                      </Tooltip>
-
                       <Tooltip content="Edit story">
                         <Button
                           isIconOnly
@@ -953,6 +1218,7 @@ export default function ColorStories() {
                             />
                           }
                           variant="flat"
+                          onClick={(event) => event.stopPropagation()}
                           onPress={() => openEditModal(story.id)}
                         />
                       </Tooltip>
@@ -986,6 +1252,7 @@ export default function ColorStories() {
                             ) : undefined
                           }
                           variant="flat"
+                          onClick={(event) => event.stopPropagation()}
                           onPress={() => handleStatusChange(story)}
                         />
                       </Tooltip>
@@ -1009,6 +1276,7 @@ export default function ColorStories() {
                             ) : undefined
                           }
                           variant="flat"
+                          onClick={(event) => event.stopPropagation()}
                           onPress={() => openDeleteModal(story)}
                         />
                       </Tooltip>
@@ -1212,6 +1480,10 @@ export default function ColorStories() {
         backdrop="blur"
         isOpen={isFormModalOpen}
         size="2xl"
+        classNames={{
+          base: "h-[800px]",
+          body: "overflow-y-auto"
+        }}
         onOpenChange={() => {
           if (isFormModalOpen && !isSubmittingForm) {
             resetForm();
@@ -1254,16 +1526,139 @@ export default function ColorStories() {
                 />
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Input
-                    isRequired
-                    errorMessage={formErrors.category}
-                    isInvalid={Boolean(formErrors.category)}
-                    label="Category"
-                    value={formState.category}
-                    onValueChange={(value) =>
-                      handleFormValueChange("category", value)
-                    }
-                  />
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground">
+                        Category
+                        <span className="text-danger">*</span>
+                      </label>
+
+                      <Dropdown placement="bottom-start">
+                        <DropdownTrigger>
+                          <Button
+                            className={`h-14 w-full justify-between border bg-transparent px-4 ${
+                              formErrors.category
+                                ? "border-danger"
+                                : "border-default-200"
+                            }`}
+                            variant="light"
+                          >
+                            <div className="flex flex-col items-start">
+                              <span className="text-xs text-default-500">
+                                Category
+                              </span>
+                              <span
+                                className={
+                                  formState.category
+                                    ? "text-sm text-foreground"
+                                    : "text-sm text-default-500"
+                                }
+                              >
+                                {formState.category || "Select a category"}
+                              </span>
+                            </div>
+                            <Icon
+                              className="text-default-400"
+                              icon="mdi:chevron-down"
+                              width={18}
+                            />
+                          </Button>
+                        </DropdownTrigger>
+                        <DropdownMenu
+                          aria-label="Category selection"
+                          disabledKeys={
+                            selectedFormCategory
+                              ? []
+                              : ["edit-category", "delete-category"]
+                          }
+                          items={categoryDropdownItems}
+                          onAction={(key) => {
+                            const action = String(key);
+
+                            if (action.startsWith("category:")) {
+                              handleFormValueChange(
+                                "category",
+                                action.replace("category:", ""),
+                              );
+                              return;
+                            }
+
+                            if (action === "add-category") {
+                              startCategoryCreate();
+                              return;
+                            }
+
+                            if (action === "edit-category") {
+                              if (selectedFormCategory) {
+                                startCategoryEdit(selectedFormCategory);
+                              }
+                              return;
+                            }
+
+                            if (action === "delete-category") {
+                              if (selectedFormCategory) {
+                                void handleDeleteCategory(selectedFormCategory);
+                              }
+                              return;
+                            }
+
+                            if (action === "manage-categories") {
+                              openCategoriesModal();
+                            }
+                          }}
+                        >
+                          {(item) => (
+                            <DropdownItem
+                              key={item.key}
+                              className={
+                                item.key === "delete-category"
+                                  ? "text-danger"
+                                  : undefined
+                              }
+                              color={
+                                item.key === "delete-category"
+                                  ? "danger"
+                                  : "default"
+                              }
+                              startContent={
+                                item.key.startsWith("category:") ? (
+                                  formState.category === item.label ? (
+                                    <Icon icon="mdi:check" width={16} />
+                                  ) : undefined
+                                ) : item.key === "add-category" ? (
+                                  <Icon icon="mdi:shape-plus-outline" width={16} />
+                                ) : item.key === "edit-category" ? (
+                                  <Icon icon="mdi:pencil-outline" width={16} />
+                                ) : item.key === "delete-category" ? (
+                                  deletingCategoryId === selectedFormCategory?.id ? (
+                                    <Spinner size="sm" />
+                                  ) : (
+                                    <Icon icon="mdi:delete-outline" width={16} />
+                                  )
+                                ) : (
+                                  <Icon icon="mdi:shape-outline" width={16} />
+                                )
+                              }
+                            >
+                              {item.label}
+                            </DropdownItem>
+                          )}
+                        </DropdownMenu>
+                      </Dropdown>
+
+                      {formErrors.category ? (
+                        <p className="text-xs text-danger">{formErrors.category}</p>
+                      ) : null}
+                    </div>
+
+                    <p className="text-xs text-default-500">
+                      {selectedFormCategory
+                        ? `${selectedFormCategory.name} is selected. ${getCategoryStoriesLabel(selectedFormCategory.stories_count)} currently use it.`
+                        : categories.length > 0
+                          ? `${categories.length} saved categor${categories.length === 1 ? "y" : "ies"} available.`
+                          : "No categories yet. Add one to continue."}
+                    </p>
+                  </div>
 
                   <Select
                     disallowEmptySelection
@@ -1413,6 +1808,163 @@ export default function ColorStories() {
               onPress={handleSaveStory}
             >
               {isEditMode ? "Update Story" : "Create Story"}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        backdrop="blur"
+        isOpen={isCategoriesModalOpen}
+        size="2xl"
+        onOpenChange={(isOpen) => {
+          if (!isOpen && !isSubmittingCategory) {
+            resetCategoryForm();
+            setCategorySearch("");
+          }
+
+          onCategoriesOpenChange();
+        }}
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            <span className="text-base font-semibold">Category Management</span>
+            <span className="text-sm font-normal text-default-500">
+              Create, edit, and delete the category list connected to Color Stories.
+            </span>
+          </ModalHeader>
+          <ModalBody className="pb-2">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+              <Input
+                isClearable
+                label={isEditingCategory ? "Edit Category" : "New Category"}
+                placeholder="Editorial"
+                value={categoryDraftName}
+                variant="bordered"
+                onClear={resetCategoryForm}
+                onValueChange={setCategoryDraftName}
+              />
+              <Button
+                className="md:self-end"
+                color="primary"
+                isLoading={isSubmittingCategory}
+                onPress={handleSaveCategory}
+              >
+                {isEditingCategory ? "Update Category" : "Add Category"}
+              </Button>
+            </div>
+
+            <div className="rounded-2xl border border-default-200 bg-default-50 p-4">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <Input
+                  isClearable
+                  className="sm:max-w-sm"
+                  label="Search Categories"
+                  placeholder="Search category names"
+                  startContent={
+                    <Icon
+                      className="text-default-400"
+                      height={18}
+                      icon="mdi:magnify"
+                      width={18}
+                    />
+                  }
+                  value={categorySearch}
+                  variant="bordered"
+                  onClear={() => setCategorySearch("")}
+                  onValueChange={setCategorySearch}
+                />
+                <Chip color="primary" size="sm" variant="flat">
+                  {categories.length} total
+                </Chip>
+              </div>
+
+              {isCategoriesLoading ? (
+                <div className="flex min-h-[180px] items-center justify-center">
+                  <Spinner label="Loading categories..." />
+                </div>
+              ) : visibleCategories.length > 0 ? (
+                <div className="space-y-3">
+                  {visibleCategories.map((category) => (
+                    <div
+                      key={category.id}
+                      className="flex flex-col gap-3 rounded-2xl border border-default-200 bg-content1 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium text-foreground">
+                            {category.name}
+                          </p>
+                          <Chip size="sm" variant="flat">
+                            {getCategoryStoriesLabel(category.stories_count)}
+                          </Chip>
+                        </div>
+                        <p className="text-xs text-default-500">
+                          Updated {formatDateTime(category.updated_at)}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          color="secondary"
+                          size="sm"
+                          startContent={
+                            <Icon icon="mdi:pencil-outline" width={16} />
+                          }
+                          variant="flat"
+                          onPress={() => startCategoryEdit(category)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          color="danger"
+                          isDisabled={
+                            deletingCategoryId !== null ||
+                            isSubmittingCategory
+                          }
+                          isLoading={deletingCategoryId === category.id}
+                          size="sm"
+                          startContent={
+                            deletingCategoryId !== category.id ? (
+                              <Icon icon="mdi:delete-outline" width={16} />
+                            ) : undefined
+                          }
+                          variant="flat"
+                          onPress={() => handleDeleteCategory(category)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex min-h-[160px] flex-col items-center justify-center gap-2 text-center">
+                  <p className="text-sm font-medium text-foreground">
+                    {categorySearch.trim()
+                      ? "No categories match this search."
+                      : "No categories created yet."}
+                  </p>
+                  <p className="text-sm text-default-500">
+                    {categorySearch.trim()
+                      ? "Try another keyword or add a new category above."
+                      : "Add your first category to power the story dropdowns."}
+                  </p>
+                </div>
+              )}
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              isDisabled={isSubmittingCategory || deletingCategoryId !== null}
+              variant="flat"
+              onPress={() => {
+                onCategoriesClose();
+                resetCategoryForm();
+                setCategorySearch("");
+              }}
+            >
+              Close
             </Button>
           </ModalFooter>
         </ModalContent>

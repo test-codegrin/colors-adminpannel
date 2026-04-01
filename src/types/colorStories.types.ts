@@ -43,6 +43,14 @@ export interface GetColorStoriesParams {
   category?: string;
 }
 
+export interface ColorStoryCategory {
+  id: number;
+  name: string;
+  stories_count: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ColorStoriesFiltersFormValues {
   search: string;
   status: ColorStoryStatusFilter;
@@ -64,4 +72,9 @@ export interface SingleColorStoryApiResponse {
   data?: ColorStory;
   story?: ColorStory;
   colorStory?: ColorStory;
+}
+
+export interface ColorStoryCategoriesApiResponse {
+  success?: boolean;
+  data: ColorStoryCategory[];
 }

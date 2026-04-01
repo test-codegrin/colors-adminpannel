@@ -1,4 +1,6 @@
 import type {
+  ColorStoryCategoriesApiResponse,
+  ColorStoryCategory,
   ColorStoriesApiResponse,
   ColorStory,
   ColorStoryAuthor,
@@ -21,6 +23,19 @@ interface ColorStoryMutationResponse {
 interface DeleteColorStoryApiResponse {
   success: boolean;
   message?: string;
+}
+
+interface ColorStoryCategoryMutationResponse {
+  success: boolean;
+  message?: string;
+  data?: ColorStoryCategory;
+  category?: ColorStoryCategory;
+}
+
+interface DeleteColorStoryCategoryApiResponse {
+  success: boolean;
+  message?: string;
+  id?: number;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -106,6 +121,26 @@ function normalizeColorStory(value: unknown): ColorStory | null {
   };
 }
 
+function normalizeColorStoryCategory(value: unknown): ColorStoryCategory | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const idCandidate = value.id;
+
+  if (typeof idCandidate !== "number" || !Number.isFinite(idCandidate)) {
+    return null;
+  }
+
+  return {
+    id: idCandidate,
+    name: typeof value.name === "string" ? value.name : "",
+    stories_count: toNonNegativeInteger(value.stories_count, 0),
+    created_at: typeof value.created_at === "string" ? value.created_at : undefined,
+    updated_at: typeof value.updated_at === "string" ? value.updated_at : undefined,
+  };
+}
+
 function extractColorStories(raw: unknown): ColorStory[] {
   if (Array.isArray(raw)) {
     return raw
@@ -186,6 +221,32 @@ function extractSingleColorStory(raw: unknown): ColorStory | null {
   }
 
   return null;
+}
+
+function extractColorStoryCategories(raw: unknown): ColorStoryCategory[] {
+  if (Array.isArray(raw)) {
+    return raw
+      .map((entry) => normalizeColorStoryCategory(entry))
+      .filter((category): category is ColorStoryCategory => category !== null);
+  }
+
+  if (!isRecord(raw)) {
+    return [];
+  }
+
+  if (Array.isArray(raw.data)) {
+    return raw.data
+      .map((entry) => normalizeColorStoryCategory(entry))
+      .filter((category): category is ColorStoryCategory => category !== null);
+  }
+
+  if (Array.isArray(raw.categories)) {
+    return raw.categories
+      .map((entry) => normalizeColorStoryCategory(entry))
+      .filter((category): category is ColorStoryCategory => category !== null);
+  }
+
+  return [];
 }
 
 function normalizeColorStoriesResponse(
@@ -283,6 +344,21 @@ export async function getColorStoryById(id: number): Promise<ColorStory> {
   return story;
 }
 
+export async function getColorStoryCategories(
+  search?: string,
+): Promise<ColorStoryCategoriesApiResponse> {
+  const response = await api.get<unknown>("/admin/color-stories/categories", {
+    params: search?.trim() ? { search: search.trim() } : undefined,
+  });
+
+  return {
+    success: isRecord(response.data)
+      ? (response.data.success as boolean | undefined)
+      : undefined,
+    data: extractColorStoryCategories(response.data),
+  };
+}
+
 export async function createColorStory(
   payload: ColorStoryPayload,
 ): Promise<ColorStoryMutationResponse> {
@@ -325,6 +401,39 @@ export async function deleteColorStoryById(
 ): Promise<DeleteColorStoryApiResponse> {
   const response = await api.delete<DeleteColorStoryApiResponse>(
     `/admin/color-stories/${id}`,
+  );
+
+  return response.data;
+}
+
+export async function createColorStoryCategory(
+  name: string,
+): Promise<ColorStoryCategoryMutationResponse> {
+  const response = await api.post<ColorStoryCategoryMutationResponse>(
+    "/admin/color-stories/categories",
+    { name },
+  );
+
+  return response.data;
+}
+
+export async function updateColorStoryCategoryById(
+  id: number,
+  name: string,
+): Promise<ColorStoryCategoryMutationResponse> {
+  const response = await api.patch<ColorStoryCategoryMutationResponse>(
+    `/admin/color-stories/categories/${id}`,
+    { name },
+  );
+
+  return response.data;
+}
+
+export async function deleteColorStoryCategoryById(
+  id: number,
+): Promise<DeleteColorStoryCategoryApiResponse> {
+  const response = await api.delete<DeleteColorStoryCategoryApiResponse>(
+    `/admin/color-stories/categories/${id}`,
   );
 
   return response.data;
