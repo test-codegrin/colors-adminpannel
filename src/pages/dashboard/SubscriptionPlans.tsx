@@ -78,8 +78,33 @@ function toFlagNumber(value: boolean): number {
   return value ? 1 : 0;
 }
 
-function stripHtmlTags(value: string): string {
-  return value.replace(/<[^>]*>/g, "").trim();
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function getDescriptionPreviewMarkup(value: unknown): string {
+  if (typeof value !== "string") {
+    return "<p>-</p>";
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return "<p>-</p>";
+  }
+
+  const hasHtmlTag = /<[a-z][\s\S]*>/i.test(trimmed);
+
+  if (hasHtmlTag) {
+    return trimmed;
+  }
+
+  return `<div style="white-space:pre-wrap;">${escapeHtml(trimmed)}</div>`;
 }
 
 function getFormFromPlan(plan: SubscriptionPlan): PlanFormState {
@@ -199,7 +224,7 @@ export default function SubscriptionPlans() {
       addToast({
         title: "Load Failed",
         description: getSubscriptionPlansErrorMessage(fetchError),
-        color: "danger",
+        severity: "danger",
         radius: "full",
         timeout: 3000,
       });
@@ -222,7 +247,7 @@ export default function SubscriptionPlans() {
       addToast({
         title: "Validation Error",
         description: "Plan name is required.",
-        color: "danger",
+        severity: "danger",
         radius: "full",
         timeout: 3000,
       });
@@ -234,7 +259,7 @@ export default function SubscriptionPlans() {
       addToast({
         title: "Validation Error",
         description: "Description is required.",
-        color: "danger",
+        severity: "danger",
         radius: "full",
         timeout: 3000,
       });
@@ -246,7 +271,7 @@ export default function SubscriptionPlans() {
       addToast({
         title: "Validation Error",
         description: "Price must be a valid positive number.",
-        color: "danger",
+        severity: "danger",
         radius: "full",
         timeout: 3000,
       });
@@ -280,7 +305,7 @@ export default function SubscriptionPlans() {
           title: "Plan Updated",
           description:
             result.message ?? "Subscription plan updated successfully.",
-          color: "success",
+          severity: "success",
           radius: "full",
           timeout: 3000,
         });
@@ -291,7 +316,7 @@ export default function SubscriptionPlans() {
           title: "Plan Created",
           description:
             result.message ?? "Subscription plan created successfully.",
-          color: "success",
+          severity: "success",
           radius: "full",
           timeout: 3000,
         });
@@ -304,7 +329,7 @@ export default function SubscriptionPlans() {
       addToast({
         title: editingPlanId ? "Update Failed" : "Create Failed",
         description: getSubscriptionPlansErrorMessage(submitError),
-        color: "danger",
+        severity: "danger",
         radius: "full",
         timeout: 3000,
       });
@@ -329,7 +354,7 @@ export default function SubscriptionPlans() {
         title: "Plan Deleted",
         description:
           result.message ?? "Subscription plan deleted successfully.",
-        color: "success",
+        severity: "success",
         radius: "full",
         timeout: 3000,
       });
@@ -343,7 +368,7 @@ export default function SubscriptionPlans() {
       addToast({
         title: "Delete Failed",
         description: getSubscriptionPlansErrorMessage(deleteError),
-        color: "danger",
+        severity: "danger",
         radius: "full",
         timeout: 3000,
       });
@@ -563,12 +588,21 @@ export default function SubscriptionPlans() {
                   value={`Rs. ${Number(selectedPlan.price ?? 0).toFixed(2)}`}
                   variant="flat"
                 />
-                <Input
-                  isReadOnly
-                  label="Description"
-                  value={stripHtmlTags(selectedPlan.description ?? "-") || "-"}
-                  variant="flat"
-                />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-default-700">
+                    Description Preview
+                  </p>
+                  <div className="max-h-[360px] overflow-auto rounded-large border border-default-200 bg-default-50 p-4">
+                    <div
+                      className="subscription-plan-preview text-sm text-foreground"
+                      dangerouslySetInnerHTML={{
+                        __html: getDescriptionPreviewMarkup(
+                          selectedPlan.description,
+                        ),
+                      }}
+                    />
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Input
                     isReadOnly

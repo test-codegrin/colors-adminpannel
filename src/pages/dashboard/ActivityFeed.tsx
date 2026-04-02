@@ -7,6 +7,8 @@ import {
   CardBody,
   Chip,
   Pagination,
+  Select,
+  SelectItem,
   Spinner,
   Table,
   TableBody,
@@ -21,7 +23,7 @@ import { Icon } from "@iconify/react";
 import { getAnalyticsErrorMessage } from "@/api/analytics.api";
 import api from "@/lib/axios";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 async function fetchActivityFeedPage(
   page: number,
@@ -72,37 +74,41 @@ export default function ActivityFeedPage() {
   const [pagination, setPagination] = useState<PaginationPayload>({
     total: 0,
     page: 1,
-    limit: PAGE_SIZE,
+    limit: DEFAULT_PAGE_SIZE,
     total_pages: 1,
     totalPages: 1,
   });
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const requestRef = useRef(0);
 
-  const loadPage = useCallback(async (targetPage: number) => {
-    const requestId = ++requestRef.current;
+  const loadPage = useCallback(
+    async (targetPage: number) => {
+      const requestId = ++requestRef.current;
 
-    setIsLoading(true);
-    setError("");
-    try {
-      const result = await fetchActivityFeedPage(targetPage, PAGE_SIZE);
+      setIsLoading(true);
+      setError("");
+      try {
+        const result = await fetchActivityFeedPage(targetPage, limit);
 
-      if (requestId !== requestRef.current) return;
-      setItems(result.items);
-      setPagination(result.pagination);
-    } catch (err) {
-      if (requestId !== requestRef.current) return;
-      setError(getAnalyticsErrorMessage(err));
-      setItems([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+        if (requestId !== requestRef.current) return;
+        setItems(result.items);
+        setPagination(result.pagination);
+      } catch (err) {
+        if (requestId !== requestRef.current) return;
+        setError(getAnalyticsErrorMessage(err));
+        setItems([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [limit],
+  );
 
   useEffect(() => {
-    loadPage(page);
+    void loadPage(page);
   }, [loadPage, page]);
 
   const totalPages = Math.max(
@@ -179,10 +185,31 @@ export default function ActivityFeedPage() {
 
         {/* Pagination */}
         {!isLoading && !error && pagination.total > 0 && (
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-default-500">
-              Page {pagination.page} of {totalPages}
-            </p>
+          <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-end">
+              <Select
+                disallowEmptySelection
+                className="w-full sm:w-28"
+                label="Limit"
+                selectedKeys={[String(limit)]}
+                size="sm"
+                onChange={(event) => {
+                  const nextLimit = Number(event.target.value);
+
+                  if (nextLimit !== limit) {
+                    setLimit(nextLimit);
+                    setPage(1);
+                  }
+                }}
+              >
+                <SelectItem key="10">10</SelectItem>
+                <SelectItem key="25">25</SelectItem>
+                <SelectItem key="50">50</SelectItem>
+              </Select>
+              <p className="text-xs text-default-500 sm:pb-2">
+                Page {pagination.page} of {totalPages}
+              </p>
+            </div>
             <Pagination
               showControls
               boundaries={1}

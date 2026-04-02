@@ -5,6 +5,9 @@ import {
   Card,
   CardBody,
   Chip,
+  Pagination,
+  Select,
+  SelectItem,
   Spinner,
   Table,
   TableBody,
@@ -24,6 +27,8 @@ import {
 
 function GameScore() {
   const [rows, setRows] = useState<GameScoreUserDetail[]>([]);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -42,7 +47,7 @@ function GameScore() {
       addToast({
         title: "Load Failed",
         description: message,
-        color: "danger",
+        severity: "danger",
         radius: "full",
         timeout: 3000,
       });
@@ -55,6 +60,14 @@ function GameScore() {
     void loadGameScores();
   }, []);
 
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(rows.length / limit));
+
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [limit, page, rows.length]);
+
   const totalUsersLabel =
     rows.length === 1
       ? "1 user score"
@@ -63,6 +76,8 @@ function GameScore() {
     (maxValue, row) => Math.max(maxValue, row.highestscore),
     0,
   );
+  const totalPages = Math.max(1, Math.ceil(rows.length / limit));
+  const paginatedRows = rows.slice((page - 1) * limit, page * limit);
 
   return (
     <Card shadow="md">
@@ -123,7 +138,7 @@ function GameScore() {
           <TableBody
             emptyContent="No game score data found."
             isLoading={isLoading}
-            items={rows}
+            items={paginatedRows}
             loadingContent={<Spinner label="Loading game scores..." />}
           >
             {(item) => (
@@ -152,6 +167,39 @@ function GameScore() {
             )}
           </TableBody>
         </Table>
+
+        {!isLoading && rows.length > 0 ? (
+          <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <Select
+              disallowEmptySelection
+              className="w-full sm:w-28"
+              label="Limit"
+              selectedKeys={[String(limit)]}
+              size="sm"
+              onChange={(event) => {
+                const nextLimit = Number(event.target.value);
+
+                if (nextLimit !== limit) {
+                  setLimit(nextLimit);
+                  setPage(1);
+                }
+              }}
+            >
+              <SelectItem key="10">10</SelectItem>
+              <SelectItem key="25">25</SelectItem>
+              <SelectItem key="50">50</SelectItem>
+            </Select>
+
+            <Pagination
+              showControls
+              color="primary"
+              isDisabled={isLoading}
+              page={page}
+              total={totalPages}
+              onChange={setPage}
+            />
+          </div>
+        ) : null}
       </CardBody>
     </Card>
   );

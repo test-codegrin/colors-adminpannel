@@ -1,17 +1,21 @@
 "use client";
 
 import type { BetaPlan } from "@/types/betaPlans.types";
+import type { PaginationPayload } from "@/types/pagination.types";
 
 import {
   Avatar,
   Button,
   Card,
   CardBody,
+  Pagination,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Select,
+  SelectItem,
   Spinner,
   Table,
   TableBody,
@@ -35,6 +39,15 @@ import BetaPlanModal from "@/components/BetaPlanModal";
 
 export default function BetaPlansPage() {
   const [betaPlans, setBetaPlans] = useState<BetaPlan[]>([]);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [pagination, setPagination] = useState<PaginationPayload>({
+    total: 0,
+    page: 1,
+    limit: 10,
+    total_pages: 0,
+    totalPages: 0,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -56,20 +69,39 @@ export default function BetaPlansPage() {
     setIsLoading(true);
     setError("");
     try {
-      const res = await getBetaPlans();
+      const res = await getBetaPlans({ page, limit });
 
       setBetaPlans(res.data ?? []);
+      setPagination(res.pagination);
     } catch (err) {
       setError(getBetaPlansErrorMessage(err));
       setBetaPlans([]);
+      setPagination({
+        total: 0,
+        page,
+        limit,
+        total_pages: 0,
+        totalPages: 0,
+      });
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [limit, page]);
 
   useEffect(() => {
-    fetchBetaPlans();
+    void fetchBetaPlans();
   }, [fetchBetaPlans]);
+
+  useEffect(() => {
+    const nextTotalPages = Math.max(
+      pagination.total_pages ?? pagination.totalPages ?? 0,
+      0,
+    );
+
+    if (nextTotalPages > 0 && page > nextTotalPages) {
+      setPage(nextTotalPages);
+    }
+  }, [page, pagination.totalPages, pagination.total_pages]);
 
   const handleView = (id: number) => {
     setSelectedId(id);
@@ -92,7 +124,7 @@ export default function BetaPlansPage() {
       addToast({
         title: "Beta Plan Deleted",
         description: result.message ?? "Beta plan deleted successfully.",
-        color: "success",
+        severity: "success",
         radius: "full",
         timeout: 3000,
       });
@@ -101,7 +133,7 @@ export default function BetaPlansPage() {
       addToast({
         title: "Delete Failed",
         description: getBetaPlansErrorMessage(err),
-        color: "danger",
+        severity: "danger",
         radius: "full",
         timeout: 3000,
       });
@@ -111,6 +143,11 @@ export default function BetaPlansPage() {
       closeDeleteModal();
     }
   };
+
+  const totalPages = Math.max(
+    pagination.total_pages ?? pagination.totalPages ?? 0,
+    1,
+  );
 
   return (
     <>
@@ -217,6 +254,39 @@ export default function BetaPlansPage() {
               )}
             </TableBody>
           </Table>
+
+          {!isLoading && pagination.total > 0 ? (
+            <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <Select
+                disallowEmptySelection
+                className="w-full sm:w-28"
+                label="Limit"
+                selectedKeys={[String(limit)]}
+                size="sm"
+                onChange={(event) => {
+                  const nextLimit = Number(event.target.value);
+
+                  if (nextLimit !== limit) {
+                    setLimit(nextLimit);
+                    setPage(1);
+                  }
+                }}
+              >
+                <SelectItem key="10">10</SelectItem>
+                <SelectItem key="25">25</SelectItem>
+                <SelectItem key="50">50</SelectItem>
+              </Select>
+
+              <Pagination
+                showControls
+                color="primary"
+                isDisabled={isLoading}
+                page={page}
+                total={totalPages}
+                onChange={setPage}
+              />
+            </div>
+          ) : null}
         </CardBody>
       </Card>
 

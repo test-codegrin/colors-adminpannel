@@ -1,4 +1,5 @@
 import type { BetaPlansApiResponse, BetaPlan } from "@/types/betaPlans.types";
+import type { PaginationPayload } from "@/types/pagination.types";
 
 import { AxiosError } from "axios";
 
@@ -36,6 +37,60 @@ function getBetaEndpointCandidates(id?: number): string[] {
     `/admin/beta${suffix}`,
     `/admin/beta-plans${suffix}`,
   ];
+}
+
+function extractPagination(
+  raw: unknown,
+  fallbackPage: number,
+  fallbackLimit: number,
+  fallbackTotal: number,
+): PaginationPayload {
+  if (!isRecord(raw)) {
+    const fallbackTotalPages =
+      fallbackTotal === 0 ? 0 : Math.ceil(fallbackTotal / fallbackLimit);
+
+    return {
+      total: fallbackTotal,
+      page: fallbackPage,
+      limit: fallbackLimit,
+      total_pages: fallbackTotalPages,
+      totalPages: fallbackTotalPages,
+    };
+  }
+
+  const paginationSource = isRecord(raw.pagination)
+    ? raw.pagination
+    : isRecord(raw.data) && isRecord(raw.data.pagination)
+      ? raw.data.pagination
+      : undefined;
+
+  const total = toNonNegativeInteger(
+    paginationSource?.total ?? raw.total,
+    fallbackTotal,
+  );
+  const page = Math.max(
+    1,
+    toNonNegativeInteger(paginationSource?.page ?? raw.page, fallbackPage),
+  );
+  const limit = Math.max(
+    1,
+    toNonNegativeInteger(paginationSource?.limit ?? raw.limit, fallbackLimit),
+  );
+  const totalPages = toNonNegativeInteger(
+    paginationSource?.total_pages ??
+      paginationSource?.totalPages ??
+      raw.total_pages ??
+      raw.totalPages,
+    total === 0 ? 0 : Math.ceil(total / limit),
+  );
+
+  return {
+    total,
+    page,
+    limit,
+    total_pages: totalPages,
+    totalPages,
+  };
 }
 
 function extractBetaPlans(raw: unknown): BetaPlan[] {
@@ -110,9 +165,25 @@ function extractSingleBetaPlan(raw: unknown): BetaPlan | null {
   return null;
 }
 
-export async function getBetaPlans(): Promise<BetaPlansApiResponse> {
-  const response = await getWithFallback<unknown>(getBetaEndpointCandidates());
+export async function getBetaPlans(params?: {
+  page?: number;
+  limit?: number;
+}): Promise<BetaPlansApiResponse> {
+  const page = Math.max(1, toNonNegativeInteger(params?.page, 1));
+  const limit = Math.max(1, toNonNegativeInteger(params?.limit, 10));
+  const response = await getWithFallback<unknown>(getBetaEndpointCandidates(), {
+    params: { page, limit },
+  });
   const data = extractBetaPlans(response.data);
+  const total = toNonNegativeInteger(
+    isRecord(response.data)
+      ? response.data.total ??
+          (isRecord(response.data.pagination)
+            ? response.data.pagination.total
+            : undefined)
+      : undefined,
+    data.length,
+  );
 
   return {
     success: !isRecord(response.data) || response.data.success !== false,
@@ -123,7 +194,9 @@ export async function getBetaPlans(): Promise<BetaPlansApiResponse> {
         : undefined,
       data.length,
     ),
+    total,
     data,
+    pagination: extractPagination(response.data, page, limit, total),
   };
 }
 
