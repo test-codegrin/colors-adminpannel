@@ -7,6 +7,8 @@ import {
   CardBody,
   Chip,
   Pagination,
+  Select,
+  SelectItem,
   Spinner,
   Table,
   TableBody,
@@ -21,7 +23,7 @@ import { Icon } from "@iconify/react";
 import { getAnalyticsErrorMessage } from "@/api/analytics.api";
 import api from "@/lib/axios";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 async function fetchActivityFeedPage(
   page: number,
@@ -72,37 +74,41 @@ export default function ActivityFeedPage() {
   const [pagination, setPagination] = useState<PaginationPayload>({
     total: 0,
     page: 1,
-    limit: PAGE_SIZE,
+    limit: DEFAULT_PAGE_SIZE,
     total_pages: 1,
     totalPages: 1,
   });
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const requestRef = useRef(0);
 
-  const loadPage = useCallback(async (targetPage: number) => {
-    const requestId = ++requestRef.current;
+  const loadPage = useCallback(
+    async (targetPage: number) => {
+      const requestId = ++requestRef.current;
 
-    setIsLoading(true);
-    setError("");
-    try {
-      const result = await fetchActivityFeedPage(targetPage, PAGE_SIZE);
+      setIsLoading(true);
+      setError("");
+      try {
+        const result = await fetchActivityFeedPage(targetPage, limit);
 
-      if (requestId !== requestRef.current) return;
-      setItems(result.items);
-      setPagination(result.pagination);
-    } catch (err) {
-      if (requestId !== requestRef.current) return;
-      setError(getAnalyticsErrorMessage(err));
-      setItems([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+        if (requestId !== requestRef.current) return;
+        setItems(result.items);
+        setPagination(result.pagination);
+      } catch (err) {
+        if (requestId !== requestRef.current) return;
+        setError(getAnalyticsErrorMessage(err));
+        setItems([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [limit],
+  );
 
   useEffect(() => {
-    loadPage(page);
+    void loadPage(page);
   }, [loadPage, page]);
 
   const totalPages = Math.max(
@@ -112,24 +118,32 @@ export default function ActivityFeedPage() {
 
   return (
     <Card shadow="md">
-      <CardBody className="gap-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+      <CardBody className="gap-6 p-4 sm:p-6">
+
+        {/* ✅ Header Responsive */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+
           <div>
-            <h2 className="text-xl font-semibold">Activity Feed</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">
+              Activity Feed
+            </h2>
             <p className="text-sm text-default-500">
               Latest analytics events from the activity feed
             </p>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Chip radius="full" variant="flat">
               {pagination.total} total
             </Chip>
+
             <Button
               isLoading={isLoading}
               size="sm"
               startContent={
-                !isLoading && <Icon icon="solar:refresh-bold" width="18" />
+                !isLoading && (
+                  <Icon icon="solar:refresh-bold" width="18" />
+                )
               }
               variant="flat"
               onPress={() => loadPage(page)}
@@ -142,58 +156,110 @@ export default function ActivityFeedPage() {
         {/* Error */}
         {error && <p className="text-danger text-sm">{error}</p>}
 
-        {/* Table */}
-        <Table removeWrapper aria-label="Activity feed table">
-          <TableHeader>
-            <TableColumn>Event</TableColumn>
-            <TableColumn>Page / Endpoint</TableColumn>
-            <TableColumn>Context</TableColumn>
-            <TableColumn>Created</TableColumn>
-          </TableHeader>
-          <TableBody
-            emptyContent={error ? " " : "No activity feed items"}
-            isLoading={isLoading}
-            items={items}
-            loadingContent={<Spinner label="Loading..." />}
+        {/* ✅ Table Scroll Fix */}
+        <div className="w-full overflow-x-auto scrollbar-hide">
+          <Table
+            removeWrapper
+            aria-label="Activity feed table"
+            className="min-w-[800px]"
           >
-            {(item: ActivityFeedItem) => (
-              <TableRow key={item.analytics_event_id}>
-                <TableCell>{prettifyFeatureName(item.event_type)}</TableCell>
-                <TableCell>{item.page || item.endpoint || "-"}</TableCell>
-                <TableCell>
-                  {[
-                    item.device,
-                    item.browser,
-                    item.os,
-                    item.source,
-                    item.status_code ? String(item.status_code) : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" | ") || "-"}
-                </TableCell>
-                <TableCell>{formatDateTime(item.created_at)}</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            <TableHeader>
+              <TableColumn>Event</TableColumn>
+              <TableColumn>Page / Endpoint</TableColumn>
+              <TableColumn>Context</TableColumn>
+              <TableColumn>Created</TableColumn>
+            </TableHeader>
 
-        {/* Pagination */}
+            <TableBody
+              emptyContent={error ? " " : "No activity feed items"}
+              isLoading={isLoading}
+              items={items}
+              loadingContent={<Spinner label="Loading..." />}
+            >
+              {(item: ActivityFeedItem) => (
+                <TableRow key={item.analytics_event_id}>
+
+                  {/* Event */}
+                  <TableCell className="whitespace-nowrap">
+                    {prettifyFeatureName(item.event_type)}
+                  </TableCell>
+
+                  {/* Page / Endpoint */}
+                  <TableCell className="break-words">
+                    {item.page || item.endpoint || "-"}
+                  </TableCell>
+
+                  {/* Context */}
+                  <TableCell className="max-w-[250px] break-words">
+                    {[
+                      item.device,
+                      item.browser,
+                      item.os,
+                      item.source,
+                      item.status_code
+                        ? String(item.status_code)
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" | ") || "-"}
+                  </TableCell>
+
+                  {/* Created */}
+                  <TableCell className="whitespace-nowrap">
+                    {formatDateTime(item.created_at)}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* ✅ Pagination Responsive */}
         {!isLoading && !error && pagination.total > 0 && (
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-default-500">
-              Page {pagination.page} of {totalPages}
-            </p>
-            <Pagination
-              showControls
-              boundaries={1}
-              color="primary"
-              page={page}
-              siblings={0}
-              total={totalPages}
-              onChange={setPage}
-            />
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+
+            {/* Left Side */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+              <Select
+                disallowEmptySelection
+                className="w-full sm:w-28"
+                label="Limit"
+                selectedKeys={[String(limit)]}
+                size="sm"
+                onChange={(event) => {
+                  const nextLimit = Number(event.target.value);
+
+                  if (nextLimit !== limit) {
+                    setLimit(nextLimit);
+                    setPage(1);
+                  }
+                }}
+              >
+                <SelectItem key="10">10</SelectItem>
+                <SelectItem key="25">25</SelectItem>
+                <SelectItem key="50">50</SelectItem>
+              </Select>
+
+              <p className="text-xs text-default-500 sm:pb-2 text-left sm:text-left">
+                Page {pagination.page} of {totalPages}
+              </p>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-center sm:justify-end">
+              <Pagination
+                showControls
+                boundaries={1}
+                color="primary"
+                page={page}
+                siblings={0}
+                total={totalPages}
+                onChange={setPage}
+              />
+            </div>
           </div>
         )}
+
       </CardBody>
     </Card>
   );

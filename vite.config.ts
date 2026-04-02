@@ -16,10 +16,7 @@ export default defineConfig({
   plugins: [react(), tsconfigPaths(), tailwindcss()],
   server: {
     port: 5174,
-    strictPort: false,
-  },
-  build: {
-    chunkSizeWarningLimit: 1000,
+    strictPort: true,
   },
 });
 

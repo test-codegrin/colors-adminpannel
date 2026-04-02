@@ -1,4 +1,5 @@
 import type {
+  ColorStoryCategory,
   ColorStoriesFiltersFormValues,
   ColorStoryStatusFilter,
 } from "@/types/colorStories.types";
@@ -8,6 +9,7 @@ import { Icon } from "@iconify/react";
 import type { Key } from "react";
 
 interface ColorStoriesFiltersProps {
+  categories: ColorStoryCategory[];
   hasActiveFilters: boolean;
   isLoading?: boolean;
   values: ColorStoriesFiltersFormValues;
@@ -18,6 +20,7 @@ interface ColorStoriesFiltersProps {
 }
 
 export default function ColorStoriesFilters({
+  categories,
   hasActiveFilters,
   isLoading = false,
   values,
@@ -26,6 +29,17 @@ export default function ColorStoriesFilters({
   onSearchChange,
   onStatusChange,
 }: ColorStoriesFiltersProps) {
+  const categoryOptions = [
+    {
+      key: "all",
+      label: "All categories",
+    },
+    ...categories.map((category) => ({
+      key: category.name,
+      label: category.name,
+    })),
+  ];
+
   const handleStatusSelectionChange = (keys: "all" | Set<Key>) => {
     if (keys === "all") {
       onStatusChange("all");
@@ -94,16 +108,29 @@ export default function ColorStoriesFilters({
           <SelectItem key="1">Published</SelectItem>
         </Select>
 
-        <Input
-          isClearable
+        <Select
+          disallowEmptySelection
+          isDisabled={categories.length === 0}
+          items={categoryOptions}
           label="Category"
-          placeholder="Filter by category"
-          size="sm"
-          value={values.category}
+          placeholder={
+            categories.length > 0 ? "Filter by category" : "No categories yet"
+          }
+          selectedKeys={[values.category || "all"]}
           variant="bordered"
-          onClear={() => onCategoryChange("")}
-          onValueChange={onCategoryChange}
-        />
+          onSelectionChange={(keys) => {
+            if (keys === "all") {
+              onCategoryChange("");
+
+              return;
+            }
+
+            const [selectedKey] = Array.from(keys);
+            onCategoryChange(selectedKey === "all" ? "" : String(selectedKey));
+          }}
+        >
+          {(item) => <SelectItem key={item.key}>{item.label}</SelectItem>}
+        </Select>
 
         <div className="flex justify-start lg:justify-end">
           <Button
