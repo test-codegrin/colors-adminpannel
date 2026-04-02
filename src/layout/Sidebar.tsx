@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 
 interface SidebarProps {
   isOpen: boolean;
+  onClose?: () => void;
 }
 
 interface NavItem {
@@ -17,64 +18,20 @@ interface NavItem {
 const USERS_ROUTE_PATH = "/dashboard/users";
 
 const navItems: NavItem[] = [
-  {
-    label: "Analytics",
-    path: "/dashboard",
-    icon: "mdi:view-dashboard-outline",
-  },
-  {
-    label: "Users",
-    path: "/dashboard/users",
-    icon: "mdi:account-group-outline",
-  },
-  {
-    label: "Payments",
-    path: "/dashboard/payments",
-    icon: "mdi:credit-card-outline",
-  },
-  {
-    label: "Subscription Plans",
-    path: "/dashboard/subscription-plans",
-    icon: "mdi:ticket-confirmation-outline",
-  },
-  {
-    label: "Color Stories",
-    path: "/dashboard/color-stories",
-    icon: "mdi:book-open-page-variant-outline",
-  },
-  {
-    label: "Contact Messages",
-    path: "/dashboard/contact",
-    icon: "fluent-mdl2:contact",
-  },
-  {
-    label: "Live Users",
-    path: "/dashboard/live-users",
-    icon: "mdi:account-clock-outline",
-  },
-  {
-    label: "Devices Analytics",
-    path: "/dashboard/devices-analytics",
-    icon: "mdi:desktop-mac-dashboard",
-  },
-  {
-    label: "Game Score",
-    path: "/dashboard/game-score",
-    icon: "mdi:gamepad-variant-outline",
-  },
-  {
-    label: "Beta Plans",
-    path: "/dashboard/beta-plans",
-    icon: "mdi:beta",
-  },
-  {
-    label: "Activity Feed",
-    path: "/dashboard/activity-feed",
-    icon: "mdi:pulse",
-  },
+  { label: "Analytics", path: "/dashboard", icon: "mdi:view-dashboard-outline" },
+  { label: "Users", path: "/dashboard/users", icon: "mdi:account-group-outline" },
+  { label: "Payments", path: "/dashboard/payments", icon: "mdi:credit-card-outline" },
+  { label: "Subscription Plans", path: "/dashboard/subscription-plans", icon: "mdi:ticket-confirmation-outline" },
+  { label: "Color Stories", path: "/dashboard/color-stories", icon: "mdi:book-open-page-variant-outline" },
+  { label: "Contact Messages", path: "/dashboard/contact", icon: "fluent-mdl2:contact" },
+  { label: "Live Users", path: "/dashboard/live-users", icon: "mdi:account-clock-outline" },
+  { label: "Devices Analytics", path: "/dashboard/devices-analytics", icon: "mdi:desktop-mac-dashboard" },
+  { label: "Game Score", path: "/dashboard/game-score", icon: "mdi:gamepad-variant-outline" },
+  { label: "Beta Plans", path: "/dashboard/beta-plans", icon: "mdi:beta" },
+  { label: "Activity Feed", path: "/dashboard/activity-feed", icon: "mdi:pulse" },
 ];
 
-function Sidebar({ isOpen }: SidebarProps) {
+function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -83,15 +40,11 @@ function Sidebar({ isOpen }: SidebarProps) {
     if (path === USERS_ROUTE_PATH) {
       navigate(path, {
         replace: path === pathname,
-        state: {
-          usersResetAt: Date.now(),
-        },
+        state: { usersResetAt: Date.now() },
       });
-
-      return;
+    } else {
+      navigate(path);
     }
-
-    navigate(path);
   };
 
   const handleLogout = () => {
@@ -99,72 +52,81 @@ function Sidebar({ isOpen }: SidebarProps) {
     navigate("/login", { replace: true });
   };
 
+  if (!isOpen) return null;
+
   return (
-    <aside
-      className={`
-        fixed top-0 left-0 z-40
-        bg-content1 border-r border-default-200
-        transition-all duration-300
-        ${isOpen ? "w-64 p-4" : "w-0 overflow-hidden"}
-        hidden md:flex flex-col h-screen
-      `}
-    >
-      {/* Header */}
-      <div className="text-xl font-semibold tracking-wide mb-8">
-        Admin Panel
-      </div>
+    <>
+      {/* Backdrop — only on mobile/tablet (below md) */}
+      <div
+        className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+      />
 
-      {/* Navigation */}
-      <nav className="flex flex-col mt-10 gap-2">
-        {navItems.map((item) => {
-          const isActive = pathname === item.path;
+      {/* Sidebar panel */}
+      <aside
+        className={`
+          fixed top-0 left-0 z-40 h-screen
+          bg-content1 border-r border-default-200
+          transition-all duration-300
+          flex flex-col
+          w-64 p-4
+        `}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="text-xl font-semibold tracking-wide">Admin Panel</div>
+          {/* Close button — only visible on mobile/tablet */}
+          <Button
+            isIconOnly
+            className="lg:hidden"
+            size="sm"
+            variant="light"
+            onPress={onClose}
+          >
+            <Icon icon="mdi:close" width="20" />
+          </Button>
+        </div>
 
-          return (
-            <Button
-              key={item.path}
-              className="justify-start gap-3 text-base font-medium"
-              color={isActive ? "primary" : "default"}
-              radius="md"
-              startContent={
-                <Icon
-                  className={isActive ? "text-white" : "text-default-500"}
-                  icon={item.icon}
-                  width="23"
-                />
-              }
-              variant={isActive ? "solid" : "light"}
-              onPress={() => handleNavigate(item.path)}
-            >
-              {item.label}
-            </Button>
-          );
-        })}
-      </nav>
+        {/* Navigation */}
+        <nav className="flex flex-col mt-4 gap-2 overflow-y-auto flex-1">
+          {navItems.map((item) => {
+            const isActive = pathname === item.path;
 
-      {/* Logout Button at Bottom */}
-      <div className="mt-auto pt-6">
-        <Button
-          fullWidth
-          className="
-            justify-start gap-3
-            bg-danger/10 
-            hover:bg-danger/20 
-            text-danger 
-            hover:text-danger
-            text-md
-          "
-          variant="flat"
-          onPress={handleLogout}
-        >
-          <Icon
-            className="text-danger"
-            icon="ic:outline-remove-circle-outline"
-            width="20"
-          />
-          Log Out
-        </Button>
-      </div>
-    </aside>
+            return (
+              <Button
+                key={item.path}
+                className="justify-start gap-3 text-base font-medium"
+                color={isActive ? "primary" : "default"}
+                radius="md"
+                startContent={
+                  <Icon
+                    className={isActive ? "text-white" : "text-default-500"}
+                    icon={item.icon}
+                    width="23"
+                  />
+                }
+                variant={isActive ? "solid" : "light"}
+                onPress={() => handleNavigate(item.path)}
+              >
+                {item.label}
+              </Button>
+            );
+          })}
+        </nav>
+
+        {/* Logout */}
+        <div className="mt-auto pt-6">
+          <Button
+            fullWidth
+            className="justify-start gap-3 bg-danger/10 hover:bg-danger/20 text-danger hover:text-danger text-md"
+            variant="flat"
+            onPress={handleLogout}
+          >
+            <Icon className="text-danger" icon="ic:outline-remove-circle-outline" width="20" />
+            Log Out
+          </Button>
+        </div>
+      </aside>
+    </>
   );
 }
 

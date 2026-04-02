@@ -152,141 +152,172 @@ export default function BetaPlansPage() {
   return (
     <>
       <Card shadow="md">
-        <CardBody className="gap-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
+        <CardBody className="gap-6 p-4 sm:p-6">
+
+          {/* ✅ Header Responsive */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+
             <div>
-              <h2 className="text-xl font-semibold">Beta Plans</h2>
+              <h2 className="text-lg sm:text-xl font-semibold">
+                Beta Plans
+              </h2>
               <p className="text-sm text-default-500">
                 Manage and review beta plan submissions
               </p>
             </div>
-            <Button
-              isLoading={isLoading}
-              size="sm"
-              startContent={
-                !isLoading && <Icon icon="solar:refresh-bold" width="18" />
-              }
-              variant="flat"
-              onPress={fetchBetaPlans}
-            >
-              Refresh
-            </Button>
+
+            <div className="flex justify-start sm:justify-end">
+              <Button
+                isLoading={isLoading}
+                size="sm"
+                startContent={
+                  !isLoading && (
+                    <Icon icon="solar:refresh-bold" width="18" />
+                  )
+                }
+                variant="flat"
+                onPress={fetchBetaPlans}
+              >
+                Refresh
+              </Button>
+            </div>
           </div>
 
           {/* Error */}
           {error && <p className="text-danger text-sm">{error}</p>}
 
-          {/* Table */}
-          <Table removeWrapper aria-label="Beta plans table">
-            <TableHeader>
-              <TableColumn>User_Id</TableColumn>
-              <TableColumn>Name</TableColumn>
-              <TableColumn>Email</TableColumn>
-              <TableColumn>Actions</TableColumn>
-            </TableHeader>
-
-            <TableBody
-              emptyContent="No beta plans"
-              isLoading={isLoading}
-              items={betaPlans}
-              loadingContent={<Spinner label="Loading..." />}
+          {/* ✅ Table Scroll Fix */}
+          <div className="w-full overflow-x-auto scrollbar-hide">
+            <Table
+              removeWrapper
+              aria-label="Beta plans table"
+              className="min-w-[700px]"
             >
-              {(betaPlan: BetaPlan) => (
-                <TableRow key={betaPlan.beta_claim_id}>
-                  <TableCell>
-                    <span className="font-mono text-xs">
-                      #{betaPlan.user_id}
-                    </span>
-                  </TableCell>
+              <TableHeader>
+                <TableColumn>User_Id</TableColumn>
+                <TableColumn>Name</TableColumn>
+                <TableColumn>Email</TableColumn>
+                <TableColumn>Actions</TableColumn>
+              </TableHeader>
 
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Avatar name={betaPlan.name} size="sm" />
-                      <span>{betaPlan.name}</span>
-                    </div>
-                  </TableCell>
+              <TableBody
+                emptyContent="No beta plans"
+                isLoading={isLoading}
+                items={betaPlans}
+                loadingContent={<Spinner label="Loading..." />}
+              >
+                {(betaPlan: BetaPlan) => (
+                  <TableRow key={betaPlan.beta_claim_id}>
 
-                  <TableCell>{betaPlan.email}</TableCell>
+                    <TableCell>
+                      <span className="font-mono text-xs">
+                        #{betaPlan.user_id}
+                      </span>
+                    </TableCell>
 
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Tooltip content="View beta plan">
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          startContent={
-                            <Icon height={16} icon="mdi:eye" width={16} />
-                          }
-                          variant="flat"
-                          onPress={() => handleView(betaPlan.beta_claim_id)}
-                        />
-                      </Tooltip>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar name={betaPlan.name} size="sm" />
+                        <span className="whitespace-nowrap">
+                          {betaPlan.name}
+                        </span>
+                      </div>
+                    </TableCell>
 
-                      <Tooltip content="Delete beta plan">
-                        <Button
-                          isIconOnly
-                          color="danger"
-                          isDisabled={deletingId !== null}
-                          isLoading={deletingId === betaPlan.beta_claim_id}
-                          size="sm"
-                          startContent={
-                            deletingId !== betaPlan.beta_claim_id ? (
+                    {/* ✅ Email wrap fix */}
+                    <TableCell className="break-all">
+                      {betaPlan.email}
+                    </TableCell>
+
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Tooltip content="View beta plan">
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="flat"
+                            onPress={() =>
+                              handleView(betaPlan.beta_claim_id)
+                            }
+                          >
+                            <Icon icon="mdi:eye" width={16} />
+                          </Button>
+                        </Tooltip>
+
+                        <Tooltip content="Delete beta plan">
+                          <Button
+                            isIconOnly
+                            color="danger"
+                            size="sm"
+                            variant="flat"
+                            isDisabled={deletingId !== null}
+                            isLoading={
+                              deletingId === betaPlan.beta_claim_id
+                            }
+                            onPress={() =>
+                              handleOpenDeleteModal(
+                                betaPlan.beta_claim_id,
+                                betaPlan.name,
+                              )
+                            }
+                          >
+                            {deletingId !== betaPlan.beta_claim_id && (
                               <Icon
-                                height={16}
                                 icon="mdi:delete-outline"
                                 width={16}
                               />
-                            ) : undefined
-                          }
-                          variant="flat"
-                          onPress={() =>
-                            handleOpenDeleteModal(
-                              betaPlan.beta_claim_id,
-                              betaPlan.name,
-                            )
-                          }
-                        />
-                      </Tooltip>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                            )}
+                          </Button>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
+          {/* ✅ Pagination Responsive */}
           {!isLoading && pagination.total > 0 ? (
-            <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <Select
-                disallowEmptySelection
-                className="w-full sm:w-28"
-                label="Limit"
-                selectedKeys={[String(limit)]}
-                size="sm"
-                onChange={(event) => {
-                  const nextLimit = Number(event.target.value);
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
 
-                  if (nextLimit !== limit) {
-                    setLimit(nextLimit);
-                    setPage(1);
-                  }
-                }}
-              >
-                <SelectItem key="10">10</SelectItem>
-                <SelectItem key="25">25</SelectItem>
-                <SelectItem key="50">50</SelectItem>
-              </Select>
+              {/* Limit */}
+              <div className="flex justify-start">
+                <Select
+                  disallowEmptySelection
+                  className="w-28"
+                  label="Limit"
+                  selectedKeys={[String(limit)]}
+                  size="sm"
+                  onChange={(event) => {
+                    const nextLimit = Number(event.target.value);
 
-              <Pagination
-                showControls
-                color="primary"
-                isDisabled={isLoading}
-                page={page}
-                total={totalPages}
-                onChange={setPage}
-              />
+                    if (nextLimit !== limit) {
+                      setLimit(nextLimit);
+                      setPage(1);
+                    }
+                  }}
+                >
+                  <SelectItem key="10">10</SelectItem>
+                  <SelectItem key="25">25</SelectItem>
+                  <SelectItem key="50">50</SelectItem>
+                </Select>
+              </div>
+
+              {/* Pagination */}
+              <div className="flex justify-start sm:justify-end w-full">
+                <Pagination
+                  showControls
+                  color="primary"
+                  isDisabled={isLoading}
+                  page={page}
+                  total={totalPages}
+                  onChange={setPage}
+                />
+              </div>
             </div>
           ) : null}
+
         </CardBody>
       </Card>
 

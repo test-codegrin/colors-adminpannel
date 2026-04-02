@@ -373,7 +373,7 @@ function DashboardHome() {
   const [recentPaymentsState, setRecentPaymentsState] = useState<
     PaginatedSectionState<RecentPayment>
   >(createPaginatedSectionState);
-  
+
 
   const coreRequestRef = useRef(0);
   const usersRequestRef = useRef(0);
@@ -744,27 +744,27 @@ function DashboardHome() {
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {coreState.overview.isLoading && !overview
           ? Array.from({ length: 8 }).map((_, index) => (
-              <DashboardPanel
-                key={`kpi-loading-${index + 1}`}
-                className="min-h-[140px]"
-                title="Loading"
-              >
-                <LoadingBlock lines={4} />
-              </DashboardPanel>
-            ))
+            <DashboardPanel
+              key={`kpi-loading-${index + 1}`}
+              className="min-h-[140px]"
+              title="Loading"
+            >
+              <LoadingBlock lines={4} />
+            </DashboardPanel>
+          ))
           : kpiCards.map((card) => (
-              <MetricCard
-                key={card.label}
-                hint={card.hint}
-                icon={card.icon}
-                label={card.label}
-                tone={card.tone}
-                value={card.value}
-              />
-            ))}
+            <MetricCard
+              key={card.label}
+              hint={card.hint}
+              icon={card.icon}
+              label={card.label}
+              tone={card.tone}
+              value={card.value}
+            />
+          ))}
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <DashboardPanel
           action={
             <Chip radius="full" variant="flat">
@@ -782,32 +782,37 @@ function DashboardHome() {
               onRetry={loadCoreDashboard}
             />
           ) : !hasPositiveValues(
-              coreState.usersGrowth.data.map((item) => item.users),
-            ) ? (
+            coreState.usersGrowth.data.map((item) => item.users),
+          ) ? (
             <EmptyState
               description="The selected window has no recorded user growth yet."
               title="No user growth data"
             />
           ) : (
-            <AnalyticsLineChart
-              labels={usersGrowthLabels}
-              series={[
-                {
-                  label: "Users",
-                  values: coreState.usersGrowth.data.map((item) => item.users),
-                  color: "#0f766e",
-                  fill: true,
-                },
-              ]}
-            />
+            <div className="w-full overflow-x-auto scrollbar-hide">
+              <div className="min-w-[600px]">
+                <AnalyticsLineChart
+                  labels={usersGrowthLabels}
+                  series={[
+                    {
+                      label: "Users",
+                      values: coreState.usersGrowth.data.map(
+                        (item) => item.users,
+                      ),
+                      color: "#0f766e",
+                      fill: true,
+                    },
+                  ]}
+                />
+              </div>
+            </div>
           )}
         </DashboardPanel>
 
         <DashboardPanel
           action={
             <Chip radius="full" variant="flat">
-              {formatCurrency(overview?.payment_analytics.revenue_7d)} 7D
-              revenue
+              {formatCurrency(overview?.payment_analytics.revenue_7d)} 7D revenue
             </Chip>
           }
           subtitle="Revenue and payments by date"
@@ -821,38 +826,42 @@ function DashboardHome() {
               onRetry={loadCoreDashboard}
             />
           ) : !hasPositiveValues(
-              coreState.revenueGrowth.data.flatMap((item) => [
-                item.revenue,
-                item.payments,
-              ]),
-            ) ? (
+            coreState.revenueGrowth.data.flatMap((item) => [
+              item.revenue,
+              item.payments,
+            ]),
+          ) ? (
             <EmptyState
               description="Payment analytics are empty for the selected period."
               title="No revenue data"
             />
           ) : (
-            <AnalyticsLineChart
-              dualAxis
-              labels={revenueGrowthLabels}
-              series={[
-                {
-                  label: "Revenue",
-                  values: coreState.revenueGrowth.data.map(
-                    (item) => item.revenue,
-                  ),
-                  color: "#2563eb",
-                  fill: true,
-                },
-                {
-                  label: "Payments",
-                  values: coreState.revenueGrowth.data.map(
-                    (item) => item.payments,
-                  ),
-                  color: "#d97706",
-                  yAxisID: "y1",
-                },
-              ]}
-            />
+            <div className="w-full overflow-x-auto scrollbar-hide">
+              <div className="min-w-[600px]">
+                <AnalyticsLineChart
+                  dualAxis
+                  labels={revenueGrowthLabels}
+                  series={[
+                    {
+                      label: "Revenue",
+                      values: coreState.revenueGrowth.data.map(
+                        (item) => item.revenue,
+                      ),
+                      color: "#2563eb",
+                      fill: true,
+                    },
+                    {
+                      label: "Payments",
+                      values: coreState.revenueGrowth.data.map(
+                        (item) => item.payments,
+                      ),
+                      color: "#d97706",
+                      yAxisID: "y1",
+                    },
+                  ]}
+                />
+              </div>
+            </div>
           )}
         </DashboardPanel>
 
@@ -868,29 +877,34 @@ function DashboardHome() {
               onRetry={loadCoreDashboard}
             />
           ) : !hasPositiveValues(
-              coreState.messagesGrowth.data.map((item) => item.messages),
-            ) ? (
+            coreState.messagesGrowth.data.map((item) => item.messages),
+          ) ? (
             <EmptyState
               description="No support message activity has been recorded for this filter."
               title="No message growth data"
             />
           ) : (
-            <AnalyticsLineChart
-              labels={messagesGrowthLabels}
-              series={[
-                {
-                  label: "Messages",
-                  values: coreState.messagesGrowth.data.map(
-                    (item) => item.messages,
-                  ),
-                  color: "#db2777",
-                  fill: true,
-                },
-              ]}
-            />
+            <div className="w-full overflow-x-auto scrollbar-hide">
+              <div className="min-w-[600px]">
+                <AnalyticsLineChart
+                  labels={messagesGrowthLabels}
+                  series={[
+                    {
+                      label: "Messages",
+                      values: coreState.messagesGrowth.data.map(
+                        (item) => item.messages,
+                      ),
+                      color: "#db2777",
+                      fill: true,
+                    },
+                  ]}
+                />
+              </div>
+            </div>
           )}
         </DashboardPanel>
 
+        {/* ================= API Usage ================= */}
         <DashboardPanel
           action={
             <Chip radius="full" variant="flat">
@@ -910,48 +924,54 @@ function DashboardHome() {
               onRetry={loadCoreDashboard}
             />
           ) : !hasPositiveValues(
-              overview?.platform_usage_analytics.api_usage_stats.flatMap(
-                (item) => [
-                  item.requests,
-                  item.unique_api_requests,
-                  item.errors,
-                ],
-              ) ?? [],
-            ) ? (
+            overview?.platform_usage_analytics.api_usage_stats.flatMap(
+              (item) => [
+                item.requests,
+                item.unique_api_requests,
+                item.errors,
+              ],
+            ) ?? [],
+          ) ? (
             <EmptyState
               description="API usage tracking is disabled or the selected range has no request summaries."
               title="No platform usage data"
             />
           ) : (
-            <AnalyticsLineChart
-              dualAxis
-              labels={apiUsageLabels}
-              series={[
-                {
-                  label: "Requests",
-                  values:
-                    overview?.platform_usage_analytics.api_usage_stats.map(
-                      (item) => item.requests,
-                    ) ?? [],
-                  color: "#0891b2",
-                  fill: true,
-                },
-                {
-                  label: "Errors",
-                  values:
-                    overview?.platform_usage_analytics.api_usage_stats.map(
-                      (item) => item.errors,
-                    ) ?? [],
-                  color: "#dc2626",
-                  yAxisID: "y1",
-                },
-              ]}
-            />
+            <div className="w-full overflow-x-auto scrollbar-hide">
+              <div className="min-w-[600px]">
+                <AnalyticsLineChart
+                  dualAxis
+                  labels={apiUsageLabels}
+                  series={[
+                    {
+                      label: "Requests",
+                      values:
+                        overview?.platform_usage_analytics.api_usage_stats.map(
+                          (item) => item.requests,
+                        ) ?? [],
+                      color: "#0891b2",
+                      fill: true,
+                    },
+                    {
+                      label: "Errors",
+                      values:
+                        overview?.platform_usage_analytics.api_usage_stats.map(
+                          (item) => item.errors,
+                        ) ?? [],
+                      color: "#dc2626",
+                      yAxisID: "y1",
+                    },
+                  ]}
+                />
+              </div>
+            </div>
           )}
         </DashboardPanel>
+
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_1fr]">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.3fr_1fr]">
+        {/* ================= Page Views ================= */}
         <DashboardPanel
           action={
             <Chip radius="full" variant="flat">
@@ -970,7 +990,9 @@ function DashboardHome() {
             />
           ) : (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+
+              {/* ✅ Metric Cards Responsive */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                   hint={`${formatNumber(pageViews?.page_views_today)} today`}
                   icon="mdi:file-eye-outline"
@@ -997,6 +1019,7 @@ function DashboardHome() {
                 />
               </div>
 
+              {/* ✅ Chart Section */}
               {!hasPositiveValues(
                 (pageViews?.most_viewed_pages ?? []).map((item) => item.views),
               ) ? (
@@ -1005,26 +1028,31 @@ function DashboardHome() {
                   title="No page-view distribution"
                 />
               ) : (
-                <AnalyticsBarChart
-                  horizontal
-                  labels={(pageViews?.most_viewed_pages ?? []).map(
-                    (item) => item.page,
-                  )}
-                  series={[
-                    {
-                      label: "Views",
-                      values: (pageViews?.most_viewed_pages ?? []).map(
-                        (item) => item.views,
-                      ),
-                      color: "#0f766e",
-                    },
-                  ]}
-                />
+                <div className="w-full overflow-x-auto scrollbar-hide">
+                  <div className="min-w-[500px]">
+                    <AnalyticsBarChart
+                      horizontal
+                      labels={(pageViews?.most_viewed_pages ?? []).map(
+                        (item) => item.page,
+                      )}
+                      series={[
+                        {
+                          label: "Views",
+                          values: (pageViews?.most_viewed_pages ?? []).map(
+                            (item) => item.views,
+                          ),
+                          color: "#0f766e",
+                        },
+                      ]}
+                    />
+                  </div>
+                </div>
               )}
             </div>
           )}
         </DashboardPanel>
 
+        {/* ================= Top Pages ================= */}
         <DashboardPanel
           subtitle="Top pages endpoint rendered as a horizontal bar chart"
           title="Top Pages"
@@ -1037,29 +1065,33 @@ function DashboardHome() {
               onRetry={loadCoreDashboard}
             />
           ) : !hasPositiveValues(
-              coreState.topPages.data.map((item) => item.views),
-            ) ? (
+            coreState.topPages.data.map((item) => item.views),
+          ) ? (
             <EmptyState
               description="The backend returned no ranked pages for the selected filters."
               title="No top page data"
             />
           ) : (
-            <AnalyticsBarChart
-              horizontal
-              labels={coreState.topPages.data.map((item) => item.page)}
-              series={[
-                {
-                  label: "Views",
-                  values: coreState.topPages.data.map((item) => item.views),
-                  color: "#2563eb",
-                },
-              ]}
-            />
+            <div className="w-full overflow-x-auto scrollbar-hide">
+              <div className="min-w-[500px]">
+                <AnalyticsBarChart
+                  horizontal
+                  labels={coreState.topPages.data.map((item) => item.page)}
+                  series={[
+                    {
+                      label: "Views",
+                      values: coreState.topPages.data.map((item) => item.views),
+                      color: "#2563eb",
+                    },
+                  ]}
+                />
+              </div>
+            </div>
           )}
         </DashboardPanel>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+      <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         <DashboardPanel
           action={
             <Chip radius="full" variant="flat">
@@ -1082,16 +1114,22 @@ function DashboardHome() {
               title="No traffic source data"
             />
           ) : (
-            <AnalyticsDoughnutChart
-              colors={buildChartPalette(sourceItems.length)}
-              labels={sourceItems.map((item) =>
-                prettifyFeatureName(item.source),
-              )}
-              values={sourceItems.map((item) => item.count)}
-            />
+            <div className="flex items-center justify-center w-full">
+              {/* ✅ Doughnut Center + Responsive */}
+              <div className="w-full max-w-[320px] sm:max-w-[360px]">
+                <AnalyticsDoughnutChart
+                  colors={buildChartPalette(sourceItems.length)}
+                  labels={sourceItems.map((item) =>
+                    prettifyFeatureName(item.source),
+                  )}
+                  values={sourceItems.map((item) => item.count)}
+                />
+              </div>
+            </div>
           )}
         </DashboardPanel>
 
+        {/* ================= Feature Usage ================= */}
         <DashboardPanel
           subtitle="Most used product features across the selected range"
           title="Feature Usage"
@@ -1104,27 +1142,32 @@ function DashboardHome() {
               onRetry={loadCoreDashboard}
             />
           ) : !hasPositiveValues(
-              featureUsageItems.map((item) => item.usage),
-            ) ? (
+            featureUsageItems.map((item) => item.usage),
+          ) ? (
             <EmptyState
               description="Feature counters are currently empty for this period."
               title="No feature usage data"
             />
           ) : (
-            <AnalyticsBarChart
-              horizontal
-              labels={featureUsageItems.map((item) => item.feature)}
-              series={[
-                {
-                  label: "Usage",
-                  values: featureUsageItems.map((item) => item.usage),
-                  color: "#d97706",
-                },
-              ]}
-            />
+            <div className="w-full overflow-x-auto scrollbar-hide">
+              <div className="min-w-[500px]">
+                <AnalyticsBarChart
+                  horizontal
+                  labels={featureUsageItems.map((item) => item.feature)}
+                  series={[
+                    {
+                      label: "Usage",
+                      values: featureUsageItems.map((item) => item.usage),
+                      color: "#d97706",
+                    },
+                  ]}
+                />
+              </div>
+            </div>
           )}
         </DashboardPanel>
 
+        {/* ================= Performance Endpoints ================= */}
         <DashboardPanel
           action={
             <Chip radius="full" variant="flat">
@@ -1142,37 +1185,42 @@ function DashboardHome() {
               onRetry={loadCoreDashboard}
             />
           ) : !hasPositiveValues(
-              (performance?.top_endpoints ?? []).map((item) => item.requests),
-            ) ? (
+            (performance?.top_endpoints ?? []).map((item) => item.requests),
+          ) ? (
             <EmptyState
               description="Endpoint performance will render here when recent request summaries are available."
               title="No performance endpoint data"
             />
           ) : (
-            <AnalyticsBarChart
-              horizontal
-              labels={(performance?.top_endpoints ?? []).map(
-                (item) => item.endpoint,
-              )}
-              series={[
-                {
-                  label: "Requests",
-                  values: (performance?.top_endpoints ?? []).map(
-                    (item) => item.requests,
-                  ),
-                  color: "#7c3aed",
-                },
-                {
-                  label: "Errors",
-                  values: (performance?.top_endpoints ?? []).map(
-                    (item) => item.errors,
-                  ),
-                  color: "#dc2626",
-                },
-              ]}
-            />
+            <div className="w-full overflow-x-auto scrollbar-hide">
+              <div className="min-w-[550px]">
+                <AnalyticsBarChart
+                  horizontal
+                  labels={(performance?.top_endpoints ?? []).map(
+                    (item) => item.endpoint,
+                  )}
+                  series={[
+                    {
+                      label: "Requests",
+                      values: (performance?.top_endpoints ?? []).map(
+                        (item) => item.requests,
+                      ),
+                      color: "#7c3aed",
+                    },
+                    {
+                      label: "Errors",
+                      values: (performance?.top_endpoints ?? []).map(
+                        (item) => item.errors,
+                      ),
+                      color: "#dc2626",
+                    },
+                  ]}
+                />
+              </div>
+            </div>
           )}
         </DashboardPanel>
+
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.3fr_1fr]">
@@ -1484,7 +1532,8 @@ function DashboardHome() {
         </DashboardPanel>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* ================= Recent Users ================= */}
         <DashboardPanel
           action={
             <Chip radius="full" variant="flat">
@@ -1504,45 +1553,65 @@ function DashboardHome() {
             onRetry: () => loadRecentUsers(recentUsersPage),
             children: (
               <div className="space-y-4">
-                <Table removeWrapper aria-label="Recent users table">
-                  <TableHeader>
-                    <TableColumn>User</TableColumn>
-                    <TableColumn>Email</TableColumn>
-                    <TableColumn>Plan</TableColumn>
-                    <TableColumn>Created</TableColumn>
-                  </TableHeader>
-                  <TableBody items={recentUsersState.items}>
-                    {(item: RecentUser) => (
-                      <TableRow key={item.user_id}>
-                        <TableCell>
-                          {String(item.name ?? `User #${item.user_id}`)}
-                        </TableCell>
-                        <TableCell>{String(item.email ?? "-")}</TableCell>
-                        <TableCell>{item.is_paid ? "Paid" : "Free"}</TableCell>
-                        <TableCell>{formatDateTime(item.created_at)}</TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-default-500">
+
+                {/* ✅ Table Scroll Fix */}
+                <div className="w-full overflow-x-auto scrollbar-hide">
+                  <Table
+                    removeWrapper
+                    aria-label="Recent users table"
+                    className="min-w-[600px]"
+                  >
+                    <TableHeader>
+                      <TableColumn>User</TableColumn>
+                      <TableColumn>Email</TableColumn>
+                      <TableColumn>Plan</TableColumn>
+                      <TableColumn>Created</TableColumn>
+                    </TableHeader>
+                    <TableBody items={recentUsersState.items}>
+                      {(item: RecentUser) => (
+                        <TableRow key={item.user_id}>
+                          <TableCell>
+                            {String(item.name ?? `User #${item.user_id}`)}
+                          </TableCell>
+                          <TableCell className="break-all">
+                            {String(item.email ?? "-")}
+                          </TableCell>
+                          <TableCell>
+                            {item.is_paid ? "Paid" : "Free"}
+                          </TableCell>
+                          <TableCell>
+                            {formatDateTime(item.created_at)}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* ✅ Pagination Responsive */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <p className="text-xs text-default-500 text-center sm:text-left">
                     Page {recentUsersState.pagination.page} of {userTablePages}
                   </p>
-                  <Pagination
-                    showControls
-                    boundaries={1}
-                    color="primary"
-                    page={recentUsersPage}
-                    siblings={0}
-                    total={userTablePages}
-                    onChange={setRecentUsersPage}
-                  />
+
+                  <div className="flex justify-center sm:justify-end">
+                    <Pagination
+                      showControls
+                      boundaries={1}
+                      color="primary"
+                      page={recentUsersPage}
+                      siblings={0}
+                      total={userTablePages}
+                      onChange={setRecentUsersPage}
+                    />
+                  </div>
                 </div>
               </div>
             ),
           })}
         </DashboardPanel>
 
+        {/* ================= Recent Payments ================= */}
         <DashboardPanel
           action={
             <Chip radius="full" variant="flat">
@@ -1562,48 +1631,64 @@ function DashboardHome() {
             onRetry: () => loadRecentPayments(recentPaymentsPage),
             children: (
               <div className="space-y-4">
-                <Table removeWrapper aria-label="Recent payments table">
-                  <TableHeader>
-                    <TableColumn>Name</TableColumn>
-                    <TableColumn>Email</TableColumn>
-                    <TableColumn>Amount</TableColumn>
-                    <TableColumn>Status</TableColumn>
-                  </TableHeader>
-                  <TableBody items={recentPaymentsState.items}>
-                    {(item: RecentPayment) => (
-                      <TableRow key={item.payment_id}>
-                        <TableCell>
-                          {item.name || `User #${item.user_id}`}
-                        </TableCell>
-                        <TableCell>{item.email || "-"}</TableCell>
-                        <TableCell>{formatCurrency(item.amount)}</TableCell>
-                        <TableCell>
-                          {prettifyFeatureName(item.status)}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-default-500">
+
+                {/* ✅ Table Scroll Fix */}
+                <div className="w-full overflow-x-auto scrollbar-hide">
+                  <Table
+                    removeWrapper
+                    aria-label="Recent payments table"
+                    className="min-w-[600px]"
+                  >
+                    <TableHeader>
+                      <TableColumn>Name</TableColumn>
+                      <TableColumn>Email</TableColumn>
+                      <TableColumn>Amount</TableColumn>
+                      <TableColumn>Status</TableColumn>
+                    </TableHeader>
+                    <TableBody items={recentPaymentsState.items}>
+                      {(item: RecentPayment) => (
+                        <TableRow key={item.payment_id}>
+                          <TableCell>
+                            {item.name || `User #${item.user_id}`}
+                          </TableCell>
+                          <TableCell className="break-all">
+                            {item.email || "-"}
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrency(item.amount)}
+                          </TableCell>
+                          <TableCell>
+                            {prettifyFeatureName(item.status)}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* ✅ Pagination Responsive */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <p className="text-xs text-default-500 text-center sm:text-left">
                     Page {recentPaymentsState.pagination.page} of{" "}
                     {paymentsTablePages}
                   </p>
-                  <Pagination
-                    showControls
-                    boundaries={1}
-                    color="primary"
-                    page={recentPaymentsPage}
-                    siblings={0}
-                    total={paymentsTablePages}
-                    onChange={setRecentPaymentsPage}
-                  />
+
+                  <div className="flex justify-center sm:justify-end">
+                    <Pagination
+                      showControls
+                      boundaries={1}
+                      color="primary"
+                      page={recentPaymentsPage}
+                      siblings={0}
+                      total={paymentsTablePages}
+                      onChange={setRecentPaymentsPage}
+                    />
+                  </div>
                 </div>
               </div>
             ),
           })}
         </DashboardPanel>
-
       </section>
     </div>
   );

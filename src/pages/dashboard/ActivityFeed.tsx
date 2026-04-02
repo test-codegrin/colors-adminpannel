@@ -118,24 +118,32 @@ export default function ActivityFeedPage() {
 
   return (
     <Card shadow="md">
-      <CardBody className="gap-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+      <CardBody className="gap-6 p-4 sm:p-6">
+
+        {/* ✅ Header Responsive */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+
           <div>
-            <h2 className="text-xl font-semibold">Activity Feed</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">
+              Activity Feed
+            </h2>
             <p className="text-sm text-default-500">
               Latest analytics events from the activity feed
             </p>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Chip radius="full" variant="flat">
               {pagination.total} total
             </Chip>
+
             <Button
               isLoading={isLoading}
               size="sm"
               startContent={
-                !isLoading && <Icon icon="solar:refresh-bold" width="18" />
+                !isLoading && (
+                  <Icon icon="solar:refresh-bold" width="18" />
+                )
               }
               variant="flat"
               onPress={() => loadPage(page)}
@@ -148,45 +156,70 @@ export default function ActivityFeedPage() {
         {/* Error */}
         {error && <p className="text-danger text-sm">{error}</p>}
 
-        {/* Table */}
-        <Table removeWrapper aria-label="Activity feed table">
-          <TableHeader>
-            <TableColumn>Event</TableColumn>
-            <TableColumn>Page / Endpoint</TableColumn>
-            <TableColumn>Context</TableColumn>
-            <TableColumn>Created</TableColumn>
-          </TableHeader>
-          <TableBody
-            emptyContent={error ? " " : "No activity feed items"}
-            isLoading={isLoading}
-            items={items}
-            loadingContent={<Spinner label="Loading..." />}
+        {/* ✅ Table Scroll Fix */}
+        <div className="w-full overflow-x-auto scrollbar-hide">
+          <Table
+            removeWrapper
+            aria-label="Activity feed table"
+            className="min-w-[800px]"
           >
-            {(item: ActivityFeedItem) => (
-              <TableRow key={item.analytics_event_id}>
-                <TableCell>{prettifyFeatureName(item.event_type)}</TableCell>
-                <TableCell>{item.page || item.endpoint || "-"}</TableCell>
-                <TableCell>
-                  {[
-                    item.device,
-                    item.browser,
-                    item.os,
-                    item.source,
-                    item.status_code ? String(item.status_code) : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" | ") || "-"}
-                </TableCell>
-                <TableCell>{formatDateTime(item.created_at)}</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            <TableHeader>
+              <TableColumn>Event</TableColumn>
+              <TableColumn>Page / Endpoint</TableColumn>
+              <TableColumn>Context</TableColumn>
+              <TableColumn>Created</TableColumn>
+            </TableHeader>
 
-        {/* Pagination */}
+            <TableBody
+              emptyContent={error ? " " : "No activity feed items"}
+              isLoading={isLoading}
+              items={items}
+              loadingContent={<Spinner label="Loading..." />}
+            >
+              {(item: ActivityFeedItem) => (
+                <TableRow key={item.analytics_event_id}>
+
+                  {/* Event */}
+                  <TableCell className="whitespace-nowrap">
+                    {prettifyFeatureName(item.event_type)}
+                  </TableCell>
+
+                  {/* Page / Endpoint */}
+                  <TableCell className="break-words">
+                    {item.page || item.endpoint || "-"}
+                  </TableCell>
+
+                  {/* Context */}
+                  <TableCell className="max-w-[250px] break-words">
+                    {[
+                      item.device,
+                      item.browser,
+                      item.os,
+                      item.source,
+                      item.status_code
+                        ? String(item.status_code)
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" | ") || "-"}
+                  </TableCell>
+
+                  {/* Created */}
+                  <TableCell className="whitespace-nowrap">
+                    {formatDateTime(item.created_at)}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* ✅ Pagination Responsive */}
         {!isLoading && !error && pagination.total > 0 && (
-          <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-end">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+
+            {/* Left Side */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
               <Select
                 disallowEmptySelection
                 className="w-full sm:w-28"
@@ -206,21 +239,27 @@ export default function ActivityFeedPage() {
                 <SelectItem key="25">25</SelectItem>
                 <SelectItem key="50">50</SelectItem>
               </Select>
-              <p className="text-xs text-default-500 sm:pb-2">
+
+              <p className="text-xs text-default-500 sm:pb-2 text-left sm:text-left">
                 Page {pagination.page} of {totalPages}
               </p>
             </div>
-            <Pagination
-              showControls
-              boundaries={1}
-              color="primary"
-              page={page}
-              siblings={0}
-              total={totalPages}
-              onChange={setPage}
-            />
+
+            {/* Pagination */}
+            <div className="flex justify-center sm:justify-end">
+              <Pagination
+                showControls
+                boundaries={1}
+                color="primary"
+                page={page}
+                siblings={0}
+                total={totalPages}
+                onChange={setPage}
+              />
+            </div>
           </div>
         )}
+
       </CardBody>
     </Card>
   );

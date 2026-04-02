@@ -25,46 +25,48 @@ function getPageTitle(pathname: string): string {
 function DashboardLayout() {
   const { admin } = useAuth();
   const { pathname } = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen((prev) => !prev);
-  };
+  // Desktop: sidebar open by default; Mobile: closed by default
+  const [isSidebarOpen, setIsSidebarOpen] = useState(
+    () => window.innerWidth >= 768
+  );
+
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+  const closeSidebar = () => setIsSidebarOpen(false);
 
   return (
     <div className="min-h-screen bg-default-50 flex">
       {/* Sidebar */}
-      {isSidebarOpen && <Sidebar isOpen={isSidebarOpen} />}
+      <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
 
       {/* Main Content */}
       <main
-        className={`flex-1 transition-all duration-300 ${
-          isSidebarOpen ? "md:ml-64" : "md:ml-0"
-        } p-4 md:p-6`}
+        className={`
+          flex-1 transition-all duration-300
+          ${isSidebarOpen ? "md:ml-64" : "md:ml-0"}
+          p-4 md:p-6
+          min-w-0
+        `}
       >
+        {/* Top Bar */}
         <Card className="mb-6">
-          <CardBody className="flex flex-row items-center justify-between py-4">
+          <CardBody className="flex md:flex-row md:items-center justify-between py-3 px-4 gap-2">
             {/* Left Side */}
-            <div className="flex items-center gap-3">
-              {/* Toggle Button */}
+            <div className="flex items-center gap-2 min-w-0">
               <Button isIconOnly variant="light" onPress={toggleSidebar}>
-                <Icon
-                  icon={isSidebarOpen ? "mdi:menu" : "mdi:menu"}
-                  width="22"
-                />
+                <Icon icon="mdi:menu" width="22" />
               </Button>
-
-              <h1 className="text-xl font-semibold">
+              <h1 className="text-base sm:text-xl font-semibold truncate">
                 {getPageTitle(pathname)}
               </h1>
             </div>
 
             {/* Right Side */}
-            <div className="flex items-center gap-6">
-              <p className="text-sm text-default-500">
+            <div className="flex items-center gap-3 shrink-0">
+              <p className="block text-sm text-default-500 truncate max-w-[160px]">
                 {admin?.email ?? "Admin"}
               </p>
-              <ThemeSwitch className="hidden sm:flex gap-2 mr-3" />
+              <ThemeSwitch className="hidden sm:flex gap-2 mr-1" />
             </div>
           </CardBody>
         </Card>

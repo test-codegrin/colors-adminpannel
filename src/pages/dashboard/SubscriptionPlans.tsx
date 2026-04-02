@@ -384,16 +384,20 @@ export default function SubscriptionPlans() {
   return (
     <>
       <Card shadow="md">
-        <CardBody className="gap-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <CardBody className="gap-6 p-4 sm:p-6">
+
+          {/* ✅ Header Responsive */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h2 className="text-xl font-semibold">Subscription Plans</h2>
+              <h2 className="text-lg sm:text-xl font-semibold">
+                Subscription Plans
+              </h2>
               <p className="text-sm text-default-500">
                 Create and manage plan pricing.
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap gap-2 justify-start sm:justify-end">
               <Button
                 isLoading={plansList.isLoading}
                 startContent={
@@ -419,142 +423,155 @@ export default function SubscriptionPlans() {
 
           {error && <p className="text-sm text-danger">{error}</p>}
 
-          <Table removeWrapper aria-label="Subscription plans table">
-            <TableHeader>
-              <TableColumn>ID</TableColumn>
-              <TableColumn>Name</TableColumn>
-              <TableColumn>Price</TableColumn>
-              <TableColumn>Beta</TableColumn>
-              <TableColumn>Status</TableColumn>
-              <TableColumn>Updated</TableColumn>
-              <TableColumn>Action</TableColumn>
-            </TableHeader>
-
-            <TableBody
-              emptyContent="No subscription plans found"
-              isLoading={plansList.isLoading}
-              items={plansList.items}
-              loadingContent={<Spinner label="Loading plans..." />}
+          {/* ✅ Table Scroll Fix */}
+          <div className="w-full overflow-x-auto scrollbar-hide">
+            <Table
+              removeWrapper
+              aria-label="Subscription plans table"
+              className="min-w-[900px]"
             >
-              {(plan: SubscriptionPlan) => (
-                <TableRow key={String(plan.id)}>
-                  <TableCell>#{plan.id}</TableCell>
-                  <TableCell>{plan.name ?? "-"}</TableCell>
-                  <TableCell>
-                    Rs. {Number(plan.price ?? 0).toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      color={
-                        toBooleanFlag(plan.is_beta) ? "warning" : "default"
-                      }
-                      size="sm"
-                      variant="flat"
-                    >
-                      {toBooleanFlag(plan.is_beta) ? "Yes" : "No"}
-                    </Chip>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      color={
-                        toBooleanFlag(plan.is_active) ? "success" : "danger"
-                      }
-                      size="sm"
-                      variant="flat"
-                    >
-                      {toBooleanFlag(plan.is_active) ? "Active" : "Inactive"}
-                    </Chip>
-                  </TableCell>
-                  <TableCell>
-                    {formatDate(plan.updated_at ?? plan.created_at)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Tooltip content="View plan">
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          startContent={
-                            <Icon height={16} icon="mdi:eye" width={16} />
-                          }
-                          variant="flat"
-                          onPress={() => openViewModal(plan.id)}
-                        />
-                      </Tooltip>
+              <TableHeader>
+                <TableColumn>ID</TableColumn>
+                <TableColumn>Name</TableColumn>
+                <TableColumn>Price</TableColumn>
+                <TableColumn>Beta</TableColumn>
+                <TableColumn>Status</TableColumn>
+                <TableColumn>Updated</TableColumn>
+                <TableColumn>Action</TableColumn>
+              </TableHeader>
 
-                      <Tooltip content="Edit plan">
-                        <Button
-                          isIconOnly
-                          color="secondary"
-                          size="sm"
-                          startContent={
-                            <Icon
-                              height={16}
-                              icon="mdi:pencil-outline"
-                              width={16}
-                            />
-                          }
-                          variant="flat"
-                          onPress={() => openEditModal(plan)}
-                        />
-                      </Tooltip>
+              <TableBody
+                emptyContent="No subscription plans found"
+                isLoading={plansList.isLoading}
+                items={plansList.items}
+                loadingContent={<Spinner label="Loading plans..." />}
+              >
+                {(plan: SubscriptionPlan) => (
+                  <TableRow key={String(plan.id)}>
+                    <TableCell>#{plan.id}</TableCell>
 
-                      <Tooltip content="Delete plan">
-                        <Button
-                          isIconOnly
-                          color="danger"
-                          isDisabled={deletingPlanId !== null}
-                          isLoading={deletingPlanId === plan.id}
-                          size="sm"
-                          startContent={
-                            deletingPlanId !== plan.id ? (
-                              <Icon
-                                height={16}
-                                icon="mdi:delete-outline"
-                                width={16}
-                              />
-                            ) : undefined
-                          }
-                          variant="flat"
-                          onPress={() => openDeleteModal(plan)}
-                        />
-                      </Tooltip>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                    <TableCell className="break-words">
+                      {plan.name ?? "-"}
+                    </TableCell>
 
-          <div className="flex w-full items-end justify-between gap-4">
-            <Select
-              disallowEmptySelection
-              className="w-28"
-              label="Limit"
-              selectedKeys={[String(limit)]}
-              size="sm"
-              onChange={(event) => {
-                const nextLimit = Number(event.target.value);
+                    <TableCell>
+                      Rs. {Number(plan.price ?? 0).toFixed(2)}
+                    </TableCell>
 
-                if (nextLimit !== limit) {
-                  setLimit(nextLimit);
-                  setPage(1);
-                }
-              }}
-            >
-              <SelectItem key="10">10</SelectItem>
-              <SelectItem key="25">25</SelectItem>
-              <SelectItem key="50">50</SelectItem>
-            </Select>
+                    <TableCell>
+                      <Chip
+                        color={
+                          toBooleanFlag(plan.is_beta) ? "warning" : "default"
+                        }
+                        size="sm"
+                        variant="flat"
+                      >
+                        {toBooleanFlag(plan.is_beta) ? "Yes" : "No"}
+                      </Chip>
+                    </TableCell>
 
-            <Pagination
-              showControls
-              color="primary"
-              isDisabled={plansList.isLoading}
-              page={page}
-              total={Math.max(totalPages, 1)}
-              onChange={setPage}
-            />
+                    <TableCell>
+                      <Chip
+                        color={
+                          toBooleanFlag(plan.is_active)
+                            ? "success"
+                            : "danger"
+                        }
+                        size="sm"
+                        variant="flat"
+                      >
+                        {toBooleanFlag(plan.is_active)
+                          ? "Active"
+                          : "Inactive"}
+                      </Chip>
+                    </TableCell>
+
+                    <TableCell>
+                      {formatDate(plan.updated_at ?? plan.created_at)}
+                    </TableCell>
+
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Tooltip content="View plan">
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="flat"
+                            onPress={() => openViewModal(plan.id)}
+                          >
+                            <Icon icon="mdi:eye" width={16} />
+                          </Button>
+                        </Tooltip>
+
+                        <Tooltip content="Edit plan">
+                          <Button
+                            isIconOnly
+                            color="secondary"
+                            size="sm"
+                            variant="flat"
+                            onPress={() => openEditModal(plan)}
+                          >
+                            <Icon icon="mdi:pencil-outline" width={16} />
+                          </Button>
+                        </Tooltip>
+
+                        <Tooltip content="Delete plan">
+                          <Button
+                            isIconOnly
+                            color="danger"
+                            size="sm"
+                            variant="flat"
+                            isDisabled={deletingPlanId !== null}
+                            isLoading={deletingPlanId === plan.id}
+                            onPress={() => openDeleteModal(plan)}
+                          >
+                            {deletingPlanId !== plan.id && (
+                              <Icon icon="mdi:delete-outline" width={16} />
+                            )}
+                          </Button>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* ✅ Pagination Responsive */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+            <div className="flex justify-start sm:justify-start">
+              <Select
+                disallowEmptySelection
+                className="w-28"
+                label="Limit"
+                selectedKeys={[String(limit)]}
+                size="sm"
+                onChange={(event) => {
+                  const nextLimit = Number(event.target.value);
+                  if (nextLimit !== limit) {
+                    setLimit(nextLimit);
+                    setPage(1);
+                  }
+                }}
+              >
+                <SelectItem key="10">10</SelectItem>
+                <SelectItem key="25">25</SelectItem>
+                <SelectItem key="50">50</SelectItem>
+              </Select>
+            </div>
+
+            <div className="flex justify-start sm:justify-end">
+              <Pagination
+                showControls
+                color="primary"
+                isDisabled={plansList.isLoading}
+                page={page}
+                total={Math.max(totalPages, 1)}
+                onChange={setPage}
+              />
+            </div>
           </div>
         </CardBody>
       </Card>

@@ -81,11 +81,17 @@ function GameScore() {
 
   return (
     <Card shadow="md">
-      <CardBody className="gap-6">
+      <CardBody className="gap-6 p-4 sm:p-6">
+
+        {/* ✅ Header Responsive */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl font-semibold">Game Score</h2>
+              <h2 className="text-lg sm:text-xl font-semibold">
+                Game Score
+              </h2>
+
               <Chip
                 color={rows.length > 0 ? "primary" : "default"}
                 size="sm"
@@ -93,6 +99,7 @@ function GameScore() {
               >
                 {totalUsersLabel}
               </Chip>
+
               <Chip
                 color={maxHighestScore > 0 ? "success" : "default"}
                 size="sm"
@@ -101,105 +108,132 @@ function GameScore() {
                 Top score: {maxHighestScore.toLocaleString()}
               </Chip>
             </div>
+
             <p className="text-sm text-default-500">
               Scores from `/admin/scores/users/details`
             </p>
           </div>
 
-          <Button
-            isLoading={isLoading}
-            startContent={!isLoading && <Icon icon="solar:refresh-bold" width={18} />}
-            variant="flat"
-            onPress={loadGameScores}
-          >
-            Refresh
-          </Button>
+          {/* Refresh */}
+          <div className="flex justify-start lg:justify-end">
+            <Button
+              isLoading={isLoading}
+              startContent={
+                !isLoading && (
+                  <Icon icon="solar:refresh-bold" width={18} />
+                )
+              }
+              variant="flat"
+              onPress={loadGameScores}
+            >
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {error ? <p className="text-sm text-danger">{error}</p> : null}
 
-        <Table
-          aria-label="Game score users details table"
-          classNames={{
-            base: "min-h-[360px]",
-            wrapper: "overflow-hidden border border-default-200 shadow-none p-0",
-            table: "w-full table-auto",
-            th: "bg-default-100 text-[11px] font-semibold uppercase tracking-[0.16em] text-default-600",
-            td: "py-4 align-middle",
-            emptyWrapper: "py-14 text-default-500",
-          }}
-        >
-          <TableHeader>
-            <TableColumn className="w-[28%]">Username</TableColumn>
-            <TableColumn className="w-[34%]">User Email</TableColumn>
-            <TableColumn className="w-[19%]">Highest Score</TableColumn>
-            <TableColumn className="w-[19%]">Current Score</TableColumn>
-          </TableHeader>
-          <TableBody
-            emptyContent="No game score data found."
-            isLoading={isLoading}
-            items={paginatedRows}
-            loadingContent={<Spinner label="Loading game scores..." />}
+        {/* ✅ Table Scroll Fix */}
+        <div className="w-full overflow-x-auto scrollbar-hide">
+          <Table
+            aria-label="Game score users details table"
+            className="min-w-[700px]"
+            classNames={{
+              base: "min-h-[360px]",
+              wrapper:
+                "overflow-hidden border border-default-200 shadow-none p-0",
+              table: "w-full table-auto",
+              th: "bg-default-100 text-[11px] font-semibold uppercase tracking-[0.16em] text-default-600",
+              td: "py-4 align-middle",
+              emptyWrapper: "py-14 text-default-500",
+            }}
           >
-            {(item) => (
-              <TableRow key={`${item.useremail}-${item.username}`}>
-                <TableCell>
-                  <span className="font-medium text-foreground">
-                    {item.username || "-"}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className="break-all text-default-700">
-                    {item.useremail || "-"}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className="font-semibold text-foreground">
-                    {item.highestscore.toLocaleString()}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-default-700">
-                    {item.currentscore.toLocaleString()}
-                  </span>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            <TableHeader>
+              <TableColumn className="w-[28%]">Username</TableColumn>
+              <TableColumn className="w-[34%]">User Email</TableColumn>
+              <TableColumn className="w-[19%]">Highest Score</TableColumn>
+              <TableColumn className="w-[19%]">Current Score</TableColumn>
+            </TableHeader>
 
-        {!isLoading && rows.length > 0 ? (
-          <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <Select
-              disallowEmptySelection
-              className="w-full sm:w-28"
-              label="Limit"
-              selectedKeys={[String(limit)]}
-              size="sm"
-              onChange={(event) => {
-                const nextLimit = Number(event.target.value);
-
-                if (nextLimit !== limit) {
-                  setLimit(nextLimit);
-                  setPage(1);
-                }
-              }}
+            <TableBody
+              emptyContent="No game score data found."
+              isLoading={isLoading}
+              items={paginatedRows}
+              loadingContent={<Spinner label="Loading game scores..." />}
             >
-              <SelectItem key="10">10</SelectItem>
-              <SelectItem key="25">25</SelectItem>
-              <SelectItem key="50">50</SelectItem>
-            </Select>
+              {(item) => (
+                <TableRow key={`${item.useremail}-${item.username}`}>
 
-            <Pagination
-              showControls
-              color="primary"
-              isDisabled={isLoading}
-              page={page}
-              total={totalPages}
-              onChange={setPage}
-            />
+                  <TableCell>
+                    <span className="font-medium text-foreground">
+                      {item.username || "-"}
+                    </span>
+                  </TableCell>
+
+                  <TableCell className="break-all">
+                    <span className="text-default-700">
+                      {item.useremail || "-"}
+                    </span>
+                  </TableCell>
+
+                  <TableCell>
+                    <span className="font-semibold text-foreground">
+                      {item.highestscore.toLocaleString()}
+                    </span>
+                  </TableCell>
+
+                  <TableCell>
+                    <span className="text-default-700">
+                      {item.currentscore.toLocaleString()}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* ✅ Pagination Responsive */}
+        {!isLoading && rows.length > 0 ? (
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+
+            {/* Limit */}
+            <div className="flex justify-start">
+              <Select
+                disallowEmptySelection
+                className="w-28"
+                label="Limit"
+                selectedKeys={[String(limit)]}
+                size="sm"
+                onChange={(event) => {
+                  const nextLimit = Number(event.target.value);
+
+                  if (nextLimit !== limit) {
+                    setLimit(nextLimit);
+                    setPage(1);
+                  }
+                }}
+              >
+                <SelectItem key="10">10</SelectItem>
+                <SelectItem key="25">25</SelectItem>
+                <SelectItem key="50">50</SelectItem>
+              </Select>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-start sm:justify-end w-full">
+              <Pagination
+                showControls
+                color="primary"
+                isDisabled={isLoading}
+                page={page}
+                total={totalPages}
+                onChange={setPage}
+              />
+            </div>
           </div>
         ) : null}
+
       </CardBody>
     </Card>
   );

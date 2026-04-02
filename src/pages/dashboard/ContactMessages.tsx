@@ -158,143 +158,170 @@ export default function ContactMessagesPage() {
   return (
     <>
       <Card shadow="md">
-        <CardBody className="gap-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
+        <CardBody className="gap-6 p-4 sm:p-6">
+
+          {/* ✅ Header Responsive */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h2 className="text-xl font-semibold">Contact Messages</h2>
+              <h2 className="text-lg sm:text-xl font-semibold">
+                Contact Messages
+              </h2>
               <p className="text-sm text-default-500">
                 Manage and review contact submissions
               </p>
             </div>
 
-            <Button
-              isLoading={isLoading}
-              size="sm"
-              startContent={
-                !isLoading && <Icon icon="solar:refresh-bold" width="18" />
-              }
-              variant="flat"
-              onPress={fetchMessages}
-            >
-              Refresh
-            </Button>
+            <div className="flex justify-start sm:justify-end">
+              <Button
+                isLoading={isLoading}
+                size="sm"
+                startContent={
+                  !isLoading && (
+                    <Icon icon="solar:refresh-bold" width="18" />
+                  )
+                }
+                variant="flat"
+                onPress={fetchMessages}
+              >
+                Refresh
+              </Button>
+            </div>
           </div>
 
           {/* Error */}
           {error && <p className="text-danger text-sm">{error}</p>}
 
-          {/* Table */}
-          <Table removeWrapper aria-label="Contact messages table">
-            <TableHeader>
-              <TableColumn>ID</TableColumn>
-              <TableColumn>Sender</TableColumn>
-              <TableColumn>Email</TableColumn>
-              <TableColumn>Subject</TableColumn>
-              <TableColumn>Created</TableColumn>
-              <TableColumn>Action</TableColumn>
-            </TableHeader>
-
-            <TableBody
-              emptyContent="No contact messages"
-              isLoading={isLoading}
-              items={messages}
-              loadingContent={<Spinner label="Loading..." />}
+          {/* ✅ Table Scroll Fix */}
+          <div className="w-full overflow-x-auto scrollbar-hide">
+            <Table
+              removeWrapper
+              aria-label="Contact messages table"
+              className="min-w-[900px]"
             >
-              {(msg: ContactMessage) => (
-                <TableRow key={msg.contact_message_id}>
-                  <TableCell>
-                    <span className="font-mono text-xs">
-                      #{msg.contact_message_id}
-                    </span>
-                  </TableCell>
+              <TableHeader>
+                <TableColumn>ID</TableColumn>
+                <TableColumn>Sender</TableColumn>
+                <TableColumn>Email</TableColumn>
+                <TableColumn>Subject</TableColumn>
+                <TableColumn>Created</TableColumn>
+                <TableColumn>Action</TableColumn>
+              </TableHeader>
 
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Avatar name={msg.name} size="sm" />
-                      <span>{msg.name}</span>
-                    </div>
-                  </TableCell>
+              <TableBody
+                emptyContent="No contact messages"
+                isLoading={isLoading}
+                items={messages}
+                loadingContent={<Spinner label="Loading..." />}
+              >
+                {(msg: ContactMessage) => (
+                  <TableRow key={msg.contact_message_id}>
 
-                  <TableCell>{msg.email}</TableCell>
+                    <TableCell>
+                      <span className="font-mono text-xs">
+                        #{msg.contact_message_id}
+                      </span>
+                    </TableCell>
 
-                  <TableCell>
-                    <div>{msg.subject}</div>
-                  </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar name={msg.name} size="sm" />
+                        <span className="whitespace-nowrap">
+                          {msg.name}
+                        </span>
+                      </div>
+                    </TableCell>
 
-                  <TableCell>{formatDate(msg.created_at)}</TableCell>
+                    {/* ✅ Email wrap fix */}
+                    <TableCell className="break-all">
+                      {msg.email}
+                    </TableCell>
 
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Tooltip content="View message">
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          startContent={
-                            <Icon height={16} icon="mdi:eye" width={16} />
-                          }
-                          variant="flat"
-                          onPress={() => handleView(msg.contact_message_id)}
-                        />
-                      </Tooltip>
+                    {/* ✅ Subject wrap */}
+                    <TableCell className="max-w-[200px] break-words">
+                      {msg.subject}
+                    </TableCell>
 
-                      <Tooltip content="Delete message">
-                        <Button
-                          isIconOnly
-                          color="danger"
-                          isDisabled={deletingMessageId !== null}
-                          isLoading={
-                            deletingMessageId === msg.contact_message_id
-                          }
-                          size="sm"
-                          startContent={
-                            deletingMessageId !== msg.contact_message_id ? (
-                              <Icon
-                                height={16}
-                                icon="mdi:delete-outline"
-                                width={16}
-                              />
-                            ) : undefined
-                          }
-                          variant="flat"
-                          onPress={() =>
-                            handleOpenDeleteModal(
-                              msg.contact_message_id,
-                              msg.subject,
-                            )
-                          }
-                        />
-                      </Tooltip>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                    <TableCell>
+                      {formatDate(msg.created_at)}
+                    </TableCell>
 
-          {/* Pagination */}
-          <div className="flex w-full items-end justify-between gap-4">
-            <Select
-              disallowEmptySelection
-              className="w-28"
-              label="Limit"
-              selectedKeys={[String(limit)]}
-              size="sm"
-              onChange={(event) => {
-                const nextLimit = Number(event.target.value);
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Tooltip content="View message">
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="flat"
+                            onPress={() =>
+                              handleView(msg.contact_message_id)
+                            }
+                          >
+                            <Icon icon="mdi:eye" width={16} />
+                          </Button>
+                        </Tooltip>
 
-                if (nextLimit !== limit) {
-                  setLimit(nextLimit);
-                  setPage(1);
-                }
-              }}
-            >
-              <SelectItem key="10">10</SelectItem>
-              <SelectItem key="25">25</SelectItem>
-              <SelectItem key="50">50</SelectItem>
-            </Select>
+                        <Tooltip content="Delete message">
+                          <Button
+                            isIconOnly
+                            color="danger"
+                            size="sm"
+                            variant="flat"
+                            isDisabled={deletingMessageId !== null}
+                            isLoading={
+                              deletingMessageId ===
+                              msg.contact_message_id
+                            }
+                            onPress={() =>
+                              handleOpenDeleteModal(
+                                msg.contact_message_id,
+                                msg.subject,
+                              )
+                            }
+                          >
+                            {deletingMessageId !==
+                              msg.contact_message_id && (
+                                <Icon
+                                  icon="mdi:delete-outline"
+                                  width={16}
+                                />
+                              )}
+                          </Button>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
-            <div className="flex justify-end w-full">
+          {/* ✅ Pagination Responsive */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+            {/* Limit */}
+            <div className="flex justify-start sm:justify-start">
+              <Select
+                disallowEmptySelection
+                className="w-28"
+                label="Limit"
+                selectedKeys={[String(limit)]}
+                size="sm"
+                onChange={(event) => {
+                  const nextLimit = Number(event.target.value);
+                  if (nextLimit !== limit) {
+                    setLimit(nextLimit);
+                    setPage(1);
+                  }
+                }}
+              >
+                <SelectItem key="10">10</SelectItem>
+                <SelectItem key="25">25</SelectItem>
+                <SelectItem key="50">50</SelectItem>
+              </Select>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-start sm:justify-end w-full">
               <Pagination
                 showControls
                 color="primary"

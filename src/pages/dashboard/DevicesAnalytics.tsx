@@ -117,66 +117,89 @@ export default function DevicesAnalytics() {
       {error && <p className="text-sm text-danger">{error}</p>}
 
       <Card shadow="sm">
-        <CardBody className="gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold">Summary</h3>
-            <Chip size="sm" variant="flat">
+        <CardBody className="gap-4 p-4 sm:p-5">
+
+          {/* ✅ Header Responsive */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <h3 className="text-sm sm:text-base font-semibold">
+              Summary
+            </h3>
+
+            <Chip size="sm" variant="flat" className="w-fit">
               Range: {payload?.range_days ?? days} days
             </Chip>
           </div>
 
+          {/* Content */}
           {isLoading && !payload ? (
             <div className="h-20 flex items-center justify-center">
               <Spinner label="Loading summary..." />
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <div
+              className="
+          grid gap-3
+          grid-cols-1
+          sm:grid-cols-2
+          md:grid-cols-3
+          xl:grid-cols-5
+        "
+            >
+              {/* Card 1 */}
               <Card className="border border-default-200" shadow="none">
-                <CardBody className="gap-1">
-                  <p className="text-xs uppercase text-default-500">
+                <CardBody className="gap-1 p-3 sm:p-4">
+                  <p className="text-[11px] sm:text-xs uppercase text-default-500">
                     Total Users
                   </p>
-                  <p className="text-xl font-semibold">
+                  <p className="text-lg sm:text-xl font-semibold">
                     {formatNumber(summary?.total_users)}
                   </p>
                 </CardBody>
               </Card>
+
+              {/* Card 2 */}
               <Card className="border border-default-200" shadow="none">
-                <CardBody className="gap-1">
-                  <p className="text-xs uppercase text-default-500">
+                <CardBody className="gap-1 p-3 sm:p-4">
+                  <p className="text-[11px] sm:text-xs uppercase text-default-500">
                     Logged-In Users
                   </p>
-                  <p className="text-xl font-semibold">
+                  <p className="text-lg sm:text-xl font-semibold">
                     {formatNumber(summary?.logged_in_users)}
                   </p>
                 </CardBody>
               </Card>
+
+              {/* Card 3 */}
               <Card className="border border-default-200" shadow="none">
-                <CardBody className="gap-1">
-                  <p className="text-xs uppercase text-default-500">
+                <CardBody className="gap-1 p-3 sm:p-4">
+                  <p className="text-[11px] sm:text-xs uppercase text-default-500">
                     Guest Users
                   </p>
-                  <p className="text-xl font-semibold">
+                  <p className="text-lg sm:text-xl font-semibold">
                     {formatNumber(summary?.guest_users)}
                   </p>
                 </CardBody>
               </Card>
+
+              {/* Card 4 */}
               <Card className="border border-default-200" shadow="none">
-                <CardBody className="gap-1">
-                  <p className="text-xs uppercase text-default-500">
+                <CardBody className="gap-1 p-3 sm:p-4">
+                  <p className="text-[11px] sm:text-xs uppercase text-default-500">
                     Total Sessions
                   </p>
-                  <p className="text-xl font-semibold">
+                  <p className="text-lg sm:text-xl font-semibold">
                     {formatNumber(summary?.total_sessions)}
                   </p>
                 </CardBody>
               </Card>
+
+              {/* Card 5 */}
               <Card className="border border-default-200" shadow="none">
-                <CardBody className="gap-1">
-                  <p className="text-xs uppercase text-default-500">
+                <CardBody className="gap-1 p-3 sm:p-4">
+                  <p className="text-[11px] sm:text-xs uppercase text-default-500">
                     Avg Sessions/User
                   </p>
-                  <p className="text-xl font-semibold">
+                  <p className="text-lg sm:text-xl font-semibold">
                     {typeof summary?.avg_sessions_per_user === "number"
                       ? summary.avg_sessions_per_user.toFixed(2)
                       : "0.00"}
@@ -189,112 +212,207 @@ export default function DevicesAnalytics() {
       </Card>
 
       <Card shadow="sm">
-        <CardBody className="gap-4">
-          <h3 className="text-base font-semibold">Devices</h3>
-          <Table removeWrapper aria-label="Devices analytics table">
-            <TableHeader>
-              <TableColumn>Device</TableColumn>
-              <TableColumn>Users</TableColumn>
-              <TableColumn>Logged In</TableColumn>
-              <TableColumn>Guest</TableColumn>
-              <TableColumn>Sessions</TableColumn>
-              <TableColumn>Sessions/User</TableColumn>
-              <TableColumn>User Share</TableColumn>
-            </TableHeader>
-            <TableBody
-              emptyContent="No device data"
-              isLoading={isLoading && !payload}
-              items={payload?.devices ?? []}
-              loadingContent={<Spinner label="Loading devices..." />}
+        <CardBody className="gap-4 p-4 sm:p-5">
+
+          {/* ✅ Header */}
+          <h3 className="text-sm sm:text-base font-semibold">
+            Devices
+          </h3>
+
+          {/* ✅ Table Scroll Fix */}
+          <div className="w-full overflow-x-auto scrollbar-hide">
+            <Table
+              removeWrapper
+              aria-label="Devices analytics table"
+              className="min-w-[900px]"
             >
-              {(item: DeviceBreakdownItem) => (
-                <TableRow key={item.device}>
-                  <TableCell>{item.device}</TableCell>
-                  <TableCell>{formatNumber(item.users)}</TableCell>
-                  <TableCell>{formatNumber(item.logged_in_users)}</TableCell>
-                  <TableCell>{formatNumber(item.guest_users)}</TableCell>
-                  <TableCell>{formatNumber(item.sessions)}</TableCell>
-                  <TableCell>
-                    {typeof item.sessions_per_user === "number"
-                      ? item.sessions_per_user.toFixed(2)
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {formatPercent(item.users_share_percent ?? item.percentage)}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              <TableHeader>
+                <TableColumn>Device</TableColumn>
+                <TableColumn>Users</TableColumn>
+                <TableColumn>Logged In</TableColumn>
+                <TableColumn>Guest</TableColumn>
+                <TableColumn>Sessions</TableColumn>
+                <TableColumn>Sessions/User</TableColumn>
+                <TableColumn>User Share</TableColumn>
+              </TableHeader>
+
+              <TableBody
+                emptyContent="No device data"
+                isLoading={isLoading && !payload}
+                items={payload?.devices ?? []}
+                loadingContent={<Spinner label="Loading devices..." />}
+              >
+                {(item: DeviceBreakdownItem) => (
+                  <TableRow key={item.device}>
+
+                    {/* Device */}
+                    <TableCell className="whitespace-nowrap">
+                      {item.device}
+                    </TableCell>
+
+                    {/* Users */}
+                    <TableCell>
+                      {formatNumber(item.users)}
+                    </TableCell>
+
+                    {/* Logged In */}
+                    <TableCell>
+                      {formatNumber(item.logged_in_users)}
+                    </TableCell>
+
+                    {/* Guest */}
+                    <TableCell>
+                      {formatNumber(item.guest_users)}
+                    </TableCell>
+
+                    {/* Sessions */}
+                    <TableCell>
+                      {formatNumber(item.sessions)}
+                    </TableCell>
+
+                    {/* Sessions/User */}
+                    <TableCell>
+                      {typeof item.sessions_per_user === "number"
+                        ? item.sessions_per_user.toFixed(2)
+                        : "-"}
+                    </TableCell>
+
+                    {/* Share */}
+                    <TableCell>
+                      {formatPercent(
+                        item.users_share_percent ?? item.percentage,
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardBody>
       </Card>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Card shadow="sm">
-          <CardBody className="gap-4">
-            <h3 className="text-base font-semibold">Browsers</h3>
-            <Table removeWrapper aria-label="Browser analytics table">
-              <TableHeader>
-                <TableColumn>Browser</TableColumn>
-                <TableColumn>Users</TableColumn>
-                <TableColumn>Sessions</TableColumn>
-                <TableColumn>User Share</TableColumn>
-              </TableHeader>
-              <TableBody
-                emptyContent="No browser data"
-                isLoading={isLoading && !payload}
-                items={payload?.browsers ?? []}
-                loadingContent={<Spinner label="Loading browsers..." />}
+          <CardBody className="gap-4 p-4 sm:p-5">
+
+            {/* ✅ Header */}
+            <h3 className="text-sm sm:text-base font-semibold">
+              Browsers
+            </h3>
+
+            {/* ✅ Table Scroll Fix */}
+            <div className="w-full overflow-x-auto scrollbar-hide">
+              <Table
+                removeWrapper
+                aria-label="Browser analytics table"
+                className="min-w-[600px]"
               >
-                {(item: BrowserBreakdownItem) => (
-                  <TableRow key={item.browser}>
-                    <TableCell>{item.browser}</TableCell>
-                    <TableCell>{formatNumber(item.users)}</TableCell>
-                    <TableCell>{formatNumber(item.sessions)}</TableCell>
-                    <TableCell>
-                      {formatPercent(
-                        item.users_share_percent ?? item.percentage,
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                <TableHeader>
+                  <TableColumn>Browser</TableColumn>
+                  <TableColumn>Users</TableColumn>
+                  <TableColumn>Sessions</TableColumn>
+                  <TableColumn>User Share</TableColumn>
+                </TableHeader>
+
+                <TableBody
+                  emptyContent="No browser data"
+                  isLoading={isLoading && !payload}
+                  items={payload?.browsers ?? []}
+                  loadingContent={<Spinner label="Loading browsers..." />}
+                >
+                  {(item: BrowserBreakdownItem) => (
+                    <TableRow key={item.browser}>
+
+                      {/* Browser */}
+                      <TableCell className="whitespace-nowrap">
+                        {item.browser}
+                      </TableCell>
+
+                      {/* Users */}
+                      <TableCell>
+                        {formatNumber(item.users)}
+                      </TableCell>
+
+                      {/* Sessions */}
+                      <TableCell>
+                        {formatNumber(item.sessions)}
+                      </TableCell>
+
+                      {/* Share */}
+                      <TableCell>
+                        {formatPercent(
+                          item.users_share_percent ?? item.percentage,
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
           </CardBody>
         </Card>
 
         <Card shadow="sm">
-          <CardBody className="gap-4">
-            <h3 className="text-base font-semibold">Operating Systems</h3>
-            <Table removeWrapper aria-label="OS analytics table">
-              <TableHeader>
-                <TableColumn>OS</TableColumn>
-                <TableColumn>Users</TableColumn>
-                <TableColumn>Sessions</TableColumn>
-                <TableColumn>User Share</TableColumn>
-              </TableHeader>
-              <TableBody
-                emptyContent="No OS data"
-                isLoading={isLoading && !payload}
-                items={payload?.os ?? []}
-                loadingContent={
-                  <Spinner label="Loading operating systems..." />
-                }
+          <CardBody className="gap-4 p-4 sm:p-5">
+
+            {/* ✅ Header */}
+            <h3 className="text-sm sm:text-base font-semibold">
+              Operating Systems
+            </h3>
+
+            {/* ✅ Table Scroll Fix */}
+            <div className="w-full overflow-x-auto scrollbar-hide">
+              <Table
+                removeWrapper
+                aria-label="OS analytics table"
+                className="min-w-[600px]"
               >
-                {(item: OsBreakdownItem) => (
-                  <TableRow key={item.os}>
-                    <TableCell>{item.os}</TableCell>
-                    <TableCell>{formatNumber(item.users)}</TableCell>
-                    <TableCell>{formatNumber(item.sessions)}</TableCell>
-                    <TableCell>
-                      {formatPercent(
-                        item.users_share_percent ?? item.percentage,
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                <TableHeader>
+                  <TableColumn>OS</TableColumn>
+                  <TableColumn>Users</TableColumn>
+                  <TableColumn>Sessions</TableColumn>
+                  <TableColumn>User Share</TableColumn>
+                </TableHeader>
+
+                <TableBody
+                  emptyContent="No OS data"
+                  isLoading={isLoading && !payload}
+                  items={payload?.os ?? []}
+                  loadingContent={
+                    <Spinner label="Loading operating systems..." />
+                  }
+                >
+                  {(item: OsBreakdownItem) => (
+                    <TableRow key={item.os}>
+
+                      {/* OS Name */}
+                      <TableCell className="whitespace-nowrap">
+                        {item.os}
+                      </TableCell>
+
+                      {/* Users */}
+                      <TableCell>
+                        {formatNumber(item.users)}
+                      </TableCell>
+
+                      {/* Sessions */}
+                      <TableCell>
+                        {formatNumber(item.sessions)}
+                      </TableCell>
+
+                      {/* Share */}
+                      <TableCell>
+                        {formatPercent(
+                          item.users_share_percent ?? item.percentage,
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
           </CardBody>
         </Card>
       </div>
