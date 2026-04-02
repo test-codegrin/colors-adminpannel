@@ -1091,7 +1091,7 @@ function DashboardHome() {
         </DashboardPanel>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <section className="grid grid-cols-1 gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
         <DashboardPanel
           action={
             <Chip radius="full" variant="flat">

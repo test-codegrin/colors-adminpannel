@@ -549,7 +549,7 @@ export default function ColorStories() {
       <Card shadow="md">
         <CardBody className="gap-6">
           {/* ── Header ── */}
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-xl font-semibold">Color Stories</h2>
@@ -613,8 +613,8 @@ export default function ColorStories() {
 
           {error ? <p className="text-sm text-danger">{error}</p> : null}
 
-          {/* ── Table — desktop/tablet ── */}
-          <div className="hidden md:block">
+          {/* ── desktop ── */}
+          <div className="hidden xl:block">
             <Table
               aria-label="Color stories table"
               classNames={{
@@ -725,7 +725,7 @@ export default function ColorStories() {
           </div>
 
           {/* ── Mobile card list ── */}
-          <div className="flex flex-col gap-3 md:hidden">
+          <div className="grid md:grid-cols-2 gap-3 xl:hidden">
             {isLoading ? (
               <div className="flex min-h-[200px] items-center justify-center">
                 <Spinner label="Loading color stories..." />
