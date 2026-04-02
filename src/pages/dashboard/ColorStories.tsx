@@ -549,7 +549,7 @@ export default function ColorStories() {
       <Card shadow="md">
         <CardBody className="gap-6">
           {/* ── Header ── */}
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-xl font-semibold">Color Stories</h2>
