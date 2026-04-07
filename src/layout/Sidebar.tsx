@@ -46,6 +46,11 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
     } else {
       navigate(path);
     }
+
+    // ✅ Close sidebar on mobile after click
+    if (window.innerWidth < 768 && onClose) {
+      onClose();
+    }
   };
 
   const handleLogout = () => {
@@ -57,25 +62,26 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Backdrop — only on mobile/tablet (below md) */}
+      {/* Backdrop */}
       <div
         className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+        onClick={onClose} // ✅ click outside closes sidebar
       />
 
-      {/* Sidebar panel */}
+      {/* Sidebar */}
       <aside
-        className={`
+        className="
           fixed top-0 left-0 z-40 h-screen
           bg-content1 border-r border-default-200
           transition-all duration-300
           flex flex-col
           w-64 p-4
-        `}
+        "
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="text-xl font-semibold tracking-wide">Admin Panel</div>
-          {/* Close button — only visible on mobile/tablet */}
+
           <Button
             isIconOnly
             className="lg:hidden"
@@ -87,7 +93,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           </Button>
         </div>
 
-        {/* Navigation */}
+        {/* Nav */}
         <nav className="flex flex-col mt-4 gap-2 overflow-y-auto flex-1">
           {navItems.map((item) => {
             const isActive = pathname === item.path;
@@ -118,11 +124,11 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="mt-auto pt-6">
           <Button
             fullWidth
-            className="justify-start gap-3 bg-danger/10 hover:bg-danger/20 text-danger hover:text-danger text-md"
+            className="justify-start gap-3 bg-danger/10 hover:bg-danger/20 text-danger"
             variant="flat"
             onPress={handleLogout}
           >
-            <Icon className="text-danger" icon="ic:outline-remove-circle-outline" width="20" />
+            <Icon icon="ic:outline-remove-circle-outline" width="20" />
             Log Out
           </Button>
         </div>
