@@ -64,7 +64,6 @@ interface FormState {
   readTime: string;
   date: string;
   featured: boolean;
-  sortOrder: string;
   status: "0" | "1";
   overviewParagraphs: string;
   processRows: ProcessRow[];
@@ -99,7 +98,6 @@ const defaultForm: FormState = {
   readTime: "",
   date: "",
   featured: false,
-  sortOrder: "",
   status: "1",
   overviewParagraphs: "",
   processRows: [{ title: "", description: "" }],
@@ -188,7 +186,6 @@ function caseStudyToForm(cs: CaseStudy): FormState {
     readTime: (cs.readTime ?? "").replace(/[^0-9]/g, ""),
     date: cs.date ?? "",
     featured: Boolean(cs.featured),
-    sortOrder: cs.sortOrder != null ? String(cs.sortOrder) : "",
     status: cs.status === 1 ? "1" : "0",
     overviewParagraphs: cs.overview.paragraphs.join("\n"),
     processRows,
@@ -559,13 +556,10 @@ export default function CaseStudies() {
         timeline: form.projectInfoTimeline.trim() || undefined,
         services,
       },
-      publishedAt: null,
       published_at: null,
       readTime: readTime ? `${readTime} min` : "",
       read_time: readTime ? `${readTime} min` : "",
       results: hasResults ? { stats: resultStats, comparisons } : undefined,
-      sortOrder: form.sortOrder ? Number(form.sortOrder) : undefined,
-      sort_order: form.sortOrder ? Number(form.sortOrder) : undefined,
       status: form.status === "1" ? 1 : 0,
       summary,
       tags,
@@ -1308,6 +1302,7 @@ export default function CaseStudies() {
                         <div className="flex gap-2">
                           <Select
                             isRequired
+                            aria-label="Select Month"
                             classNames={{
                               trigger: "bg-default-100",
                             }}
@@ -1326,6 +1321,7 @@ export default function CaseStudies() {
                           </Select>
                           <Select
                             isRequired
+                            aria-label="Select Year"
                             classNames={{
                               trigger: "bg-default-100",
                             }}
@@ -1346,32 +1342,19 @@ export default function CaseStudies() {
                         {formErrors.date && <p className="text-xs text-danger ml-1">{formErrors.date}</p>}
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <Input
-                        classNames={{
-                          inputWrapper: "bg-default-100",
-                        }}
-                        label="Sort Order"
-                        placeholder="e.g. 1"
-                        type="number"
-                        value={form.sortOrder}
-                        variant="bordered"
-                        onValueChange={(v) => setField("sortOrder", v)}
-                      />
-                      <Select
-                        disallowEmptySelection
-                        classNames={{
-                          trigger: "bg-default-100",
-                        }}
-                        label="Status"
-                        selectedKeys={[form.status]}
-                        variant="bordered"
-                        onChange={(e) => setField("status", e.target.value as "0" | "1")}
-                      >
-                        <SelectItem key="0">Draft</SelectItem>
-                        <SelectItem key="1">Published</SelectItem>
-                      </Select>
-                    </div>
+                    <Select
+                      disallowEmptySelection
+                      classNames={{
+                        trigger: "bg-default-100",
+                      }}
+                      label="Status"
+                      selectedKeys={[form.status]}
+                      variant="bordered"
+                      onChange={(e) => setField("status", e.target.value as "0" | "1")}
+                    >
+                      <SelectItem key="0">Draft</SelectItem>
+                      <SelectItem key="1">Published</SelectItem>
+                    </Select>
                     <div className="inline-flex items-center gap-3 rounded-xl border border-default-200 px-4 py-3">
                       <Switch
                         isSelected={form.featured}
