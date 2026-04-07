@@ -87,6 +87,7 @@ export default function ContactMessageModal({
     <Modal
       hideCloseButton
       backdrop="blur"
+      placement="center"
       isDismissable={false}
       isOpen={isOpen}
       size="md"

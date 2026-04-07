@@ -144,6 +144,7 @@ export default function UserLibraryModal({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       size="2xl"
+      placement="center"
       scrollBehavior="inside"
       classNames={{ base: "overflow-hidden" }}
     >

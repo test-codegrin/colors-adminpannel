@@ -1149,6 +1149,7 @@ function Users() {
       <Modal
         isDismissable={deletingUserId === null}
         isOpen={isDeleteModalOpen}
+        placement="center"
         onOpenChange={onDeleteModalOpenChange}
       >
         <ModalContent>

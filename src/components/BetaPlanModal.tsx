@@ -69,6 +69,7 @@ export default function BetaPlanModal({
       backdrop="blur"
       isDismissable={false}
       isOpen={isOpen}
+      placement="center"
       size="md"
       onOpenChange={onOpenChange}
     >

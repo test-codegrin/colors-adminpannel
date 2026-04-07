@@ -334,6 +334,7 @@ export default function BetaPlansPage() {
         backdrop="blur"
         isDismissable={false}
         isOpen={isDeleteModalOpen}
+        placement="center"
         size="sm"
         onOpenChange={onDeleteModalOpenChange}
       >

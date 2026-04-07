@@ -343,6 +343,7 @@ export default function ContactMessagesPage() {
 
       <Modal
         hideCloseButton={deletingMessageId !== null}
+        placement="center"
         isDismissable={deletingMessageId === null}
         isOpen={isDeleteModalOpen}
         onOpenChange={onDeleteModalOpenChange}

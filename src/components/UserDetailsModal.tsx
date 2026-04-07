@@ -241,6 +241,7 @@ export default function UserDetailsModal({
       backdrop="blur"
       isDismissable={false}
       isOpen={isOpen}
+      placement="center"
       size="md"
       onOpenChange={onOpenChange}
     >
