@@ -833,6 +833,7 @@ export default function ColorStories() {
         backdrop="blur"
         isOpen={isViewModalOpen}
         size="full"
+        placement="center"
         classNames={{
           base: "sm:max-w-2xl",
           body: "overflow-y-auto scrollbar-hide max-h-[90vh]",
@@ -1004,6 +1005,7 @@ export default function ColorStories() {
         backdrop="blur"
         isOpen={isFormModalOpen}
         size="2xl"
+        placement="center"
         classNames={{ base: "h-[90dvh] mx-2 sm:mx-auto", body: "overflow-y-auto" }}
         onOpenChange={(isOpen) => {
           if (!isOpen && !isSubmittingForm) resetForm();
@@ -1108,6 +1110,7 @@ export default function ColorStories() {
         backdrop="blur"
         isOpen={isCategoriesModalOpen}
         size="2xl"
+        placement="center"
         classNames={{ base: "mx-2 sm:mx-auto" }}
         onOpenChange={(isOpen) => {
           if (!isOpen && !isSubmittingCategory) { resetCategoryForm(); setCategorySearch(""); }
@@ -1171,7 +1174,7 @@ export default function ColorStories() {
       </Modal>
 
       {/* ── Delete Modal ── */}
-      <Modal backdrop="blur" hideCloseButton={deletingStoryId !== null} isDismissable={deletingStoryId === null} isOpen={isDeleteModalOpen} classNames={{ base: "mx-2 sm:mx-auto" }} onOpenChange={onDeleteOpenChange}>
+      <Modal placement="center" backdrop="blur" hideCloseButton={deletingStoryId !== null} isDismissable={deletingStoryId === null} isOpen={isDeleteModalOpen} classNames={{ base: "mx-2 sm:mx-auto" }} onOpenChange={onDeleteOpenChange}>
         <ModalContent>
           <ModalHeader className="text-base font-semibold">Delete Story</ModalHeader>
           <ModalBody>

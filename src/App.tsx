@@ -9,6 +9,7 @@ import BetaPlans from "./pages/dashboard/BetaPlans";
 import ActivityFeed from "./pages/dashboard/ActivityFeed";
 import ColorStories from "./pages/dashboard/ColorStories";
 import GameScore from "./pages/dashboard/GameScore";
+import CaseStudies from "./pages/dashboard/CaseStudies";
 
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import Users from "@/pages/dashboard/Users";
@@ -35,6 +36,7 @@ function App() {
           <Route element={<Payments />} path="payments" />
           <Route element={<SubscriptionPlans />} path="subscription-plans" />
           <Route element={<ColorStories />} path="color-stories" />
+          <Route element={<CaseStudies />} path="case-studies" />
           <Route element={<ContactMessages />} path="contact" />
           <Route element={<LiveUsers />} path="live-users" />
           <Route element={<DevicesAnalytics />} path="devices-analytics" />

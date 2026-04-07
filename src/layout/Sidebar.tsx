@@ -23,6 +23,7 @@ const navItems: NavItem[] = [
   { label: "Payments", path: "/dashboard/payments", icon: "mdi:credit-card-outline" },
   { label: "Subscription Plans", path: "/dashboard/subscription-plans", icon: "mdi:ticket-confirmation-outline" },
   { label: "Color Stories", path: "/dashboard/color-stories", icon: "mdi:book-open-page-variant-outline" },
+  { label: "Case Studies", path: "/dashboard/case-studies", icon: "mdi:file-document-multiple-outline" },
   { label: "Contact Messages", path: "/dashboard/contact", icon: "fluent-mdl2:contact" },
   { label: "Live Users", path: "/dashboard/live-users", icon: "mdi:account-clock-outline" },
   { label: "Devices Analytics", path: "/dashboard/devices-analytics", icon: "mdi:desktop-mac-dashboard" },

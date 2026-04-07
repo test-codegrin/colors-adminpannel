@@ -110,16 +110,16 @@ export function AnalyticsLineChart({
         grid: { color: gridColor },
         ticks: { color: tickColor },
       },
-      y1: dualAxis
-        ? {
-            type: "linear" as const,
-            display: true,
-            position: "right" as const,
-            beginAtZero: true,
-            grid: { drawOnChartArea: false },
-            ticks: { color: tickColor },
-          }
-        : undefined,
+      ...(dualAxis && {
+        y1: {
+          type: "linear" as const,
+          display: true,
+          position: "right" as const,
+          beginAtZero: true,
+          grid: { drawOnChartArea: false },
+          ticks: { color: tickColor },
+        },
+      }),
     },
   };
 
