@@ -266,9 +266,11 @@ function DynamicSection<T extends Record<string, string>>({
               <Input
                 key={String(f.key)}
                 className="flex-1"
+                classNames={{
+                  inputWrapper: "bg-default-100",
+                }}
                 label={f.label}
                 placeholder={f.placeholder ?? ""}
-                size="sm"
                 value={row[f.key] as string}
                 variant="bordered"
                 onValueChange={(val) => onChange(i, f.key, val)}
@@ -473,7 +475,10 @@ export default function CaseStudies() {
     if (!title) errs.title = "Title is required.";
     if (!summary) errs.summary = "Summary is required.";
     if (!readTime) errs.readTime = "Read time is required.";
-    if (!date) errs.date = "Date is required.";
+    const dateParts = date.split(" ");
+    if (!date || dateParts.length < 2 || !dateParts[0] || !dateParts[1]) {
+      errs.date = "Month and Year are required.";
+    }
     if (palette.length === 0) {
       errs.palette = "Add at least one hex color.";
     } else if (palette.some((c) => !isValidHex(c))) {
@@ -1058,7 +1063,6 @@ export default function CaseStudies() {
       <Modal
         hideCloseButton
         backdrop="blur"
-        isDismissable={false}
         isOpen={isViewOpen}
         scrollBehavior="inside"
         size="3xl"
@@ -1202,7 +1206,6 @@ export default function CaseStudies() {
       <Modal
         hideCloseButton
         backdrop="blur"
-        isDismissable={false}
         isOpen={isFormOpen}
         scrollBehavior="inside"
         size="2xl"
@@ -1231,22 +1234,26 @@ export default function CaseStudies() {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Input
                         isRequired
+                        classNames={{
+                          inputWrapper: "bg-default-100",
+                        }}
                         errorMessage={formErrors.client}
                         isInvalid={!!formErrors.client}
                         label="Client"
                         placeholder="e.g. Lumina"
-                        size="sm"
                         value={form.client}
                         variant="bordered"
                         onValueChange={(v) => setField("client", v)}
                       />
                       <Input
                         isRequired
+                        classNames={{
+                          inputWrapper: "bg-default-100",
+                        }}
                         errorMessage={formErrors.industry}
                         isInvalid={!!formErrors.industry}
                         label="Industry"
                         placeholder="e.g. Branding & Design"
-                        size="sm"
                         value={form.industry}
                         variant="bordered"
                         onValueChange={(v) => setField("industry", v)}
@@ -1254,23 +1261,27 @@ export default function CaseStudies() {
                     </div>
                     <Input
                       isRequired
+                      classNames={{
+                        inputWrapper: "bg-default-100",
+                      }}
                       errorMessage={formErrors.title}
                       isInvalid={!!formErrors.title}
                       label="Title"
                       placeholder="Case study title"
-                      size="sm"
                       value={form.title}
                       variant="bordered"
                       onValueChange={(v) => setField("title", v)}
                     />
                     <Textarea
                       isRequired
+                      classNames={{
+                        inputWrapper: "bg-default-100",
+                      }}
                       errorMessage={formErrors.summary}
                       isInvalid={!!formErrors.summary}
                       label="Summary"
                       minRows={2}
                       placeholder="Short description..."
-                      size="sm"
                       value={form.summary}
                       variant="bordered"
                       onValueChange={(v) => setField("summary", v)}
@@ -1278,32 +1289,70 @@ export default function CaseStudies() {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Input
                         isRequired
+                        classNames={{
+                          inputWrapper: "bg-default-100",
+                        }}
                         errorMessage={formErrors.readTime}
                         isInvalid={!!formErrors.readTime}
                         label="Read Time (Time in Minutes)"
                         placeholder="e.g. 12"
-                        size="sm"
                         value={form.readTime}
                         variant="bordered"
                         onValueChange={(v) => setField("readTime", v)}
                       />
-                      <Input
-                        isRequired
-                        errorMessage={formErrors.date}
-                        isInvalid={!!formErrors.date}
-                        label="Date"
-                        placeholder="e.g. Feb 2026"
-                        size="sm"
-                        value={form.date}
-                        variant="bordered"
-                        onValueChange={(v) => setField("date", v)}
-                      />
+
+                      <div className="flex flex-col gap-1">
+                        <p className="text-xs font-medium text-foreground ml-1">
+                          Date <span className="text-danger">*</span>
+                        </p>
+                        <div className="flex gap-2">
+                          <Select
+                            isRequired
+                            classNames={{
+                              trigger: "bg-default-100",
+                            }}
+                            placeholder="MM"
+                            selectedKeys={form.date.split(" ")[0] ? [form.date.split(" ")[0]] : []}
+                            variant="bordered"
+                            onSelectionChange={(keys) => {
+                              const month = Array.from(keys)[0] as string;
+                              const year = form.date.split(" ")[1] || "";
+                              setField("date", `${month} ${year}`.trim());
+                            }}
+                          >
+                            {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m) => (
+                              <SelectItem key={m}>{m}</SelectItem>
+                            ))}
+                          </Select>
+                          <Select
+                            isRequired
+                            classNames={{
+                              trigger: "bg-default-100",
+                            }}
+                            placeholder="2026"
+                            selectedKeys={form.date.split(" ")[1] ? [form.date.split(" ")[1]] : []}
+                            variant="bordered"
+                            onSelectionChange={(keys) => {
+                              const year = Array.from(keys)[0] as string;
+                              const month = form.date.split(" ")[0] || "";
+                              setField("date", `${month} ${year}`.trim());
+                            }}
+                          >
+                            {Array.from({ length: 21 }, (_, i) => String(2020 + i)).map((y) => (
+                              <SelectItem key={y}>{y}</SelectItem>
+                            ))}
+                          </Select>
+                        </div>
+                        {formErrors.date && <p className="text-xs text-danger ml-1">{formErrors.date}</p>}
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Input
+                        classNames={{
+                          inputWrapper: "bg-default-100",
+                        }}
                         label="Sort Order"
                         placeholder="e.g. 1"
-                        size="sm"
                         type="number"
                         value={form.sortOrder}
                         variant="bordered"
@@ -1311,9 +1360,11 @@ export default function CaseStudies() {
                       />
                       <Select
                         disallowEmptySelection
+                        classNames={{
+                          trigger: "bg-default-100",
+                        }}
                         label="Status"
                         selectedKeys={[form.status]}
-                        size="sm"
                         variant="bordered"
                         onChange={(e) => setField("status", e.target.value as "0" | "1")}
                       >
@@ -1321,10 +1372,9 @@ export default function CaseStudies() {
                         <SelectItem key="1">Published</SelectItem>
                       </Select>
                     </div>
-                    <div className="flex items-center gap-3 rounded-xl border border-default-200 px-4 py-3">
+                    <div className="inline-flex items-center gap-3 rounded-xl border border-default-200 px-4 py-3">
                       <Switch
                         isSelected={form.featured}
-                        size="sm"
                         onValueChange={(v) => setField("featured", v)}
                       />
                       <p className="text-sm text-default-600">Mark as Featured</p>
@@ -1334,11 +1384,13 @@ export default function CaseStudies() {
                     <SectionLabel label="Palette" />
                     <Input
                       isRequired
+                      classNames={{
+                        inputWrapper: "bg-default-100",
+                      }}
                       errorMessage={formErrors.palette}
                       isInvalid={!!formErrors.palette}
                       label="Hex Colors"
                       placeholder="#0F172A, #38BDF8, ..."
-                      size="sm"
                       value={form.palette}
                       variant="bordered"
                       onValueChange={(v) => setField("palette", v)}
@@ -1367,9 +1419,11 @@ export default function CaseStudies() {
                       </div>
                     )}
                     <Input
+                      classNames={{
+                        inputWrapper: "bg-default-100",
+                      }}
                       label="Palette Names (optional)"
                       placeholder="Midnight, Sky Blue, ..."
-                      size="sm"
                       value={form.paletteNames}
                       variant="bordered"
                       onValueChange={(v) => setField("paletteNames", v)}
@@ -1378,9 +1432,11 @@ export default function CaseStudies() {
                     {/* ---- Tags ---- */}
                     <SectionLabel label="Tags" />
                     <Input
+                      classNames={{
+                        inputWrapper: "bg-default-100",
+                      }}
                       label="Tags"
                       placeholder="branding, design system, ..."
-                      size="sm"
                       value={form.tags}
                       variant="bordered"
                       onValueChange={(v) => setField("tags", v)}
@@ -1390,12 +1446,14 @@ export default function CaseStudies() {
                     <SectionLabel label="Overview" />
                     <Textarea
                       isRequired
+                      classNames={{
+                        inputWrapper: "bg-default-100",
+                      }}
                       errorMessage={formErrors.overviewParagraphs}
                       isInvalid={!!formErrors.overviewParagraphs}
                       label="Overview Paragraphs"
                       minRows={3}
                       placeholder="One paragraph per line..."
-                      size="sm"
                       value={form.overviewParagraphs}
                       variant="bordered"
                       onValueChange={(v) => setField("overviewParagraphs", v)}
@@ -1432,43 +1490,49 @@ export default function CaseStudies() {
 
                     {/* ---- Comparisons (dynamic) ---- */}
                     <SectionLabel label="Comparisons (Optional)" />
-                      <DynamicSection<ComparisonRow>
-                        fields={[
-                          { key: "label", label: "Label", placeholder: "e.g. Before" },
-                          { key: "value", label: "Value", placeholder: "e.g. Old design" },
-                        ]}
-                        label="Comparison Items"
-                        rows={form.comparisonRows}
-                        onAdd={addComparison}
-                        onChange={changeComparison}
-                        onRemove={removeComparison}
-                        hideAddButton
-                      />
+                    <DynamicSection<ComparisonRow>
+                      fields={[
+                        { key: "label", label: "Label", placeholder: "e.g. Before" },
+                        { key: "value", label: "Value", placeholder: "e.g. Old design" },
+                      ]}
+                      label="Comparison Items"
+                      rows={form.comparisonRows}
+                      onAdd={addComparison}
+                      onChange={changeComparison}
+                      onRemove={removeComparison}
+                      hideAddButton
+                    />
 
                     {/* ---- Project Info ---- */}
                     <SectionLabel label="Project Info (Optional)" />
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Input
+                        classNames={{
+                          inputWrapper: "bg-default-100",
+                        }}
                         label="Client (override)"
                         placeholder={form.client || "Client name"}
-                        size="sm"
                         value={form.projectInfoClient}
                         variant="bordered"
                         onValueChange={(v) => setField("projectInfoClient", v)}
                       />
                       <Input
+                        classNames={{
+                          inputWrapper: "bg-default-100",
+                        }}
                         label="Timeline"
                         placeholder="e.g. 3 months"
-                        size="sm"
                         value={form.projectInfoTimeline}
                         variant="bordered"
                         onValueChange={(v) => setField("projectInfoTimeline", v)}
                       />
                     </div>
                     <Input
+                      classNames={{
+                        inputWrapper: "bg-default-100",
+                      }}
                       label="Services"
                       placeholder="Branding, UI/UX, ..."
-                      size="sm"
                       value={form.projectInfoServices}
                       variant="bordered"
                       onValueChange={(v) => setField("projectInfoServices", v)}
@@ -1477,10 +1541,12 @@ export default function CaseStudies() {
                     {/* ---- Team ---- */}
                     <SectionLabel label="Team (Optional)" />
                     <Textarea
+                      classNames={{
+                        inputWrapper: "bg-default-100",
+                      }}
                       label="Team Members"
                       minRows={2}
                       placeholder={"John Doe :: Creative Director\nJane Smith :: UI Designer"}
-                      size="sm"
                       value={form.team}
                       variant="bordered"
                       onValueChange={(v) => setField("team", v)}
