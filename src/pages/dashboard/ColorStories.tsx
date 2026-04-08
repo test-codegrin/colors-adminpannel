@@ -591,7 +591,7 @@ export default function ColorStories() {
   return (
     <>
       <Card shadow="md">
-        <CardBody className="gap-6">
+        <CardBody className="gap-6 p-4 sm:p-6">
           {/* ── Header ── */}
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -642,7 +642,7 @@ export default function ColorStories() {
           </div>
 
           {/* ── Filters ── */}
-          <div className="rounded-[22px] border border-default-200 bg-content1 px-4 py-4 sm:px-5">
+          <div className="bg-content1">
             <ColorStoriesFilters
               categories={categories}
               hasActiveFilters={hasActiveFilters}
@@ -663,7 +663,7 @@ export default function ColorStories() {
               aria-label="Color stories table"
               classNames={{
                 base: "min-h-[320px]",
-                wrapper: "overflow-x-auto border border-default-200 shadow-none p-0",
+                wrapper: "overflow-x-auto shadow-none p-0 bg-transparent",
                 table: "w-full",
                 th: "bg-default-100 text-[11px] font-semibold uppercase tracking-[0.16em] text-default-600",
                 td: "py-4 align-top",

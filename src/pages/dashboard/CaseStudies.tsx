@@ -700,7 +700,7 @@ export default function CaseStudies() {
     <>
       {/* ---- Main card ---- */}
       <Card shadow="md">
-        <CardBody className="gap-6">
+        <CardBody className="gap-6 p-4 sm:p-6">
           {/* Header */}
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -741,7 +741,7 @@ export default function CaseStudies() {
               aria-label="Case studies table"
               classNames={{
                 base: "min-h-[320px]",
-                wrapper: "overflow-x-auto border border-default-200 shadow-none p-0",
+                wrapper: "overflow-x-auto shadow-none p-0 bg-transparent",
                 th: "bg-default-100 text-[11px] font-semibold uppercase tracking-[0.16em] text-default-600",
                 td: "py-4 align-top",
               }}

@@ -210,13 +210,7 @@ function Users() {
     filters.startDate ||
     filters.endDate,
   );
-  const activeFilterCount = [
-    filters.search.trim(),
-    filters.paymentStatus !== "all" ? filters.paymentStatus : "",
-    filters.status !== "all" ? filters.status : "",
-    filters.startDate,
-    filters.endDate,
-  ].filter(Boolean).length;
+
   const hasInvalidDateRange = Boolean(
     startDateFilter && endDateFilter && startDateFilter > endDateFilter,
   );
@@ -649,7 +643,7 @@ function Users() {
   return (
     <>
       <Card shadow="md">
-        <CardBody className="gap-6">
+        <CardBody className="gap-6 p-4 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -667,15 +661,7 @@ function Users() {
                 >
                   {onlinePresenceChipLabel}
                 </Chip>
-                <Chip
-                  color={hasActiveFilters ? "primary" : "default"}
-                  size="sm"
-                  variant="flat"
-                >
-                  {hasActiveFilters
-                    ? `${activeFilterCount} active filter${activeFilterCount === 1 ? "" : "s"}`
-                    : "Showing all users"}
-                </Chip>
+
               </div>
               <p className="text-sm text-default-500">{usersCountLabel}</p>
             </div>
@@ -691,26 +677,11 @@ function Users() {
               >
                 Refresh
               </Button>
-              <div className="rounded-2xl border border-default-200 bg-default-50 px-4 py-3">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-default-500">
-                  Page
-                </p>
-                <p className="text-sm font-semibold text-foreground">
-                  {page} / {Math.max(totalPages, 1)}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-default-200 bg-default-50 px-4 py-3">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-default-500">
-                  Page Size
-                </p>
-                <p className="text-sm font-semibold text-foreground">
-                  {limit} rows
-                </p>
-              </div>
+
             </div>
           </div>
 
-          <div className="rounded-[22px] border border-default-200 bg-content1 px-4 py-4 sm:px-5">
+          <div className="bg-content1">
             <UsersFilters
               hasActiveFilters={hasActiveFilters}
               isLoading={isLoading}
@@ -957,7 +928,7 @@ function Users() {
                 classNames={{
                   base: "min-h-[320px]",
                   wrapper:
-                    "overflow-hidden border border-default-200 shadow-none p-0",
+                    "overflow-hidden shadow-none p-0 bg-transparent",
                   table: "w-full table-auto",
                   th: "bg-default-100 text-[11px] font-semibold uppercase tracking-[0.16em] text-default-600",
                   td: "py-3 align-middle",
@@ -1064,12 +1035,14 @@ function Users() {
                         </TableCell>
 
                         <TableCell>
-                          <div className="flex justify-start">
-                            <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-default-200 bg-default-50 p-1">
-                              <Tooltip content="View details"><Button
+                          <div
+                            className="flex justify-end gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Tooltip content="View details">
+                              <Button
                                 isIconOnly
                                 isDisabled={!userId}
-                                radius="full"
                                 size="sm"
                                 variant="flat"
                                 onPress={() => {
@@ -1079,13 +1052,14 @@ function Users() {
                                 }}
                               >
                                 <Icon height={16} icon="mdi:eye" width={16} />
-                              </Button></Tooltip>
+                              </Button>
+                            </Tooltip>
 
-                              <Tooltip content="User library"><Button
+                            <Tooltip content="User library">
+                              <Button
                                 isIconOnly
                                 color="secondary"
                                 isDisabled={!userId}
-                                radius="full"
                                 size="sm"
                                 variant="flat"
                                 onPress={() => {
@@ -1097,14 +1071,15 @@ function Users() {
                                   icon="mdi:bookshelf"
                                   width={16}
                                 />
-                              </Button></Tooltip>
+                              </Button>
+                            </Tooltip>
 
-                              <Tooltip content="Delete user"><Button
+                            <Tooltip content="Delete user">
+                              <Button
                                 isIconOnly
                                 color="danger"
                                 isDisabled={!userId || deletingUserId !== null}
                                 isLoading={deletingUserId === userId}
-                                radius="full"
                                 size="sm"
                                 variant="flat"
                                 onPress={() => {
@@ -1120,8 +1095,8 @@ function Users() {
                                     width={16}
                                   />
                                 ) : null}
-                              </Button></Tooltip>
-                            </div>
+                              </Button>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>

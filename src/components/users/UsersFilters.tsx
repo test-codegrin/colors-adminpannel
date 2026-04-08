@@ -69,22 +69,7 @@ export default function UsersFilters({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-            Filters
-          </span>
-          <p className="text-sm text-default-500">
-            Search, payment status, live status, and created date range.
-          </p>
-        </div>
-
-        {hasActiveFilters ? (
-          <p className="text-xs font-medium text-default-500">
-            Results update automatically
-          </p>
-        ) : null}
-      </div>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between" />
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(140px,0.8fr)_minmax(140px,0.8fr)_minmax(140px,0.9fr)_minmax(140px,0.9fr)_auto] xl:items-end">
         <Input

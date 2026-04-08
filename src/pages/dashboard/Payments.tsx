@@ -141,10 +141,10 @@ export default function PaymentsTable() {
 
   return (
     <Card shadow="md">
-      <CardBody className="gap-6 overflow-x-auto scrollbar-hide">
+      <CardBody className="gap-6 p-4 sm:p-6 overflow-x-auto scrollbar-hide">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Payments</h2>
-          <p className="text-sm text-default-500">Page {page}</p>
+
         </div>
         <div className="min-h-[300px]">
           {error && <p className="text-danger text-sm">{error}</p>}

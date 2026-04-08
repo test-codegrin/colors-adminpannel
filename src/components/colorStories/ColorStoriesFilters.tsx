@@ -58,22 +58,7 @@ export default function ColorStoriesFilters({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-            Filters
-          </span>
-          <p className="text-sm text-default-500">
-            Search by title, excerpt, or tags and narrow by status or category.
-          </p>
-        </div>
-
-        {hasActiveFilters ? (
-          <p className="text-xs font-medium text-default-500">
-            Results update automatically
-          </p>
-        ) : null}
-      </div>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between" />
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(220px,0.8fr)_minmax(220px,0.8fr)_auto] lg:items-end">
         <Input
