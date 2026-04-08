@@ -69,78 +69,98 @@ export default function UsersFilters({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between" />
+      {/* Filters row */}
+      <div className="flex flex-wrap items-end gap-3">
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(140px,0.8fr)_minmax(140px,0.8fr)_minmax(140px,0.9fr)_minmax(140px,0.9fr)_auto] xl:items-end">
-        <Input
-          isClearable
-          className="w-full"
-          label="Search users"
-          placeholder="Search name, email or mobile"
-          size="sm"
-          startContent={
-            <Icon
-              className="text-default-400"
-              height={18}
-              icon="mdi:magnify"
-              width={18}
-            />
-          }
-          value={values.search}
-          variant="bordered"
-          onClear={() => onSearchChange("")}
-          onValueChange={onSearchChange}
-        />
+        {/* Search */}
+        <div className="flex-shrink-0">
+          <Input
+            isClearable
+            className="w-[520px]"
+            label="Search users"
+            placeholder="Search name, email or mobile"
+            size="md"
+            startContent={
+              <Icon
+                className="text-default-400"
+                height={18}
+                icon="mdi:magnify"
+                width={18}
+              />
+            }
+            value={values.search}
+            variant="bordered"
+            onClear={() => onSearchChange("")}
+            onValueChange={onSearchChange}
+          />
+        </div>
 
-        <Select
-          disallowEmptySelection
-          label="Payment status"
-          selectedKeys={[values.paymentStatus]}
-          size="sm"
-          variant="bordered"
-          onSelectionChange={handlePaymentSelectionChange}
-        >
-          <SelectItem key="all">All</SelectItem>
-          <SelectItem key="paid">Paid</SelectItem>
-          <SelectItem key="unpaid">Unpaid</SelectItem>
-        </Select>
+        {/* Payment Status */}
+        <div className="flex-shrink-0">
+          <Select
+            disallowEmptySelection
+            label="Payment status"
+            selectedKeys={[values.paymentStatus]}
+            className="w-[150px]"
+            size="md"
+            variant="bordered"
+            onSelectionChange={handlePaymentSelectionChange}
+          >
+            <SelectItem key="all">All</SelectItem>
+            <SelectItem key="paid">Paid</SelectItem>
+            <SelectItem key="unpaid">Unpaid</SelectItem>
+          </Select>
+        </div>
 
-        <Select
-          disallowEmptySelection
-          label="Status"
-          selectedKeys={[values.status]}
-          size="sm"
-          variant="bordered"
-          onSelectionChange={handleStatusSelectionChange}
-        >
-          <SelectItem key="all">All</SelectItem>
-          <SelectItem key="online">Online</SelectItem>
-          <SelectItem key="offline">Offline</SelectItem>
-        </Select>
+        {/* Status */}
+        <div className="flex-shrink-0">
+          <Select
+            disallowEmptySelection
+            label="Status"
+            selectedKeys={[values.status]}
+            className="w-[150px]"
+            size="md"
+            variant="bordered"
+            onSelectionChange={handleStatusSelectionChange}
+          >
+            <SelectItem key="all">All</SelectItem>
+            <SelectItem key="online">Online</SelectItem>
+            <SelectItem key="offline">Offline</SelectItem>
+          </Select>
+        </div>
 
-        <Input
-          label="Start date"
-          max={values.endDate || undefined}
-          size="sm"
-          type="date"
-          value={values.startDate}
-          variant="bordered"
-          onValueChange={onStartDateChange}
-        />
+        {/* Start Date */}
+        <div className="flex-shrink-0">
+          <Input
+            label="Start date"
+            max={values.endDate || undefined}
+            className="w-[150px]"
+            size="md"
+            type="date"
+            value={values.startDate}
+            variant="bordered"
+            onValueChange={onStartDateChange}
+          />
+        </div>
 
-        <Input
-          label="End date"
-          min={values.startDate || undefined}
-          size="sm"
-          type="date"
-          value={values.endDate}
-          variant="bordered"
-          onValueChange={onEndDateChange}
-        />
+        {/* End Date */}
+        <div className="flex-shrink-0">
+          <Input
+            label="End date"
+            min={values.startDate || undefined}
+            className="w-[150px]"
+            size="md"
+            type="date"
+            value={values.endDate}
+            variant="bordered"
+            onValueChange={onEndDateChange}
+          />
+        </div>
 
-        <div className="flex justify-start xl:justify-end">
+        {/* Button */}
+        <div className="flex-shrink-0 ml-auto">
           <Button
-            className="h-10 w-full justify-center whitespace-nowrap px-4 sm:w-auto sm:min-w-[148px]"
+            className="h-10 w-full sm:w-auto min-w-[148px]"
             isDisabled={!hasActiveFilters || isLoading}
             size="sm"
             startContent={
@@ -156,6 +176,7 @@ export default function UsersFilters({
             Clear filters
           </Button>
         </div>
+
       </div>
     </div>
   );

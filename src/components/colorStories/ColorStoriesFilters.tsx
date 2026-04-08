@@ -65,7 +65,7 @@ export default function ColorStoriesFilters({
           isClearable
           label="Search stories"
           placeholder="Search title, excerpt, or tags"
-          size="sm"
+          size="md"
           startContent={
             <Icon
               className="text-default-400"
@@ -84,7 +84,7 @@ export default function ColorStoriesFilters({
           disallowEmptySelection
           label="Status"
           selectedKeys={[values.status]}
-          size="sm"
+          size="md"
           variant="bordered"
           onSelectionChange={handleStatusSelectionChange}
         >

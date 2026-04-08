@@ -717,7 +717,8 @@ export default function CaseStudies() {
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 isLoading={isLoading}
-                startContent={!isLoading ? <Icon icon="solar:refresh-bold" width={18} /> : undefined}
+                size="sm"
+                startContent={!isLoading ? <Icon icon="solar:refresh-bold" width={16} /> : undefined}
                 variant="flat"
                 onPress={triggerReload}
               >
