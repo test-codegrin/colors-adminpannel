@@ -21,6 +21,24 @@ import Loader from "./Loader";
 
 /* ---------- Utility ---------- */
 
+function getImageUrl(path?: string | null): string | undefined {
+  if (!path || path === "null" || path.trim() === "") {
+    return undefined;
+  }
+
+  // If it's already an absolute URL (starts with http or https), return it as is
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+
+  // Otherwise, prefix it with the base URL from environment variables
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+  const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  return `${cleanBaseUrl}${cleanPath}`;
+}
+
 function formatDate(value?: string): string {
   if (!value) return "-";
   const date = new Date(value);
@@ -30,16 +48,15 @@ function formatDate(value?: string): string {
   return date.toLocaleString();
 }
 
-function getInitials(name?: string): string {
-  if (!name) return "U";
+function getInitials(name?: string, email?: string): string {
+  if (name && name.trim()) {
+    return name.trim().charAt(0).toUpperCase();
+  }
+  if (email && email.trim()) {
+    return email.trim().charAt(0).toUpperCase();
+  }
 
-  return name
-    .trim()
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  return "U";
 }
 
 function isUserPaid(value: unknown): boolean {
@@ -241,7 +258,6 @@ export default function UserDetailsModal({
       backdrop="blur"
       isDismissable={false}
       isOpen={isOpen}
-      placement="center"
       size="md"
       onOpenChange={onOpenChange}
     >
@@ -293,11 +309,12 @@ export default function UserDetailsModal({
                   <div className="flex justify-center">
                     <Avatar
                       isBordered
+                      showFallback
                       className="w-20 h-20 text-white text-xl font-semibold"
                       color="primary"
-                      name={getInitials(selectedUser.name)}
+                      name={getInitials(selectedUser.name, selectedUser.email)}
                       radius="full"
-                      src={selectedUser.picture || undefined}
+                      src={getImageUrl(selectedUser.picture)}
                     />
                   </div>
 

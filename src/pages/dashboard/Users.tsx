@@ -27,6 +27,7 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
+  Tooltip,
   addToast,
   useDisclosure,
 } from "@heroui/react";
@@ -57,6 +58,24 @@ const INITIAL_USERS_FILTERS: UsersFiltersFormValues = {
 };
 const ONLINE_USERS_POLL_INTERVAL_MS = 30_000;
 
+function getImageUrl(path?: string | null): string | undefined {
+  if (!path || path === "null" || path.trim() === "") {
+    return undefined;
+  }
+
+  // If it's already an absolute URL (starts with http or https), return it as is
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+
+  // Otherwise, prefix it with the base URL from environment variables
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+  const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  return `${cleanBaseUrl}${cleanPath}`;
+}
+
 function formatDate(value?: string): string {
   if (!value) return "-";
   const date = new Date(value);
@@ -66,16 +85,15 @@ function formatDate(value?: string): string {
   return date.toLocaleString();
 }
 
-function getInitials(name?: string): string {
-  if (!name) return "U";
+function getInitials(name?: string, email?: string): string {
+  if (name && name.trim()) {
+    return name.trim().charAt(0).toUpperCase();
+  }
+  if (email && email.trim()) {
+    return email.trim().charAt(0).toUpperCase();
+  }
 
-  return name
-    .trim()
-    .split(" ")
-    .map((word) => word[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  return "U";
 }
 
 function isUserPaid(value: unknown): boolean {
@@ -133,7 +151,7 @@ function Users() {
   const location = useLocation();
   const [users, setUsers] = useState<User[]>([]);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(50);
+  const [limit, setLimit] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [onlineUsersCount, setOnlineUsersCount] = useState(0);
@@ -187,10 +205,10 @@ function Users() {
   const endDateFilter = filters.endDate || undefined;
   const hasActiveFilters = Boolean(
     filters.search.trim() ||
-      filters.paymentStatus !== "all" ||
-      filters.status !== "all" ||
-      filters.startDate ||
-      filters.endDate,
+    filters.paymentStatus !== "all" ||
+    filters.status !== "all" ||
+    filters.startDate ||
+    filters.endDate,
   );
   const activeFilterCount = [
     filters.search.trim(),
@@ -206,9 +224,9 @@ function Users() {
   useEffect(() => {
     const nextUsersResetAt =
       typeof location.state === "object" &&
-      location.state !== null &&
-      "usersResetAt" in location.state &&
-      typeof (location.state as { usersResetAt?: unknown }).usersResetAt ===
+        location.state !== null &&
+        "usersResetAt" in location.state &&
+        typeof (location.state as { usersResetAt?: unknown }).usersResetAt ===
         "number"
         ? (location.state as { usersResetAt: number }).usersResetAt
         : null;
@@ -450,8 +468,12 @@ function Users() {
     try {
       const result = await updateUserById(userId, payload);
 
-      setSelectedUser(result.user);
-      reloadUsers();
+      const updatedUser = result.user;
+      setSelectedUser(updatedUser);
+      setUsers((prev) => {
+        if (!updatedUser) return prev;
+        return prev.map((u) => (getUserId(u) === userId ? updatedUser : u));
+      });
 
       addToast({
         title: "User Updated",
@@ -537,7 +559,7 @@ function Users() {
   const onlinePresenceChipLabel = liveUsersError
     ? "Presence unavailable"
     : onlineUsersLabel;
-  const shouldShowOnlineStrip = !liveUsersError && filters.status !== "offline";
+  /* const shouldShowOnlineStrip = !liveUsersError && filters.status !== "offline";
   const visibleOnlineUsers = users.filter((user) => {
     const userId = getUserId(user);
 
@@ -546,7 +568,7 @@ function Users() {
   const hiddenOnlineUsersCount = Math.max(
     onlineUsersCount - visibleOnlineUsers.length,
     0,
-  );
+  ); */
   const emptyUsersContent = (
     <div className="flex flex-col items-center gap-2 py-4 text-center">
       <p className="text-sm font-medium text-foreground">
@@ -659,6 +681,16 @@ function Users() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center">
+              <Button
+                isLoading={isLoading}
+                startContent={
+                  !isLoading && <Icon icon="solar:refresh-bold" width={18} />
+                }
+                variant="flat"
+                onPress={reloadUsers}
+              >
+                Refresh
+              </Button>
               <div className="rounded-2xl border border-default-200 bg-default-50 px-4 py-3">
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-default-500">
                   Page
@@ -678,7 +710,7 @@ function Users() {
             </div>
           </div>
 
-          <div className="rounded-[22px] border border-default-200 bg-content1 px-4 py-4 sm:px-5 sm:py-4">
+          <div className="rounded-[22px] border border-default-200 bg-content1 px-4 py-4 sm:px-5">
             <UsersFilters
               hasActiveFilters={hasActiveFilters}
               isLoading={isLoading}
@@ -696,7 +728,7 @@ function Users() {
             />
           </div>
 
-          {shouldShowOnlineStrip ? (
+          {/* {shouldShowOnlineStrip ? (
             <div className="rounded-[22px] border border-success/20 bg-success/5 px-4 py-4 sm:px-5">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="space-y-1">
@@ -732,11 +764,12 @@ function Users() {
                         >
                           <div className="relative shrink-0">
                             <Avatar
+                              showFallback
                               className="bg-primary text-white font-semibold"
-                              name={getInitials(user.name)}
+                              name={getInitials(user.name, user.email)}
                               radius="full"
                               size="sm"
-                              src={user.picture ?? ""}
+                              src={getImageUrl(user.picture)}
                             />
                             <span className="absolute bottom-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-content1 shadow-sm">
                               <span className="h-2.5 w-2.5 rounded-full bg-success" />
@@ -758,7 +791,7 @@ function Users() {
                 ) : null}
               </div>
             </div>
-          ) : null}
+          ) : null} */}
 
           {error && <p className="text-danger text-sm">{error}</p>}
 
@@ -790,11 +823,12 @@ function Users() {
                             <div className="flex min-w-0 items-center gap-3">
                               <div className="relative shrink-0">
                                 <Avatar
+                                  showFallback
                                   className="bg-primary text-white font-semibold"
-                                  name={getInitials(user.name)}
+                                  name={getInitials(user.name, user.email)}
                                   radius="full"
                                   size="md"
-                                  src={user.picture ?? ""}
+                                  src={getImageUrl(user.picture)}
                                 />
                                 {isOnline ? (
                                   <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-content1 shadow-sm">
@@ -852,7 +886,7 @@ function Users() {
                             </Chip>
 
                             <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-default-200 bg-default-50 p-1">
-                              <Button
+                              <Tooltip content="View details"><Button
                                 isIconOnly
                                 isDisabled={!userId}
                                 radius="full"
@@ -865,9 +899,9 @@ function Users() {
                                 }}
                               >
                                 <Icon height={16} icon="mdi:eye" width={16} />
-                              </Button>
+                              </Button></Tooltip>
 
-                              <Button
+                              <Tooltip content="User library"><Button
                                 isIconOnly
                                 color="secondary"
                                 isDisabled={!userId}
@@ -883,9 +917,9 @@ function Users() {
                                   icon="mdi:bookshelf"
                                   width={16}
                                 />
-                              </Button>
+                              </Button></Tooltip>
 
-                              <Button
+                              <Tooltip content="Delete user"><Button
                                 isIconOnly
                                 color="danger"
                                 isDisabled={!userId || deletingUserId !== null}
@@ -906,7 +940,7 @@ function Users() {
                                     width={16}
                                   />
                                 ) : null}
-                              </Button>
+                              </Button></Tooltip>
                             </div>
                           </div>
                         </CardBody>
@@ -926,7 +960,7 @@ function Users() {
                     "overflow-hidden border border-default-200 shadow-none p-0",
                   table: "w-full table-auto",
                   th: "bg-default-100 text-[11px] font-semibold uppercase tracking-[0.16em] text-default-600",
-                  td: "py-4 align-middle",
+                  td: "py-3 align-middle",
                   emptyWrapper: "py-14 text-default-500",
                 }}
               >
@@ -959,11 +993,12 @@ function Users() {
                           <div className="flex items-center gap-3">
                             <div className="relative shrink-0">
                               <Avatar
+                                showFallback
                                 className="bg-primary text-white font-semibold"
-                                name={getInitials(user.name)}
+                                name={getInitials(user.name, user.email)}
                                 radius="full"
                                 size="sm"
-                                src={user.picture ?? ""}
+                                src={getImageUrl(user.picture)}
                               />
                               {isOnline ? (
                                 <>
@@ -1031,7 +1066,7 @@ function Users() {
                         <TableCell>
                           <div className="flex justify-start">
                             <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-default-200 bg-default-50 p-1">
-                              <Button
+                              <Tooltip content="View details"><Button
                                 isIconOnly
                                 isDisabled={!userId}
                                 radius="full"
@@ -1044,9 +1079,9 @@ function Users() {
                                 }}
                               >
                                 <Icon height={16} icon="mdi:eye" width={16} />
-                              </Button>
+                              </Button></Tooltip>
 
-                              <Button
+                              <Tooltip content="User library"><Button
                                 isIconOnly
                                 color="secondary"
                                 isDisabled={!userId}
@@ -1062,9 +1097,9 @@ function Users() {
                                   icon="mdi:bookshelf"
                                   width={16}
                                 />
-                              </Button>
+                              </Button></Tooltip>
 
-                              <Button
+                              <Tooltip content="Delete user"><Button
                                 isIconOnly
                                 color="danger"
                                 isDisabled={!userId || deletingUserId !== null}
@@ -1085,7 +1120,7 @@ function Users() {
                                     width={16}
                                   />
                                 ) : null}
-                              </Button>
+                              </Button></Tooltip>
                             </div>
                           </div>
                         </TableCell>
@@ -1149,7 +1184,6 @@ function Users() {
       <Modal
         isDismissable={deletingUserId === null}
         isOpen={isDeleteModalOpen}
-        placement="center"
         onOpenChange={onDeleteModalOpenChange}
       >
         <ModalContent>

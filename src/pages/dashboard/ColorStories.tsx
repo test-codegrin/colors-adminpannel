@@ -494,13 +494,27 @@ export default function ColorStories() {
       if (editingStoryId) {
         const result = await updateColorStoryById(editingStoryId, payload);
         addToast({ title: "Story Updated", description: result.message ?? "Color story updated successfully.", color: "success", radius: "full", timeout: 3000 });
+
+        // Manual state update with safe guard
+        const updatedStory = result.data || result.story;
+        setStories((prev) => {
+          if (!updatedStory) return prev;
+          return prev.map((s) => (s.id === editingStoryId ? updatedStory : s));
+        });
       } else {
         const result = await createColorStory(payload);
         addToast({ title: "Story Created", description: result.message ?? "Color story created successfully.", color: "success", radius: "full", timeout: 3000 });
+
+        // Manual state update for new story
+        const newStory = result.data || result.story;
+        setStories((prev) => {
+          if (!newStory) return prev;
+          return [newStory, ...prev];
+        });
+        setTotalStories((prev) => prev + 1);
       }
       onFormClose();
       resetForm();
-      triggerReload();
     } catch (submitError) {
       addToast({ title: editingStoryId ? "Update Failed" : "Create Failed", description: getColorStoriesErrorMessage(submitError), color: "danger", radius: "full", timeout: 3000 });
     } finally {
@@ -515,8 +529,14 @@ export default function ColorStories() {
     try {
       const result = await deleteColorStoryById(id);
       addToast({ title: "Story Deleted", description: result.message ?? "Color story deleted successfully.", color: "success", radius: "full", timeout: 3000 });
-      if (stories.length === 1 && page > 1) setPage((prev) => prev - 1);
-      else triggerReload();
+
+      // Immediate state update
+      setStories((prev) => prev.filter((s) => s.id !== id));
+      setTotalStories((prev) => Math.max(0, prev - 1));
+
+      if (stories.length === 1 && page > 1) {
+        setPage((prev) => prev - 1);
+      }
     } catch (deleteError) {
       addToast({ title: "Delete Failed", description: getColorStoriesErrorMessage(deleteError), color: "danger", radius: "full", timeout: 3000 });
     } finally {
@@ -528,16 +548,40 @@ export default function ColorStories() {
 
   const handleStatusChange = async (story: ColorStory) => {
     const nextStatus: ColorStoryStatus = story.status === 1 ? 0 : 1;
-    setStatusUpdatingId(story.id);
+    const storyId = story.id;
+
+    setStatusUpdatingId(storyId);
+
+    // Optimistic update
+    setStories((prev) =>
+      prev.map((s) =>
+        s.id === storyId ? { ...s, status: nextStatus } : s
+      )
+    );
+
     try {
-      const result = await updateColorStoryStatus(story.id, nextStatus);
+      const result = await updateColorStoryStatus(storyId, nextStatus);
       addToast({
         title: nextStatus === 1 ? "Story Published" : "Moved To Draft",
         description: result.message ?? (nextStatus === 1 ? "Color story published successfully." : "Color story moved back to draft."),
         color: "success", radius: "full", timeout: 3000,
       });
-      triggerReload();
+
+      // Verify with server response if possible
+      if (result.data || result.story) {
+        const updatedStory = result.data || result.story;
+        setStories((prev) => {
+          if (!updatedStory) return prev;
+          return prev.map((s) => (s.id === storyId ? updatedStory : s));
+        });
+      }
     } catch (statusError) {
+      // Revert on error
+      setStories((prev) =>
+        prev.map((s) =>
+          s.id === storyId ? { ...s, status: story.status } : s
+        )
+      );
       addToast({ title: "Status Update Failed", description: getColorStoriesErrorMessage(statusError), color: "danger", radius: "full", timeout: 3000 });
     } finally {
       setStatusUpdatingId(null);
@@ -620,7 +664,7 @@ export default function ColorStories() {
               classNames={{
                 base: "min-h-[320px]",
                 wrapper: "overflow-x-auto border border-default-200 shadow-none p-0",
-                table: "w-full table-fixed",
+                table: "w-full",
                 th: "bg-default-100 text-[11px] font-semibold uppercase tracking-[0.16em] text-default-600",
                 td: "py-4 align-top",
                 emptyWrapper: "py-14 text-default-500",
@@ -628,13 +672,13 @@ export default function ColorStories() {
             >
               <TableHeader>
                 <TableColumn className="w-[22%]">Story</TableColumn>
-                <TableColumn className="w-[12%]">Category</TableColumn>
-                <TableColumn className="w-[16%]">Palette</TableColumn>
-                <TableColumn className="w-[16%]">Author</TableColumn>
+                <TableColumn className="w-[10%]">Category</TableColumn>
+                <TableColumn className="w-[15%]">Palette</TableColumn>
+                <TableColumn className="w-[15%]">Author</TableColumn>
                 <TableColumn className="w-[12%]">Tags</TableColumn>
                 <TableColumn className="w-[10%]">Status</TableColumn>
-                <TableColumn className="w-[12%]">Updated</TableColumn>
-                <TableColumn className="w-[10%] text-right">Action</TableColumn>
+                <TableColumn className="w-[8%]">Updated</TableColumn>
+                <TableColumn className="w-[8%] text-right">Action</TableColumn>
               </TableHeader>
               <TableBody
                 emptyContent={emptyStoriesContent}
@@ -833,7 +877,6 @@ export default function ColorStories() {
         backdrop="blur"
         isOpen={isViewModalOpen}
         size="full"
-        placement="center"
         classNames={{
           base: "sm:max-w-2xl",
           body: "overflow-y-auto scrollbar-hide max-h-[90vh]",
@@ -1005,7 +1048,6 @@ export default function ColorStories() {
         backdrop="blur"
         isOpen={isFormModalOpen}
         size="2xl"
-        placement="center"
         classNames={{ base: "h-[90dvh] mx-2 sm:mx-auto", body: "overflow-y-auto" }}
         onOpenChange={(isOpen) => {
           if (!isOpen && !isSubmittingForm) resetForm();
@@ -1110,7 +1152,6 @@ export default function ColorStories() {
         backdrop="blur"
         isOpen={isCategoriesModalOpen}
         size="2xl"
-        placement="center"
         classNames={{ base: "mx-2 sm:mx-auto" }}
         onOpenChange={(isOpen) => {
           if (!isOpen && !isSubmittingCategory) { resetCategoryForm(); setCategorySearch(""); }
@@ -1174,7 +1215,7 @@ export default function ColorStories() {
       </Modal>
 
       {/* ── Delete Modal ── */}
-      <Modal placement="center" backdrop="blur" hideCloseButton={deletingStoryId !== null} isDismissable={deletingStoryId === null} isOpen={isDeleteModalOpen} classNames={{ base: "mx-2 sm:mx-auto" }} onOpenChange={onDeleteOpenChange}>
+      <Modal backdrop="blur" hideCloseButton={deletingStoryId !== null} isDismissable={deletingStoryId === null} isOpen={isDeleteModalOpen} classNames={{ base: "mx-2 sm:mx-auto" }} onOpenChange={onDeleteOpenChange}>
         <ModalContent>
           <ModalHeader className="text-base font-semibold">Delete Story</ModalHeader>
           <ModalBody>

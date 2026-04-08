@@ -582,9 +582,10 @@ export default function CaseStudies() {
         // Update the specific item in state
         if (res.caseStudy || res.data) {
           const updatedCaseStudy = (res.caseStudy || res.data)!;
-          setCaseStudies((prev) =>
-            prev.map((cs) => cs.id === editingId ? updatedCaseStudy : cs)
-          );
+          setCaseStudies((prev) => {
+            if (!updatedCaseStudy) return prev;
+            return prev.map((cs) => (cs.id === editingId ? updatedCaseStudy : cs));
+          });
         } else {
           triggerReload();
         }
@@ -595,7 +596,10 @@ export default function CaseStudies() {
         // Add new item to state
         if (res.caseStudy || res.data) {
           const newCaseStudy = (res.caseStudy || res.data)!;
-          setCaseStudies((prev) => [newCaseStudy, ...prev]);
+          setCaseStudies((prev) => {
+            if (!newCaseStudy) return prev;
+            return [newCaseStudy, ...prev];
+          });
           setTotalCount((prev) => prev + 1);
         } else {
           triggerReload();
@@ -650,6 +654,13 @@ export default function CaseStudies() {
 
     try {
       const res = await updateCaseStudyStatus(csId, nextStatus);
+
+      // Verify with server response
+      const updatedCaseStudy = res.caseStudy || res.data;
+      setCaseStudies((prev) => {
+        if (!updatedCaseStudy) return prev;
+        return prev.map((item) => (Number(item.id) === csId ? updatedCaseStudy : item));
+      });
 
       addToast({
         title: nextStatus === 1 ? "Case Study Published" : "Moved To Draft",
@@ -830,71 +841,75 @@ export default function CaseStudies() {
                         className="flex justify-end gap-2"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {/* ✅ Edit button (same रहेगा) */}
-                        <Button
-                          isIconOnly
-                          color="secondary"
-                          size="sm"
-                          variant="flat"
-                          startContent={
-                            <Icon
-                              key={`edit-${cs.id}`}
-                              height={16}
-                              icon="mdi:pencil-outline"
-                              width={16}
-                            />
-                          }
-                          onPress={() => void openEdit(cs.id)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-
-                        {/* 🔥 NEW TOGGLE + DELETE */}
-                        <div className="flex items-center gap-2">
+                        <Tooltip content="Edit case study">
                           <Button
                             isIconOnly
-                            color={cs.status === 1 ? "warning" : "success"}
+                            color="secondary"
                             size="sm"
                             variant="flat"
                             startContent={
                               <Icon
-                                key={`status-${cs.id}-${cs.status}`}
+                                key={`edit-${cs.id}`}
                                 height={16}
-                                icon={
-                                  cs.status === 1
-                                    ? "mdi:file-document-edit-outline"
-                                    : "mdi:publish"
-                                }
+                                icon="mdi:pencil-outline"
                                 width={16}
                               />
                             }
-                            onPress={() => void handleStatusChange(cs)}
+                            onPress={() => void openEdit(cs.id)}
                             onClick={(e) => e.stopPropagation()}
                           />
+                        </Tooltip>
 
-                          <Button
-                            isIconOnly
-                            color="danger"
-                            size="sm"
-                            variant="flat"
-                            startContent={
-                              deletingId !== cs.id && (
+                        <div className="flex items-center gap-2">
+                          <Tooltip content={cs.status === 1 ? "Move to draft" : "Publish case study"}>
+                            <Button
+                              isIconOnly
+                              color={cs.status === 1 ? "warning" : "success"}
+                              size="sm"
+                              variant="flat"
+                              startContent={
                                 <Icon
-                                  key={`del-${cs.id}`}
+                                  key={`status-${cs.id}-${cs.status}`}
                                   height={16}
-                                  icon="mdi:delete-outline"
+                                  icon={
+                                    cs.status === 1
+                                      ? "mdi:file-document-edit-outline"
+                                      : "mdi:publish"
+                                  }
                                   width={16}
                                 />
-                              )
-                            }
-                            onPress={() => {
-                              setPendingDelete({
-                                id: cs.id,
-                                title: cs.title || "this case study",
-                              });
-                              onDeleteOpen();
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
+                              }
+                              onPress={() => void handleStatusChange(cs)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </Tooltip>
+
+                          <Tooltip content="Delete case study">
+                            <Button
+                              isIconOnly
+                              color="danger"
+                              size="sm"
+                              variant="flat"
+                              startContent={
+                                deletingId !== cs.id && (
+                                  <Icon
+                                    key={`del-${cs.id}`}
+                                    height={16}
+                                    icon="mdi:delete-outline"
+                                    width={16}
+                                  />
+                                )
+                              }
+                              onPress={() => {
+                                setPendingDelete({
+                                  id: cs.id,
+                                  title: cs.title || "this case study",
+                                });
+                                onDeleteOpen();
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </Tooltip>
                         </div>
                       </div>
                     </TableCell>
@@ -955,65 +970,71 @@ export default function CaseStudies() {
                       {formatDateTime(cs.updatedAt || cs.createdAt)}
                     </p>
                     <div className="flex gap-1.5">
-                      <Button
-                        isIconOnly
-                        color="secondary"
-                        size="sm"
-                        variant="flat"
-                        startContent={
-                          <Icon height={15} icon="mdi:pencil-outline" width={15} />
-                        }
-                        onPress={() => void openEdit(cs.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
+                      <Tooltip content="Edit case study">
+                        <Button
+                          isIconOnly
+                          color="secondary"
+                          size="sm"
+                          variant="flat"
+                          startContent={
+                            <Icon height={15} icon="mdi:pencil-outline" width={15} />
+                          }
+                          onPress={() => void openEdit(cs.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </Tooltip>
 
                       <div className="flex items-center gap-1.5">
-                        <Button
-                          isIconOnly
-                          color={cs.status === 1 ? "warning" : "success"}
-                          size="sm"
-                          variant="flat"
-                          startContent={
-                            <Icon
-                              key={`status-${cs.id}-${cs.status}`}
-                              height={15}
-                              icon={
-                                cs.status === 1
-                                  ? "mdi:file-document-edit-outline"
-                                  : "mdi:publish"
-                              }
-                              width={15}
-                            />
-                          }
-                          onPress={() => void handleStatusChange(cs)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-
-                        <Button
-                          isIconOnly
-                          color="danger"
-                          isDisabled={deletingId === cs.id}
-                          isLoading={deletingId === cs.id}
-                          size="sm"
-                          variant="flat"
-                          startContent={
-                            deletingId !== cs.id && (
+                        <Tooltip content={cs.status === 1 ? "Move to draft" : "Publish case study"}>
+                          <Button
+                            isIconOnly
+                            color={cs.status === 1 ? "warning" : "success"}
+                            size="sm"
+                            variant="flat"
+                            startContent={
                               <Icon
+                                key={`status-${cs.id}-${cs.status}`}
                                 height={15}
-                                icon="mdi:delete-outline"
+                                icon={
+                                  cs.status === 1
+                                    ? "mdi:file-document-edit-outline"
+                                    : "mdi:publish"
+                                }
                                 width={15}
                               />
-                            )
-                          }
-                          onPress={() => {
-                            setPendingDelete({
-                              id: cs.id,
-                              title: cs.title || "this case study",
-                            });
-                            onDeleteOpen();
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
+                            }
+                            onPress={() => void handleStatusChange(cs)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </Tooltip>
+
+                        <Tooltip content="Delete case study">
+                          <Button
+                            isIconOnly
+                            color="danger"
+                            isDisabled={deletingId === cs.id}
+                            isLoading={deletingId === cs.id}
+                            size="sm"
+                            variant="flat"
+                            startContent={
+                              deletingId !== cs.id && (
+                                <Icon
+                                  height={15}
+                                  icon="mdi:delete-outline"
+                                  width={15}
+                                />
+                              )
+                            }
+                            onPress={() => {
+                              setPendingDelete({
+                                id: cs.id,
+                                title: cs.title || "this case study",
+                              });
+                              onDeleteOpen();
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </Tooltip>
                       </div>
                     </div>
                   </div>
@@ -1292,7 +1313,7 @@ export default function CaseStudies() {
                         placeholder="e.g. 12"
                         value={form.readTime}
                         variant="bordered"
-                        onValueChange={(v) => setField("readTime", v)}
+                        onValueChange={(v) => setField("readTime", v.replace(/\D/g, ""))}
                       />
 
                       <div className="flex flex-col gap-1">

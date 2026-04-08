@@ -110,16 +110,16 @@ export function AnalyticsLineChart({
         grid: { color: gridColor },
         ticks: { color: tickColor },
       },
-      ...(dualAxis && {
-        y1: {
+      y1: dualAxis
+        ? {
           type: "linear" as const,
           display: true,
           position: "right" as const,
           beginAtZero: true,
           grid: { drawOnChartArea: false },
           ticks: { color: tickColor },
-        },
-      }),
+        }
+        : undefined,
     },
   };
 
@@ -175,12 +175,36 @@ export function AnalyticsBarChart({
         beginAtZero: true,
         stacked,
         grid: { color: gridColor },
-        ticks: { color: tickColor },
+        ticks: {
+          color: tickColor,
+          callback: function (value: any, index: number) {
+            if (horizontal) return value;
+            const label = labels[index];
+
+            if (label && label.length > 25) {
+              return label.substring(0, 22) + "...";
+            }
+
+            return label;
+          },
+        },
       },
       y: {
         stacked,
         grid: { display: false },
-        ticks: { color: tickColor },
+        ticks: {
+          color: tickColor,
+          callback: function (value: any, index: number) {
+            if (!horizontal) return value;
+            const label = labels[index];
+
+            if (label && label.length > 25) {
+              return label.substring(0, 22) + "...";
+            }
+
+            return label;
+          },
+        },
       },
     },
   };

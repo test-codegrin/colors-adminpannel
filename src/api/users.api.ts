@@ -26,6 +26,27 @@ interface UpdateUserApiResponse {
   user: User;
 }
 
+function normalizePublicAssetPath(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  return trimmed.startsWith("/public/") ? trimmed.slice("/public".length) : trimmed;
+}
+
+function normalizeUser(user: User): User {
+  return {
+    ...user,
+    picture: normalizePublicAssetPath(user.picture),
+  };
+}
+
 function toPositiveInteger(value: unknown, fallback: number): number {
   const parsed =
     typeof value === "string" && value.trim() !== "" ? Number(value) : value;
@@ -107,7 +128,7 @@ function normalizeUsersResponse(
   );
 
   return {
-    users,
+    users: users.map((user) => normalizeUser(user)),
     total,
     currentPage,
     totalPages,
@@ -163,6 +184,8 @@ export async function getUsers(
     signal: request.signal,
   });
 
+  console.log("Raw API response:", response.data);
+
   return normalizeUsersResponse(response.data, request.page, request.limit);
 }
 
@@ -180,10 +203,10 @@ export async function getUserById(userId: number): Promise<User> {
     typeof (data as UserByIdApiResponse).user === "object" &&
     (data as UserByIdApiResponse).user !== null
   ) {
-    return (data as UserByIdApiResponse).user as User;
+    return normalizeUser((data as UserByIdApiResponse).user as User);
   }
 
-  return data as User;
+  return normalizeUser(data as User);
 }
 
 export async function deleteUserById(
@@ -205,7 +228,10 @@ export async function updateUserById(
     payload,
   );
 
-  return response.data;
+  return {
+    ...response.data,
+    user: normalizeUser(response.data.user),
+  };
 }
 
 export function getUsersErrorMessage(error: unknown): string {
@@ -216,6 +242,7 @@ export function getUsersErrorMessage(error: unknown): string {
   }
 
   return "Failed to load users.";
+
 }
 
 export function isUsersRequestCancelled(error: unknown): boolean {

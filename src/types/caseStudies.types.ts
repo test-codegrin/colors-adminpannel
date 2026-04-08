@@ -99,7 +99,7 @@ export interface CaseStudyPayload {
   paletteNames: string[];
   process: CaseStudyProcess;
   projectInfo: CaseStudyProjectInfo;
-  publishedAt: string | null;
+  publishedAt?: string | null;   
   readTime: string;
   results?: CaseStudyResults;
   sortOrder?: number;

@@ -41,8 +41,8 @@ export default function UsersFilters({
     const [selectedKey] = Array.from(keys);
     const nextValue =
       selectedKey === "paid" ||
-      selectedKey === "unpaid" ||
-      selectedKey === "all"
+        selectedKey === "unpaid" ||
+        selectedKey === "all"
         ? selectedKey
         : "all";
 
@@ -59,8 +59,8 @@ export default function UsersFilters({
     const [selectedKey] = Array.from(keys);
     const nextValue =
       selectedKey === "online" ||
-      selectedKey === "offline" ||
-      selectedKey === "all"
+        selectedKey === "offline" ||
+        selectedKey === "all"
         ? selectedKey
         : "all";
 
@@ -86,12 +86,12 @@ export default function UsersFilters({
         ) : null}
       </div>
 
-      <div className="grid gap-3">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(140px,0.8fr)_minmax(140px,0.8fr)_minmax(140px,0.9fr)_minmax(140px,0.9fr)_auto] xl:items-end">
         <Input
           isClearable
           className="w-full"
           label="Search users"
-          placeholder="Search name, email, or mobile"
+          placeholder="Search name, email or mobile"
           size="sm"
           startContent={
             <Icon
@@ -107,71 +107,69 @@ export default function UsersFilters({
           onValueChange={onSearchChange}
         />
 
-        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(160px,0.85fr)_minmax(160px,0.85fr)_auto] 2xl:items-end">
-          <Select
-            disallowEmptySelection
-            label="Payment status"
-            selectedKeys={[values.paymentStatus]}
+        <Select
+          disallowEmptySelection
+          label="Payment status"
+          selectedKeys={[values.paymentStatus]}
+          size="sm"
+          variant="bordered"
+          onSelectionChange={handlePaymentSelectionChange}
+        >
+          <SelectItem key="all">All</SelectItem>
+          <SelectItem key="paid">Paid</SelectItem>
+          <SelectItem key="unpaid">Unpaid</SelectItem>
+        </Select>
+
+        <Select
+          disallowEmptySelection
+          label="Status"
+          selectedKeys={[values.status]}
+          size="sm"
+          variant="bordered"
+          onSelectionChange={handleStatusSelectionChange}
+        >
+          <SelectItem key="all">All</SelectItem>
+          <SelectItem key="online">Online</SelectItem>
+          <SelectItem key="offline">Offline</SelectItem>
+        </Select>
+
+        <Input
+          label="Start date"
+          max={values.endDate || undefined}
+          size="sm"
+          type="date"
+          value={values.startDate}
+          variant="bordered"
+          onValueChange={onStartDateChange}
+        />
+
+        <Input
+          label="End date"
+          min={values.startDate || undefined}
+          size="sm"
+          type="date"
+          value={values.endDate}
+          variant="bordered"
+          onValueChange={onEndDateChange}
+        />
+
+        <div className="flex justify-start xl:justify-end">
+          <Button
+            className="h-10 w-full justify-center whitespace-nowrap px-4 sm:w-auto sm:min-w-[148px]"
+            isDisabled={!hasActiveFilters || isLoading}
             size="sm"
-            variant="bordered"
-            onSelectionChange={handlePaymentSelectionChange}
+            startContent={
+              <Icon
+                height={18}
+                icon="mdi:filter-remove-outline"
+                width={18}
+              />
+            }
+            variant="flat"
+            onPress={onClear}
           >
-            <SelectItem key="all">All</SelectItem>
-            <SelectItem key="paid">Paid</SelectItem>
-            <SelectItem key="unpaid">Unpaid</SelectItem>
-          </Select>
-
-          <Select
-            disallowEmptySelection
-            label="Status"
-            selectedKeys={[values.status]}
-            size="sm"
-            variant="bordered"
-            onSelectionChange={handleStatusSelectionChange}
-          >
-            <SelectItem key="all">All</SelectItem>
-            <SelectItem key="online">Online</SelectItem>
-            <SelectItem key="offline">Offline</SelectItem>
-          </Select>
-
-          <Input
-            label="Start date"
-            max={values.endDate || undefined}
-            size="sm"
-            type="date"
-            value={values.startDate}
-            variant="bordered"
-            onValueChange={onStartDateChange}
-          />
-
-          <Input
-            label="End date"
-            min={values.startDate || undefined}
-            size="sm"
-            type="date"
-            value={values.endDate}
-            variant="bordered"
-            onValueChange={onEndDateChange}
-          />
-
-          <div className="flex justify-start sm:col-span-2 2xl:col-span-1 2xl:justify-end">
-            <Button
-              className="h-10 w-full justify-center whitespace-nowrap px-4 sm:w-auto sm:min-w-[148px] 2xl:min-w-[156px]"
-              isDisabled={!hasActiveFilters || isLoading}
-              size="sm"
-              startContent={
-                <Icon
-                  height={18}
-                  icon="mdi:filter-remove-outline"
-                  width={18}
-                />
-              }
-              variant="flat"
-              onPress={onClear}
-            >
-              Clear filters
-            </Button>
-          </div>
+            Clear filters
+          </Button>
         </div>
       </div>
     </div>
