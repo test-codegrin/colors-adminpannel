@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardBody, Button } from "@heroui/react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -27,10 +27,22 @@ function DashboardLayout() {
   const { admin } = useAuth();
   const { pathname } = useLocation();
 
-  // Desktop: sidebar open by default; Mobile: closed by default
-  const [isSidebarOpen, setIsSidebarOpen] = useState(
-    () => window.innerWidth >= 768
-  );
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // ✅ Handle screen resize (important fix)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsSidebarOpen(true); // desktop open
+      } else {
+        setIsSidebarOpen(false); // mobile closed
+      }
+    };
+
+    handleResize(); // run on mount
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
   const closeSidebar = () => setIsSidebarOpen(false);
@@ -52,17 +64,18 @@ function DashboardLayout() {
         {/* Top Bar */}
         <Card className="mb-6">
           <CardBody className="flex md:flex-row md:items-center justify-between py-3 px-4 gap-2">
-            {/* Left Side */}
+            {/* Left */}
             <div className="flex items-center gap-2 min-w-0">
               <Button isIconOnly variant="light" onPress={toggleSidebar}>
                 <Icon icon="mdi:menu" width="22" />
               </Button>
+
               <h1 className="text-base sm:text-xl font-semibold truncate">
                 {getPageTitle(pathname)}
               </h1>
             </div>
 
-            {/* Right Side */}
+            {/* Right */}
             <div className="flex items-center gap-3 shrink-0">
               <p className="block text-sm text-default-500 truncate max-w-[160px]">
                 {admin?.email ?? "Admin"}
