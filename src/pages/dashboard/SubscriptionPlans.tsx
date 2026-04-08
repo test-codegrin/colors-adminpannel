@@ -400,9 +400,10 @@ export default function SubscriptionPlans() {
             <div className="flex flex-wrap gap-2 justify-start sm:justify-end">
               <Button
                 isLoading={plansList.isLoading}
+                size="sm"
                 startContent={
                   !plansList.isLoading && (
-                    <Icon icon="solar:refresh-bold" width={18} />
+                    <Icon icon="solar:refresh-bold" width={16} />
                   )
                 }
                 variant="flat"
@@ -580,7 +581,6 @@ export default function SubscriptionPlans() {
         backdrop="blur"
         isOpen={isViewModalOpen}
         size="md"
-        placement="center"
         onOpenChange={onViewOpenChange}
       >
         <ModalContent>
@@ -610,7 +610,7 @@ export default function SubscriptionPlans() {
                   <p className="text-sm font-medium text-default-700">
                     Description Preview
                   </p>
-                  <div className="max-h-[360px] overflow-auto scrollbar-hide rounded-large border border-default-200 bg-default-50 p-4">
+                  <div className="max-h-[360px] overflow-auto rounded-large border border-default-200 bg-default-50 p-4">
                     <div
                       className="subscription-plan-preview text-sm text-foreground"
                       dangerouslySetInnerHTML={{

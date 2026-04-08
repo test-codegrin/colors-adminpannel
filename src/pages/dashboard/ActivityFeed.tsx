@@ -142,7 +142,7 @@ export default function ActivityFeedPage() {
               size="sm"
               startContent={
                 !isLoading && (
-                  <Icon icon="solar:refresh-bold" width="18" />
+                  <Icon icon="solar:refresh-bold" width="16" />
                 )
               }
               variant="flat"

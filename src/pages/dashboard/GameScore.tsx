@@ -118,9 +118,10 @@ function GameScore() {
           <div className="flex justify-start lg:justify-end">
             <Button
               isLoading={isLoading}
+              size="sm"
               startContent={
                 !isLoading && (
-                  <Icon icon="solar:refresh-bold" width={18} />
+                  <Icon icon="solar:refresh-bold" width={16} />
                 )
               }
               variant="flat"
@@ -141,7 +142,7 @@ function GameScore() {
             classNames={{
               base: "min-h-[360px]",
               wrapper:
-                "overflow-hidden border border-default-200 shadow-none p-0",
+                "overflow-hidden shadow-none p-0",
               table: "w-full table-auto",
               th: "bg-default-100 text-[11px] font-semibold uppercase tracking-[0.16em] text-default-600",
               td: "py-4 align-middle",

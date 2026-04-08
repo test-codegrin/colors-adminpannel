@@ -669,8 +669,9 @@ function Users() {
             <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center">
               <Button
                 isLoading={isLoading}
+                size="sm"
                 startContent={
-                  !isLoading && <Icon icon="solar:refresh-bold" width={18} />
+                  !isLoading && <Icon icon="solar:refresh-bold" width={16} />
                 }
                 variant="flat"
                 onPress={reloadUsers}

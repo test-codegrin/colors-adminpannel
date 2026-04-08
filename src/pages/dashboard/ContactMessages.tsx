@@ -177,7 +177,7 @@ export default function ContactMessagesPage() {
                 size="sm"
                 startContent={
                   !isLoading && (
-                    <Icon icon="solar:refresh-bold" width="18" />
+                    <Icon icon="solar:refresh-bold" width={16} />
                   )
                 }
                 variant="flat"
@@ -343,7 +343,6 @@ export default function ContactMessagesPage() {
 
       <Modal
         hideCloseButton={deletingMessageId !== null}
-        placement="center"
         isDismissable={deletingMessageId === null}
         isOpen={isDeleteModalOpen}
         onOpenChange={onDeleteModalOpenChange}

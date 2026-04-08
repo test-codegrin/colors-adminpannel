@@ -184,7 +184,7 @@ export async function getUsers(
     signal: request.signal,
   });
 
-  console.log("Raw API response:", response.data);
+  // console.log("Raw API response:", response.data);
 
   return normalizeUsersResponse(response.data, request.page, request.limit);
 }

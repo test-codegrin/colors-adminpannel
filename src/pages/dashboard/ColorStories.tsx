@@ -632,7 +632,15 @@ export default function ColorStories() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button isLoading={isLoading} startContent={!isLoading && <Icon icon="solar:refresh-bold" width={18} />} variant="flat" onPress={triggerReload}>
+              <Button
+                isLoading={isLoading}
+                size="sm"
+                startContent={
+                  !isLoading && <Icon icon="solar:refresh-bold" width={16} />
+                }
+                variant="flat"
+                onPress={triggerReload}
+              >
                 Refresh
               </Button>
               <Button color="primary" startContent={<Icon icon="mdi:plus" width={18} />} onPress={openCreateModal}>

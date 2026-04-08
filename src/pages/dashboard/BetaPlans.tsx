@@ -172,7 +172,7 @@ export default function BetaPlansPage() {
                 size="sm"
                 startContent={
                   !isLoading && (
-                    <Icon icon="solar:refresh-bold" width="18" />
+                    <Icon icon="solar:refresh-bold" width={16} />
                   )
                 }
                 variant="flat"
@@ -334,7 +334,6 @@ export default function BetaPlansPage() {
         backdrop="blur"
         isDismissable={false}
         isOpen={isDeleteModalOpen}
-        placement="center"
         size="sm"
         onOpenChange={onDeleteModalOpenChange}
       >
