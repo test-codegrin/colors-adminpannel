@@ -76,7 +76,7 @@ export default function UsersFilters({
         <div className="flex-shrink-0">
           <Input
             isClearable
-            className="w-[520px]"
+            className="w-[735px]"
             label="Search users"
             placeholder="Search name, email or mobile"
             size="md"
