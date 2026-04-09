@@ -100,6 +100,17 @@ function isUserPaid(value: unknown): boolean {
   return value === "1" || value === 1 || value === true;
 }
 
+function formatUserLocation(user: User): string {
+  const city = typeof user.city === "string" ? user.city.trim() : "";
+  const country = typeof user.country === "string" ? user.country.trim() : "";
+
+  if (city && country) {
+    return `${city}, ${country}`;
+  }
+
+  return city || country || "-";
+}
+
 function getUserId(user: User): number | null {
   const source = user as User & {
     user_id?: unknown;
@@ -938,8 +949,9 @@ function Users() {
               >
                 <TableHeader>
                   <TableColumn className="w-[20%]">User</TableColumn>
-                  <TableColumn className="w-[24%]">Email</TableColumn>
+                  <TableColumn className="w-[21%]">Email</TableColumn>
                   <TableColumn className="w-[15%]">Mobile Number</TableColumn>
+                  <TableColumn className="w-[14%]">Location</TableColumn>
                   <TableColumn className="w-[10%]">Status</TableColumn>
                   <TableColumn className="w-[8%]">Paid</TableColumn>
                   <TableColumn className="w-[12%]">Created</TableColumn>
@@ -1004,6 +1016,12 @@ function Users() {
                         <TableCell>
                           <span className="block break-words font-medium tracking-[0.02em] text-foreground">
                             {user.mobile ?? "-"}
+                          </span>
+                        </TableCell>
+
+                        <TableCell>
+                          <span className="block break-words text-foreground">
+                            {formatUserLocation(user)}
                           </span>
                         </TableCell>
 

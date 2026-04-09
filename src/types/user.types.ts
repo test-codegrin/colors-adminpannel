@@ -13,6 +13,9 @@ export interface User {
   is_paid?: boolean | number | string;
   picture?: string;
   google_id?: string | null;
+  city?: string;
+  region?: string;
+  country?: string;
   created_at?: string;
   [key: string]: unknown;
 }

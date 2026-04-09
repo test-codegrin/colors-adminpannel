@@ -63,6 +63,16 @@ function isUserPaid(value: unknown): boolean {
   return value === "1" || value === 1 || value === true;
 }
 
+function getLocationValue(value?: string): string {
+  if (typeof value !== "string") {
+    return "-";
+  }
+
+  const trimmedValue = value.trim();
+
+  return trimmedValue || "-";
+}
+
 /* ---------- Props ---------- */
 
 interface Props {
@@ -258,7 +268,7 @@ export default function UserDetailsModal({
       backdrop="blur"
       isDismissable={false}
       isOpen={isOpen}
-      size="md"
+      size="xl"
       onOpenChange={onOpenChange}
     >
       <ModalContent>
@@ -318,122 +328,154 @@ export default function UserDetailsModal({
                     />
                   </div>
 
-                  <Input
-                    isReadOnly={!isEditMode}
-                    label="Full Name"
-                    value={
-                      isEditMode ? formValues.name : (selectedUser.name ?? "-")
-                    }
-                    variant="flat"
-                    onValueChange={(value) => handleFieldChange("name", value)}
-                  />
-
-                  <Input
-                    errorMessage={formErrors.email}
-                    isInvalid={Boolean(formErrors.email)}
-                    isReadOnly={!isEditMode}
-                    label="Email"
-                    value={
-                      isEditMode
-                        ? formValues.email
-                        : (selectedUser.email ?? "-")
-                    }
-                    variant="flat"
-                    onValueChange={(value) => handleFieldChange("email", value)}
-                  />
-
-                  <Input
-                    errorMessage={formErrors.mobile}
-                    isInvalid={Boolean(formErrors.mobile)}
-                    isReadOnly={!isEditMode}
-                    label="Mobile"
-                    value={
-                      isEditMode
-                        ? formValues.mobile
-                        : (selectedUser.mobile ?? "-")
-                    }
-                    variant="flat"
-                    onValueChange={(value) =>
-                      handleFieldChange("mobile", value)
-                    }
-                  />
-
-                  <Input
-                    isReadOnly={!isEditMode}
-                    label="Picture URL"
-                    value={
-                      isEditMode
-                        ? formValues.picture
-                        : (selectedUser.picture ?? "-")
-                    }
-                    variant="flat"
-                    onValueChange={(value) =>
-                      handleFieldChange("picture", value)
-                    }
-                  />
-
-                  <Input
-                    isReadOnly
-                    classNames={{
-                      input: selectedUser.google_id
-                        ? "text-success font-medium"
-                        : "text-danger font-medium",
-                    }}
-                    label="Google Account"
-                    value={selectedUser.google_id ? "Linked" : "Not Linked"}
-                    variant="flat"
-                  />
-
-                  {isEditMode ? (
-                    <Select
-                      disallowEmptySelection
-                      label="Payment Status"
-                      selectedKeys={[formValues.is_paid ? "paid" : "unpaid"]}
-                      onChange={(event) =>
-                        handleFieldChange(
-                          "is_paid",
-                          event.target.value === "paid",
-                        )
+                  {/* Two-column grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      isReadOnly={!isEditMode}
+                      label="Full Name"
+                      value={
+                        isEditMode
+                          ? formValues.name
+                          : (selectedUser.name ?? "-")
                       }
-                    >
-                      <SelectItem key="paid">Paid</SelectItem>
-                      <SelectItem key="unpaid">Unpaid</SelectItem>
-                    </Select>
-                  ) : (
+                      variant="flat"
+                      onValueChange={(value) =>
+                        handleFieldChange("name", value)
+                      }
+                    />
+
+                    <Input
+                      errorMessage={formErrors.email}
+                      isInvalid={Boolean(formErrors.email)}
+                      isReadOnly={!isEditMode}
+                      label="Email"
+                      value={
+                        isEditMode
+                          ? formValues.email
+                          : (selectedUser.email ?? "-")
+                      }
+                      variant="flat"
+                      onValueChange={(value) =>
+                        handleFieldChange("email", value)
+                      }
+                    />
+
+                    <Input
+                      errorMessage={formErrors.mobile}
+                      isInvalid={Boolean(formErrors.mobile)}
+                      isReadOnly={!isEditMode}
+                      label="Mobile"
+                      value={
+                        isEditMode
+                          ? formValues.mobile
+                          : (selectedUser.mobile ?? "-")
+                      }
+                      variant="flat"
+                      onValueChange={(value) =>
+                        handleFieldChange("mobile", value)
+                      }
+                    />
+
+                    <Input
+                      isReadOnly={!isEditMode}
+                      label="Picture URL"
+                      value={
+                        isEditMode
+                          ? formValues.picture
+                          : (selectedUser.picture ?? "-")
+                      }
+                      variant="flat"
+                      onValueChange={(value) =>
+                        handleFieldChange("picture", value)
+                      }
+                    />
+
                     <Input
                       isReadOnly
                       classNames={{
-                        input: isUserPaid(selectedUser.is_paid)
+                        input: selectedUser.google_id
                           ? "text-success font-medium"
                           : "text-danger font-medium",
                       }}
-                      label="Payment Status"
-                      value={
-                        isUserPaid(selectedUser.is_paid) ? "Paid" : "Unpaid"
-                      }
+                      label="Google Account"
+                      value={selectedUser.google_id ? "Linked" : "Not Linked"}
                       variant="flat"
                     />
-                  )}
 
-                  {isEditMode ? (
                     <Input
-                      label="New Password"
-                      placeholder="Leave blank to keep current password"
-                      type="password"
-                      value={formValues.password}
+                      isReadOnly
+                      label="City"
+                      value={getLocationValue(selectedUser.city)}
                       variant="flat"
-                      onValueChange={(value) =>
-                        handleFieldChange("password", value)
-                      }
                     />
-                  ) : null}
 
-                  <Input
-                    isReadOnly
-                    label="Created At"
-                    value={formatDate(selectedUser.created_at)}
-                    variant="flat"
-                  />
+                    {/* <Input
+                      isReadOnly
+                      label="Region"
+                      value={getLocationValue(selectedUser.region)}
+                      variant="flat"
+                    /> */}
+
+                    <Input
+                      isReadOnly
+                      label="Country"
+                      value={getLocationValue(selectedUser.country)}
+                      variant="flat"
+                    />
+
+                    {/* Payment Status — spans or stays in grid */}
+                    {isEditMode ? (
+                      <Select
+                        disallowEmptySelection
+                        label="Payment Status"
+                        selectedKeys={[formValues.is_paid ? "paid" : "unpaid"]}
+                        onChange={(event) =>
+                          handleFieldChange(
+                            "is_paid",
+                            event.target.value === "paid",
+                          )
+                        }
+                      >
+                        <SelectItem key="paid">Paid</SelectItem>
+                        <SelectItem key="unpaid">Unpaid</SelectItem>
+                      </Select>
+                    ) : (
+                      <Input
+                        isReadOnly
+                        classNames={{
+                          input: isUserPaid(selectedUser.is_paid)
+                            ? "text-success font-medium"
+                            : "text-danger font-medium",
+                        }}
+                        label="Payment Status"
+                        value={
+                          isUserPaid(selectedUser.is_paid) ? "Paid" : "Unpaid"
+                        }
+                        variant="flat"
+                      />
+                    )}
+
+                    <Input
+                      isReadOnly
+                      label="Created At"
+                      value={formatDate(selectedUser.created_at)}
+                      variant="flat"
+                    />
+
+                    {isEditMode ? (
+                      <Input
+                        className="col-span-2"
+                        label="New Password"
+                        placeholder="Leave blank to keep current password"
+                        type="password"
+                        value={formValues.password}
+                        variant="flat"
+                        onValueChange={(value) =>
+                          handleFieldChange("password", value)
+                        }
+                      />
+                    ) : null}
+                  </div>
 
                   {isEditMode ? (
                     <div className="flex justify-end gap-2 pt-2">
