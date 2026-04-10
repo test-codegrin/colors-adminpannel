@@ -32,11 +32,7 @@ export default function UsersFilters({
   onStartDateChange,
 }: UsersFiltersProps) {
   const handlePaymentSelectionChange = (keys: "all" | Set<Key>) => {
-    if (keys === "all") {
-      onPaymentStatusChange("all");
-
-      return;
-    }
+    if (keys === "all") return onPaymentStatusChange("all");
 
     const [selectedKey] = Array.from(keys);
     const nextValue =
@@ -50,11 +46,7 @@ export default function UsersFilters({
   };
 
   const handleStatusSelectionChange = (keys: "all" | Set<Key>) => {
-    if (keys === "all") {
-      onStatusChange("all");
-
-      return;
-    }
+    if (keys === "all") return onStatusChange("all");
 
     const [selectedKey] = Array.from(keys);
     const nextValue =
@@ -69,17 +61,17 @@ export default function UsersFilters({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Filters row */}
-      <div className="flex flex-wrap items-end gap-3">
 
-        {/* Search */}
-        <div className="flex-shrink-0">
+      {/* ✅ FLEX LAYOUT */}
+      <div className="flex flex-wrap gap-3 lg:flex-nowrap lg:items-end">
+
+        {/* 🔍 SEARCH (flexible) */}
+        <div className="w-full sm:w-[300px] lg:flex-1 min-w-[220px]">
           <Input
             isClearable
-            className="w-[735px]"
             label="Search users"
             placeholder="Search name, email or mobile"
-            size="md"
+            size="sm"
             startContent={
               <Icon
                 className="text-default-400"
@@ -95,14 +87,13 @@ export default function UsersFilters({
           />
         </div>
 
-        {/* Payment Status */}
-        <div className="flex-shrink-0">
+        {/* 💳 PAYMENT + STATUS */}
+        <div className="grid grid-cols-2 gap-3 w-full sm:w-[300px] lg:w-[260px] shrink-0">
           <Select
             disallowEmptySelection
-            label="Payment status"
+            label="Payment"
             selectedKeys={[values.paymentStatus]}
-            className="w-[150px]"
-            size="md"
+            size="sm"
             variant="bordered"
             onSelectionChange={handlePaymentSelectionChange}
           >
@@ -110,16 +101,12 @@ export default function UsersFilters({
             <SelectItem key="paid">Paid</SelectItem>
             <SelectItem key="unpaid">Unpaid</SelectItem>
           </Select>
-        </div>
 
-        {/* Status */}
-        <div className="flex-shrink-0">
           <Select
             disallowEmptySelection
             label="Status"
             selectedKeys={[values.status]}
-            className="w-[150px]"
-            size="md"
+            size="sm"
             variant="bordered"
             onSelectionChange={handleStatusSelectionChange}
           >
@@ -129,13 +116,12 @@ export default function UsersFilters({
           </Select>
         </div>
 
-        {/* Start Date */}
-        <div className="flex-shrink-0">
+        {/* 📅 START DATE */}
+        <div className="w-full sm:w-[150px] lg:w-[140px] shrink-0">
           <Input
             label="Start date"
             max={values.endDate || undefined}
-            className="w-[150px]"
-            size="md"
+            size="sm"
             type="date"
             value={values.startDate}
             variant="bordered"
@@ -143,13 +129,12 @@ export default function UsersFilters({
           />
         </div>
 
-        {/* End Date */}
-        <div className="flex-shrink-0">
+        {/* 📅 END DATE */}
+        <div className="w-full sm:w-[150px] lg:w-[140px] shrink-0">
           <Input
             label="End date"
             min={values.startDate || undefined}
-            className="w-[150px]"
-            size="md"
+            size="sm"
             type="date"
             value={values.endDate}
             variant="bordered"
@@ -157,10 +142,10 @@ export default function UsersFilters({
           />
         </div>
 
-        {/* Button */}
-        <div className="flex-shrink-0 ml-auto">
+        {/* 🧹 BUTTON */}
+        <div className="w-full sm:w-auto lg:ml-auto shrink-0">
           <Button
-            className="h-10 w-full sm:w-auto min-w-[148px]"
+            className="h-10 px-4 w-full sm:w-auto"
             isDisabled={!hasActiveFilters || isLoading}
             size="sm"
             startContent={

@@ -868,11 +868,11 @@ function Users() {
                               {isUserPaid(user.is_paid) ? "Paid" : "Unpaid"}
                             </Chip>
 
-                            <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-default-200 bg-default-50 p-1">
+                            <div className="flex items-center gap-2">
                               <Tooltip content="View details"><Button
                                 isIconOnly
+                                className="h-9 w-9 min-w-9"
                                 isDisabled={!userId}
-                                radius="full"
                                 size="sm"
                                 variant="flat"
                                 onPress={() => {
@@ -1061,6 +1061,7 @@ function Users() {
                             <Tooltip content="View details">
                               <Button
                                 isIconOnly
+                                className="h-9 w-9 min-w-9 hover:bg-default-100"
                                 isDisabled={!userId}
                                 size="sm"
                                 variant="flat"
@@ -1077,6 +1078,7 @@ function Users() {
                             <Tooltip content="User library">
                               <Button
                                 isIconOnly
+                                className="h-9 w-9 min-w-9 hover:bg-default-100"
                                 color="secondary"
                                 isDisabled={!userId}
                                 size="sm"
@@ -1096,6 +1098,7 @@ function Users() {
                             <Tooltip content="Delete user">
                               <Button
                                 isIconOnly
+                                className="h-9 w-9 min-w-9 hover:bg-default-100"
                                 color="danger"
                                 isDisabled={!userId || deletingUserId !== null}
                                 isLoading={deletingUserId === userId}
