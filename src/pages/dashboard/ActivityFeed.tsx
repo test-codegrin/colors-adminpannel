@@ -24,16 +24,28 @@ import { getAnalyticsErrorMessage } from "@/api/analytics.api";
 import api from "@/lib/axios";
 
 const DEFAULT_PAGE_SIZE = 10;
+const ALL_EVENT_TYPES_KEY = "all";
+
+interface ActivityFeedFilterOption {
+  value: string;
+  label: string;
+  count: number;
+}
 
 async function fetchActivityFeedPage(
   page: number,
   limit: number,
+  eventType: string | null,
 ): Promise<{
   items: ActivityFeedItem[];
   pagination: PaginationPayload;
+  filterOptions: ActivityFeedFilterOption[];
+  filters: {
+    event_type: string | null;
+  };
 }> {
   const response = await api.get("/admin/analytics/activity-feed", {
-    params: { page, limit },
+    params: { page, limit, event_type: eventType ?? undefined },
   });
   const payload = response.data;
   const data = payload?.data ?? payload;
@@ -47,6 +59,10 @@ async function fetchActivityFeedPage(
       total_pages: 1,
       totalPages: 1,
     },
+    filterOptions: data?.filter_options?.event_type ?? [],
+    filters: {
+      event_type: data?.filters?.event_type ?? null,
+    },
   };
 }
 
@@ -54,7 +70,7 @@ function prettifyFeatureName(value: string): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
-function formatDateTime(value: string | null | undefined): string {
+function formatDateTime(value: string | null | undefined): string { 
   if (!value) return "-";
   const date = new Date(value);
 
@@ -80,6 +96,10 @@ export default function ActivityFeedPage() {
   });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
+  const [eventType, setEventType] = useState(ALL_EVENT_TYPES_KEY);
+  const [eventTypeOptions, setEventTypeOptions] = useState<
+    ActivityFeedFilterOption[]
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const requestRef = useRef(0);
@@ -87,15 +107,23 @@ export default function ActivityFeedPage() {
   const loadPage = useCallback(
     async (targetPage: number) => {
       const requestId = ++requestRef.current;
+      const appliedEventType =
+        eventType === ALL_EVENT_TYPES_KEY ? null : eventType;
 
       setIsLoading(true);
       setError("");
       try {
-        const result = await fetchActivityFeedPage(targetPage, limit);
+        const result = await fetchActivityFeedPage(
+          targetPage,
+          limit,
+          appliedEventType,
+        );
 
         if (requestId !== requestRef.current) return;
         setItems(result.items);
         setPagination(result.pagination);
+        setEventTypeOptions(result.filterOptions);
+        setEventType(result.filters.event_type ?? ALL_EVENT_TYPES_KEY);
       } catch (err) {
         if (requestId !== requestRef.current) return;
         setError(getAnalyticsErrorMessage(err));
@@ -104,7 +132,7 @@ export default function ActivityFeedPage() {
         setIsLoading(false);
       }
     },
-    [limit],
+    [eventType, limit],
   );
 
   useEffect(() => {
@@ -115,6 +143,14 @@ export default function ActivityFeedPage() {
     1,
     pagination.total_pages ?? pagination.totalPages ?? 1,
   );
+  const eventTypeSelectOptions = [
+    {
+      value: ALL_EVENT_TYPES_KEY,
+      label: "All event types",
+      count: 0,
+    },
+    ...eventTypeOptions,
+  ];
 
   return (
     <Card shadow="md">
@@ -155,6 +191,32 @@ export default function ActivityFeedPage() {
 
         {/* Error */}
         {error && <p className="text-danger text-sm">{error}</p>}
+
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <Select
+            className="w-full sm:w-72"
+            items={eventTypeSelectOptions}
+            label="Event Type"
+            selectedKeys={[eventType]}
+            size="sm"
+            onChange={(event) => {
+              const nextEventType = event.target.value;
+
+              if (nextEventType !== eventType) {
+                setEventType(nextEventType);
+                setPage(1);
+              }
+            }}
+          >
+            {(option) => (
+              <SelectItem key={option.value}>
+                {option.value === ALL_EVENT_TYPES_KEY
+                  ? option.label
+                  : `${prettifyFeatureName(option.label)} (${option.count})`}
+              </SelectItem>
+            )}
+          </Select>
+        </div>
 
         {/* ✅ Table Scroll Fix */}
         <div className="w-full overflow-x-auto scrollbar-hide">
