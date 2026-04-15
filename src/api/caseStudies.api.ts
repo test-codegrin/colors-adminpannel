@@ -333,6 +333,39 @@ function normalizeTeamMember(value: unknown): CaseStudyTeamMember | null {
   };
 }
 
+function normalizeCTA(value: unknown) {
+  if (!isRecord(value)) return undefined;
+
+  const title =
+    typeof value.title === "string"
+      ? value.title
+      : typeof value.ctaTitle === "string"
+      ? value.ctaTitle
+      : "";
+
+  const buttonLabel =
+    typeof value.buttonLabel === "string"
+      ? value.buttonLabel
+      : typeof value.label === "string"
+      ? value.label
+      : "";
+
+  const buttonHref =
+    typeof value.buttonHref === "string"
+      ? value.buttonHref
+      : typeof value.ctaUrl === "string"
+      ? value.ctaUrl
+      : "";
+
+  if (!title && !buttonLabel && !buttonHref) return undefined;
+
+  return {
+    title,
+    buttonLabel,
+    buttonHref,
+  };
+}
+
 function normalizeCaseStudy(value: unknown): CaseStudy | null {
   if (!isRecord(value)) {
     return null;
@@ -358,6 +391,7 @@ function normalizeCaseStudy(value: unknown): CaseStudy | null {
   return {
     id,
     client: typeof v.client === "string" ? v.client : "",
+    cta: normalizeCTA(v.cta),
     createdAt:
       typeof v.createdAt === "string"
         ? v.createdAt
@@ -575,6 +609,7 @@ export async function getCaseStudyById(id: number): Promise<CaseStudy> {
     `/admin/case-studies/${id}`,
   );
   const caseStudy = extractSingleCaseStudy(response.data);
+  console.log("caseStudy",caseStudy)
 
   if (!caseStudy) {
     throw new Error("Case study not found.");

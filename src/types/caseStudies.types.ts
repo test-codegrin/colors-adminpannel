@@ -87,6 +87,10 @@ export interface CaseStudy {
   team: CaseStudyTeamMember[];
   title: string;
   updatedAt?: string;
+  cta?: CaseStudyCta;
+  ctaTitle?: string;
+  ctaUrl?: string;
+  internalLinks?: CaseStudyInternalLink[];
 }
 
 export interface CaseStudyPayload {
@@ -114,6 +118,13 @@ export interface CaseStudyPayload {
   read_time?: string;
   sort_order?: number;
   title: string;
+  // CTA
+  cta?: CaseStudyCta;
+  ctaTitle?: string;        
+  ctaUrl?: string;          
+  // Internal Links
+  internalLinks?: CaseStudyInternalLink[];
+  
 }
 
 export interface GetCaseStudiesParams {
@@ -136,4 +147,19 @@ export interface SingleCaseStudyApiResponse {
   data?: CaseStudy;
   item?: CaseStudy;
   success?: boolean;
+}
+export interface CaseStudyCta {
+  title: string;
+  buttonLabel: string;
+  buttonHref: string;
+}
+
+export interface CaseStudyInternalLink {
+  anchor: string;
+  url: string;
+}
+export interface CaseStudyCTA {
+  title?: string;
+  buttonLabel?: string;
+  buttonHref?: string;
 }
