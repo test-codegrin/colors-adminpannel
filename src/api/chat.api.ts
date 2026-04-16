@@ -1,6 +1,6 @@
 import api from "@/lib/axios";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types
 
 export interface SupportUser {
   name: string;
@@ -86,7 +86,7 @@ export async function replyToThread(
   return response.data;
 }
 
-/** PATCH /admin/support-messages/threads/:threadId/close */
+/** PATCH /admin/support-messages/threads/:threadId/status */
 export async function closeThread(
   threadId: number,
 ): Promise<ApiResponse<{ threadId: number; status: number }>> {

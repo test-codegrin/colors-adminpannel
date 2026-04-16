@@ -25,8 +25,7 @@ import {
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
+// ─── Helpers
 function formatChatTime(iso: string): string {
     const d = new Date(iso);
     const now = new Date();
@@ -42,8 +41,7 @@ function formatChatTime(iso: string): string {
     });
 }
 
-// ─── Message Bubble ───────────────────────────────────────────────────────────
-
+// ─── Message Bubble
 interface BubbleProps {
     message: string;
     senderType: "admin" | "user";
@@ -81,19 +79,7 @@ function MessageBubble({ message, senderType, createdAt, senderName }: BubblePro
     );
 }
 
-// ─── Info Row ─────────────────────────────────────────────────────────────────
-
-function InfoRow({ icon, value }: { icon: string; value: string }) {
-    return (
-        <div className="flex items-center gap-2 text-sm text-default-600">
-            <Icon icon={icon} width={14} height={14} className="text-default-400 shrink-0" />
-            <span className="truncate">{value}</span>
-        </div>
-    );
-}
-
-// ─── Confirm Close Modal ──────────────────────────────────────────────────────
-
+// ─── Confirm Close Modal
 interface ConfirmCloseModalProps {
     isOpen: boolean;
     closing: boolean;
@@ -161,8 +147,7 @@ function ConfirmCloseModal({ isOpen, closing, onConfirm, onCancel, userName }: C
     );
 }
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
+// ─── Props
 interface ThreadDetailModalProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
@@ -170,7 +155,7 @@ interface ThreadDetailModalProps {
     onThreadClosed: () => void;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component
 
 export default function ThreadDetailModal({
     isOpen,
@@ -182,11 +167,9 @@ export default function ThreadDetailModal({
     const [detailLoading, setDetailLoading] = useState(false);
     const [replyText, setReplyText] = useState("");
     const [replying, setReplying] = useState(false);
-
     // Close confirmation state
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [closing, setClosing] = useState(false);
-
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Load thread detail whenever the modal opens with a thread
@@ -211,6 +194,7 @@ export default function ThreadDetailModal({
         }
     }, [threadDetail, isOpen, detailLoading]);
 
+    // Reply handler
     async function handleReply() {
         if (!selectedThread || !replyText.trim()) return;
         setReplying(true);
@@ -227,6 +211,7 @@ export default function ThreadDetailModal({
         }
     }
 
+    // Close thread handler
     async function handleConfirmClose() {
         if (!selectedThread) return;
         setClosing(true);
@@ -246,6 +231,7 @@ export default function ThreadDetailModal({
 
     const [refreshing, setRefreshing] = useState(false);
 
+    // Refresh thread details
     async function handleRefresh() {
         if (!selectedThread) return;
         setRefreshing(true);

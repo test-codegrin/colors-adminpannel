@@ -36,9 +36,7 @@ import {
 import { Icon } from "@iconify/react";
 import ThreadDetailModal from "@/components/ThreaddetailModal";
 
-// ─────────────────────────────────────────────
 // Helpers
-// ─────────────────────────────────────────────
 function formatDate(iso: string): string {
     return new Date(iso).toLocaleString("en-IN", {
         day: "2-digit",
@@ -49,9 +47,7 @@ function formatDate(iso: string): string {
     });
 }
 
-// ─────────────────────────────────────────────
 // Columns
-// ─────────────────────────────────────────────
 const columns = [
     { key: "id", label: "ID" },
     { key: "user", label: "NAME" },
@@ -63,9 +59,7 @@ const columns = [
     { key: "actions", label: "ACTIONS" },
 ];
 
-// ─────────────────────────────────────────────
 // Page Component
-// ─────────────────────────────────────────────
 export default function SupportThreadsPage() {
     const [threads, setThreads] = useState<SupportThread[]>([]);
     const [loading, setLoading] = useState(true);
@@ -267,7 +261,7 @@ export default function SupportThreadsPage() {
                                 isDisabled={!isOpen}
                                 onPress={() => handleCloseClick(thread)}
                             >
-                                <Icon icon="mdi:lock" width={16} />
+                                <Icon icon="ic:outline-lock" width={16} />
                             </Button>
                         </Tooltip>
                     </div>
@@ -344,16 +338,16 @@ export default function SupportThreadsPage() {
                                     }
                                 >
                                     {threads.map((thread) => {
-                                        const isUnread = thread.unreadUserMessages > 0;
+                                        // const isUnread = thread.unreadUserMessages > 0;
 
                                         return (
                                             <TableRow
                                                 key={thread.threadId}
-                                                className={
-                                                    isUnread
-                                                        ? "bg-warning-50 dark:bg-warning-900/20"
-                                                        : ""
-                                                }
+                                                // className={
+                                                //     isUnread
+                                                //         ? ""
+                                                //         : ""
+                                                // }
                                             >
                                                 {(columnKey) => (
                                                     <TableCell>
@@ -438,7 +432,7 @@ export default function SupportThreadsPage() {
                                 <div className="flex items-center gap-2">
                                     <div className="flex items-center justify-center w-9 h-9 rounded-full bg-danger-100 dark:bg-danger-900/30 shrink-0">
                                         <Icon
-                                            icon="mdi:lock"
+                                            icon="ic:outline-lock"
                                             className="text-danger"
                                             width={20}
                                         />
@@ -451,12 +445,6 @@ export default function SupportThreadsPage() {
 
                                 {threadToClose && (
                                     <div className="mt-2 p-3 rounded-lg bg-default-100 dark:bg-default-50/10 space-y-1">
-                                        {/* <div className="flex justify-between text-xs text-default-500">
-                                            <span>Thread ID</span>
-                                            <span className="font-medium text-default-700">
-                                                #{threadToClose.threadId}
-                                            </span>
-                                        </div> */}
                                         <p className="text-sm text-default-600">
                                             Are you sure you want to close the chat with{" "}
                                             <span className="font-semibold text-foreground">{threadToClose.user.name}</span>?
@@ -483,9 +471,10 @@ export default function SupportThreadsPage() {
                                     onPress={handleConfirmClose}
                                     isLoading={isClosing}
                                     size="sm"
+                                    variant="flat"
                                     startContent={
                                         !isClosing ? (
-                                            <Icon icon="mdi:lock" width={16} />
+                                            <Icon icon="ic:outline-lock" width={16} />
                                         ) : undefined
                                     }
                                 >
