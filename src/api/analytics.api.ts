@@ -1,5 +1,6 @@
 import type {
   ActivityFeedData,
+  ActivityFeedItem,
   AnalyticsOverview,
   DayRange,
   DeviceAnalyticsPayload,
@@ -220,6 +221,51 @@ export async function getActivityFeed(
   );
 
   return response.data;
+}
+
+export async function getActivityFeedPage(
+  page: number,
+  limit: number,
+  eventType: string | null,
+): Promise<{
+  items: ActivityFeedItem[];
+  pagination: PaginationPayload;
+  filterOptions: Array<{
+    value: string;
+    label: string;
+    count: number;
+  }>;
+  filters: {
+    event_type: string | null;
+  };
+}> {
+  const response = await api.get("/admin/analytics/activity-feed", {
+    params: { page, limit, event_type: eventType ?? undefined },
+  });
+  const payload = response.data;
+  const data = payload?.data ?? payload;
+
+  return {
+    items: data?.items ?? [],
+    pagination: data?.pagination ?? {
+      total: 0,
+      page,
+      limit,
+      total_pages: 1,
+      totalPages: 1,
+    },
+    filterOptions: data?.filter_options?.event_type ?? [],
+    filters: {
+      event_type: data?.filters?.event_type ?? null,
+    },
+  };
+}
+
+export async function exportActivityFeedCsv(eventType: string | null) {
+  return api.get("/admin/analytics/activity-feed/export", {
+    params: eventType ? { event_type: eventType } : undefined,
+    responseType: "blob",
+  });
 }
 
 export async function getRecentUsers(
