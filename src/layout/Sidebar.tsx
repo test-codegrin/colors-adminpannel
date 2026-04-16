@@ -20,6 +20,7 @@ const USERS_ROUTE_PATH = "/dashboard/users";
 const navItems: NavItem[] = [
   { label: "Analytics", path: "/dashboard", icon: "mdi:view-dashboard-outline" },
   { label: "Users", path: "/dashboard/users", icon: "mdi:account-group-outline" },
+  { label: "Help Desk", path: "/dashboard/chat-messages", icon: "quill:chat" },
   { label: "Payments", path: "/dashboard/payments", icon: "mdi:credit-card-outline" },
   { label: "Subscription Plans", path: "/dashboard/subscription-plans", icon: "mdi:ticket-confirmation-outline" },
   { label: "Color Stories", path: "/dashboard/color-stories", icon: "mdi:book-open-page-variant-outline" },
@@ -48,7 +49,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
     }
 
     // ✅ Close sidebar on mobile after click
-    if (window.innerWidth < 768 && onClose) {
+    if (window.innerWidth < 1024 && onClose) {
       onClose();
     }
   };
@@ -65,7 +66,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-        onClick={onClose} // ✅ click outside closes sidebar
+        // onClick={onClose} // ✅ click outside closes sidebar
       />
 
       {/* Sidebar */}

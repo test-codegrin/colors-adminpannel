@@ -17,6 +17,7 @@ import DashboardHome from "@/pages/dashboard/DashboardHome";
 import Login from "@/pages/Login";
 import DashboardLayout from "@/layout/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
+import ChatMessages from "./pages/dashboard/ChatMessages";
 
 function App() {
   const { token } = useAuth();
@@ -33,6 +34,7 @@ function App() {
         <Route element={<DashboardLayout />} path="/dashboard">
           <Route index element={<DashboardHome />} />
           <Route element={<Users />} path="users" />
+          <Route element={<ChatMessages />} path="chat-messages" />
           <Route element={<Payments />} path="payments" />
           <Route element={<SubscriptionPlans />} path="subscription-plans" />
           <Route element={<ColorStories />} path="color-stories" />

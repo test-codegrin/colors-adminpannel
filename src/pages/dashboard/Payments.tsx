@@ -95,9 +95,9 @@ export default function PaymentsTable() {
       }
     },
   }
-  
-    
-    
+
+
+
   );
 
   const isLoading = paymentsList.isLoading;
@@ -156,16 +156,16 @@ export default function PaymentsTable() {
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Payments</h2>
           <Button
-                          isLoading={isLoading}
-                          size="sm"
-                          startContent={
-                            !isLoading && <Icon icon="solar:refresh-bold" width={16} />
-                          }
-                          variant="flat"
-                          onPress={triggerReload}
-                        >
-                          Refresh
-                        </Button>
+            isLoading={isLoading}
+            size="sm"
+            startContent={
+              !isLoading && <Icon icon="solar:refresh-bold" width={16} />
+            }
+            variant="flat"
+            onPress={triggerReload}
+          >
+            Refresh
+          </Button>
         </div>
         <div className="min-h-[300px]">
           {error && <p className="text-danger text-sm">{error}</p>}

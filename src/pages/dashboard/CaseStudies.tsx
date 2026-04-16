@@ -299,7 +299,7 @@ function DynamicSection<T extends Record<string, string>>({
         {rows.map((row, i) => (
           <div
             key={i}
-            className="relative flex flex-col gap-2 rounded-xl bg-default-50/60 p-3 sm:flex-row sm:items-start"
+            className="relative flex flex-col gap-2 rounded-xl bg-default-50/60 p-3 md:p-0 sm:flex-row sm:items-start"
           >
             {fields.map((f) => (
               <Input
