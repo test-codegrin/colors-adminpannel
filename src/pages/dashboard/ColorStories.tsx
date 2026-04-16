@@ -296,9 +296,9 @@ export default function ColorStories() {
           category: filters.category.trim() || undefined,
         });
         if (!isActive) return;
-        setStories(result.data);
-        setTotalStories(result.total);
-        setTotalPages(Math.max(result.total_pages, 1));
+        setStories(result.data ?? []);
+        setTotalStories(result.pagination?.total ?? 0);
+        setTotalPages(Math.max(result.pagination?.total_pages ?? 1, 1));
       } catch (fetchError) {
         if (!isActive) return;
         setError(getColorStoriesErrorMessage(fetchError));
@@ -366,7 +366,7 @@ export default function ColorStories() {
     onViewOpen();
     try {
       const story = await getColorStoryById(id);
-      setSelectedStory(story);
+      setSelectedStory(story.data);
     } catch (fetchError) {
       addToast({ title: "Load Failed", description: getColorStoriesErrorMessage(fetchError), color: "danger", radius: "full", timeout: 3000 });
     } finally {
@@ -381,7 +381,7 @@ export default function ColorStories() {
     onFormOpen();
     try {
       const story = await getColorStoryById(id);
-      setFormState(getFormFromStory(story));
+      setFormState(getFormFromStory(story.data));
     } catch (fetchError) {
       addToast({ title: "Load Failed", description: getColorStoriesErrorMessage(fetchError), color: "danger", radius: "full", timeout: 3000 });
       onFormClose();
@@ -496,7 +496,7 @@ export default function ColorStories() {
         addToast({ title: "Story Updated", description: result.message ?? "Color story updated successfully.", color: "success", radius: "full", timeout: 3000 });
 
         // Manual state update with safe guard
-        const updatedStory = result.data || result.story;
+        const updatedStory = result.data;
         setStories((prev) => {
           if (!updatedStory) return prev;
           return prev.map((s) => (s.id === editingStoryId ? updatedStory : s));
@@ -506,7 +506,7 @@ export default function ColorStories() {
         addToast({ title: "Story Created", description: result.message ?? "Color story created successfully.", color: "success", radius: "full", timeout: 3000 });
 
         // Manual state update for new story
-        const newStory = result.data || result.story;
+        const newStory = result.data;
         setStories((prev) => {
           if (!newStory) return prev;
           return [newStory, ...prev];
@@ -568,8 +568,8 @@ export default function ColorStories() {
       });
 
       // Verify with server response if possible
-      if (result.data || result.story) {
-        const updatedStory = result.data || result.story;
+      if (result.data) {
+        const updatedStory = result.data;
         setStories((prev) => {
           if (!updatedStory) return prev;
           return prev.map((s) => (s.id === storyId ? updatedStory : s));

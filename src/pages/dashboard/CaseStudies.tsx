@@ -398,9 +398,9 @@ export default function CaseStudies() {
     getCaseStudies({ page, per_page: limit })
       .then((res) => {
         if (!active) return;
-        setCaseStudies(res.data);
-        setTotalCount(res.total);
-        setTotalPages(Math.max(res.total_pages, 1));
+        setCaseStudies(res.data ?? []);
+        setTotalCount(res.pagination?.total ?? 0);
+        setTotalPages(Math.max(res.pagination?.total_pages ?? 1, 1));
       })
       .catch((err) => {
         if (!active) return;
@@ -515,7 +515,8 @@ export default function CaseStudies() {
     setIsViewLoading(true);
     onViewOpen();
     try {
-      setSelectedCaseStudy(await getCaseStudyById(id));
+      const response = await getCaseStudyById(id);
+      setSelectedCaseStudy(response.data);
     } catch (e) {
       addToast({
         color: "danger",
@@ -535,7 +536,8 @@ export default function CaseStudies() {
     setIsFormLoading(true);
     onFormOpen();
     try {
-      setForm(caseStudyToForm(await getCaseStudyById(id)));
+      const response = await getCaseStudyById(id);
+      setForm(caseStudyToForm(response.data));
     } catch (e) {
       addToast({
         color: "danger",
@@ -705,8 +707,8 @@ export default function CaseStudies() {
         });
 
         // Update the specific item in state
-       if (res.caseStudy || res.data) {
-    const updatedCaseStudy = (res.caseStudy || res.data)!;
+       if (res.data) {
+    const updatedCaseStudy = res.data;
     setCaseStudies((prev) =>
       prev.map((cs) => (cs.id === editingId ? updatedCaseStudy : cs))
     );
@@ -728,8 +730,8 @@ export default function CaseStudies() {
         });
 
         // Add new item to state
-        if (res.caseStudy || res.data) {
-          const newCaseStudy = (res.caseStudy || res.data)!;
+        if (res.data) {
+          const newCaseStudy = res.data;
           setCaseStudies((prev) => {
             if (!newCaseStudy) return prev;
             return [newCaseStudy, ...prev];
@@ -809,7 +811,7 @@ export default function CaseStudies() {
         const res = await updateCaseStudyStatus(csId, nextStatus);
 
         // Verify with server response
-        const updatedCaseStudy = res.caseStudy || res.data;
+        const updatedCaseStudy = res.data;
         setCaseStudies((prev) => {
           if (!updatedCaseStudy) return prev;
           return prev.map((item) =>

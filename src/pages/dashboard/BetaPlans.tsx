@@ -35,7 +35,6 @@ import {
   getBetaPlans,
   getBetaPlansErrorMessage,
 } from "@/api/betaPlans.api";
-import BetaPlanModal from "@/components/BetaPlanModal";
 
 export default function BetaPlansPage() {
   const [betaPlans, setBetaPlans] = useState<BetaPlan[]>([]);
@@ -50,14 +49,12 @@ export default function BetaPlansPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{
     id: number;
     name: string;
   } | null>(null);
 
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const {
     isOpen: isDeleteModalOpen,
     onOpen: openDeleteModal,
@@ -103,11 +100,6 @@ export default function BetaPlansPage() {
     }
   }, [page, pagination.totalPages, pagination.total_pages]);
 
-  const handleView = (id: number) => {
-    setSelectedId(id);
-    onOpen();
-  };
-
   const handleOpenDeleteModal = (id: number, name?: string) => {
     setPendingDelete({ id, name: name?.trim() ? name : "this beta plan" });
     openDeleteModal();
@@ -124,7 +116,8 @@ export default function BetaPlansPage() {
       addToast({
         title: "Beta Plan Deleted",
         description: result.message ?? "Beta plan deleted successfully.",
-        severity: "success",
+        // severity: "success",
+        color:"danger",
         radius: "full",
         timeout: 3000,
       });
@@ -133,7 +126,7 @@ export default function BetaPlansPage() {
       addToast({
         title: "Delete Failed",
         description: getBetaPlansErrorMessage(err),
-        severity: "danger",
+        color: "default",
         radius: "full",
         timeout: 3000,
       });
@@ -231,18 +224,6 @@ export default function BetaPlansPage() {
 
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Tooltip content="View beta plan">
-                          <Button
-                            isIconOnly
-                            size="sm"
-                            variant="flat"
-                            onPress={() =>
-                              handleView(betaPlan.beta_claim_id)
-                            }
-                          >
-                            <Icon icon="mdi:eye" width={16} />
-                          </Button>
-                        </Tooltip>
 
                         <Tooltip content="Delete beta plan">
                           <Button
@@ -321,12 +302,7 @@ export default function BetaPlansPage() {
         </CardBody>
       </Card>
 
-      {/* View Modal */}
-      <BetaPlanModal
-        betaPlanId={selectedId}
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      />
+     
 
       {/* Delete Confirmation Modal */}
       <Modal

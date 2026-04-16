@@ -10,6 +10,7 @@ import {
   ModalBody,
   ModalContent,
   ModalHeader,
+  Textarea,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
@@ -69,7 +70,7 @@ export default function ContactMessageModal({
 
         const data = await getContactMessageById(messageId);
 
-        setMessage(data);
+        setMessage(data.data);
       } catch (error) {
         console.error("Failed to load message", error);
         setMessage(null);
@@ -145,7 +146,7 @@ export default function ContactMessageModal({
                     variant="flat"
                   />
 
-                  <Input
+                  <Textarea
                     isReadOnly
                     label="Message"
                     value={message.description ?? "-"}

@@ -1,116 +1,61 @@
 import type {
-  SingleSubscriptionPlanApiResponse,
   SubscriptionPlan,
   SubscriptionPlanPayload,
-  SubscriptionPlansApiResponse,
 } from "@/types/subscriptionPlan.types";
 
 import api from "@/lib/axios";
 
-interface DeleteSubscriptionPlanApiResponse {
+interface ApiResponse<T> {
   success: boolean;
-  message: string;
-}
-
-interface UpdateSubscriptionPlanApiResponse {
-  success: boolean;
+  data: T;
   message?: string;
-  plan?: SubscriptionPlan;
 }
 
-interface CreateSubscriptionPlanApiResponse {
+interface SinglePlanResponse<T> {
   success: boolean;
+  plan: T;
   message?: string;
-  plan?: SubscriptionPlan;
 }
 
-function extractPlans(data: unknown): SubscriptionPlan[] {
-  if (!data || typeof data !== "object") {
-    return [];
-  }
-
-  const typed = data as {
-    plans?: unknown;
-    data?: unknown;
+interface SubscriptionPlansListResponse<T> {
+  success: boolean;
+  count: number;
+  plans: T[];
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+    totalPages?: number;
   };
-
-  if (Array.isArray(typed.plans)) {
-    return typed.plans as SubscriptionPlan[];
-  }
-
-  if (Array.isArray(typed.data)) {
-    return typed.data as SubscriptionPlan[];
-  }
-
-  if (
-    typed.data &&
-    typeof typed.data === "object" &&
-    "plans" in typed.data &&
-    Array.isArray((typed.data as { plans?: unknown }).plans)
-  ) {
-    return (typed.data as { plans: SubscriptionPlan[] }).plans;
-  }
-
-  return [];
 }
 
 export async function getSubscriptionPlans(
   page?: number,
   limit?: number,
-): Promise<SubscriptionPlansApiResponse> {
-  const response = await api.get<SubscriptionPlansApiResponse>(
+): Promise<SubscriptionPlansListResponse<SubscriptionPlan>> {
+  const response = await api.get<SubscriptionPlansListResponse<SubscriptionPlan>>(
     "/admin/subscription-plans",
-    {
-      params: {
-        page,
-        limit,
-      },
-    },
+    { params: { page, limit } },
   );
 
-  const data = response.data;
-
-  return {
-    ...data,
-    plans: extractPlans(data),
-  };
+  return response.data;
 }
 
 export async function getSubscriptionPlanById(
   id: number,
-): Promise<SubscriptionPlan> {
-  const response = await api.get<
-    SubscriptionPlan | SingleSubscriptionPlanApiResponse
-  >(`/admin/subscription-plans/${id}`);
-  const data = response.data;
+): Promise<SinglePlanResponse<SubscriptionPlan>> {
+  const response = await api.get<SinglePlanResponse<SubscriptionPlan>>(
+    `/admin/subscription-plans/${id}`,
+  );
 
-  if (
-    data &&
-    typeof data === "object" &&
-    "plan" in data &&
-    typeof (data as SingleSubscriptionPlanApiResponse).plan === "object" &&
-    (data as SingleSubscriptionPlanApiResponse).plan !== null
-  ) {
-    return (data as SingleSubscriptionPlanApiResponse).plan as SubscriptionPlan;
-  }
-
-  if (
-    data &&
-    typeof data === "object" &&
-    "data" in data &&
-    typeof (data as SingleSubscriptionPlanApiResponse).data === "object" &&
-    (data as SingleSubscriptionPlanApiResponse).data !== null
-  ) {
-    return (data as SingleSubscriptionPlanApiResponse).data as SubscriptionPlan;
-  }
-
-  return data as SubscriptionPlan;
+  return response.data;
 }
 
 export async function createSubscriptionPlan(
   payload: SubscriptionPlanPayload,
-): Promise<CreateSubscriptionPlanApiResponse> {
-  const response = await api.post<CreateSubscriptionPlanApiResponse>(
+): Promise<ApiResponse<SubscriptionPlan>> {
+  const response = await api.post<ApiResponse<SubscriptionPlan>>(
     "/admin/subscription-plans",
     payload,
   );
@@ -121,8 +66,8 @@ export async function createSubscriptionPlan(
 export async function updateSubscriptionPlanById(
   id: number,
   payload: SubscriptionPlanPayload,
-): Promise<UpdateSubscriptionPlanApiResponse> {
-  const response = await api.put<UpdateSubscriptionPlanApiResponse>(
+): Promise<ApiResponse<SubscriptionPlan>> {
+  const response = await api.put<ApiResponse<SubscriptionPlan>>(
     `/admin/subscription-plans/${id}`,
     payload,
   );
@@ -132,8 +77,8 @@ export async function updateSubscriptionPlanById(
 
 export async function deleteSubscriptionPlanById(
   id: number,
-): Promise<DeleteSubscriptionPlanApiResponse> {
-  const response = await api.delete<DeleteSubscriptionPlanApiResponse>(
+): Promise<ApiResponse<{ id: number }>> {
+  const response = await api.delete<ApiResponse<{ id: number }>>(
     `/admin/subscription-plans/${id}`,
   );
 
@@ -141,14 +86,6 @@ export async function deleteSubscriptionPlanById(
 }
 
 export function getSubscriptionPlansErrorMessage(error: unknown): string {
-  if (typeof error === "object" && error !== null && "response" in error) {
-    const err = error as { response?: { data?: { message?: string } } };
-
-    return (
-      err.response?.data?.message ??
-      "Failed to process subscription plans request."
-    );
-  }
-
+  console.error(error);
   return "Failed to process subscription plans request.";
 }

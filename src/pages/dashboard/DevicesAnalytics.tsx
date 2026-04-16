@@ -59,7 +59,7 @@ export default function DevicesAnalytics() {
     try {
       const response = await getDevicesAnalytics(days);
 
-      setPayload(response);
+      setPayload(response.data);
     } catch (fetchError) {
       setPayload(null);
       setError(getAnalyticsErrorMessage(fetchError));

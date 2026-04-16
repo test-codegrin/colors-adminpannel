@@ -112,12 +112,7 @@ function formatUserLocation(user: User): string {
 }
 
 function getUserId(user: User): number | null {
-  const source = user as User & {
-    user_id?: unknown;
-    id?: unknown;
-    _id?: unknown;
-  };
-  const candidate = source.user_id ?? source.id ?? source._id;
+  const candidate = user.user_id;
 
   if (typeof candidate === "number" && Number.isFinite(candidate)) {
     return candidate;
@@ -312,8 +307,11 @@ function Users() {
             signal: controller.signal,
           });
           if (!isActive) return;
-          const totalPagesToFetch = Math.min(firstResult.totalPages, 10);
-          const allFetched = [...firstResult.users];
+          const totalPagesToFetch = Math.min(
+            firstResult.pagination?.total_pages ?? 1,
+            10,
+          );
+          const allFetched = [...(firstResult.data ?? [])];
           for (let p = 2; p <= totalPagesToFetch; p++) {
             // eslint-disable-next-line no-await-in-loop
             const r = await getUsers({
@@ -326,7 +324,7 @@ function Users() {
               signal: controller.signal,
             });
             if (!isActive) return;
-            allFetched.push(...r.users);
+            allFetched.push(...(r.data ?? []));
           }
           const onlineUsers = allFetched.filter((u) => {
             const uid = getUserId(u);
@@ -350,8 +348,8 @@ function Users() {
 
         if (!isActive) return;
 
-        const nextTotalPages = Math.max(result.totalPages, 1);
-        setTotalUsers(result.total);
+        const nextTotalPages = Math.max(result.pagination?.total_pages ?? 1, 1);
+        setTotalUsers(result.pagination?.total ?? 0);
         setTotalPages(nextTotalPages);
 
         if (page > nextTotalPages) {
@@ -361,13 +359,13 @@ function Users() {
 
         if (filters.status === "offline") {
           setUsers(
-            result.users.filter((u) => {
+            (result.data ?? []).filter((u) => {
               const uid = getUserId(u);
               return uid === null || !onlineUserIds.has(uid);
             }),
           );
         } else {
-          setUsers(result.users);
+          setUsers(result.data ?? []);
         }
       } catch (err) {
         if (!isActive || isUsersRequestCancelled(err)) {
@@ -444,7 +442,7 @@ function Users() {
     try {
       const user = await getUserById(userId);
 
-      setSelectedUser(user);
+      setSelectedUser(user.data);
     } finally {
       setIsUserLoading(false);
     }
@@ -473,7 +471,7 @@ function Users() {
     try {
       const result = await updateUserById(userId, payload);
 
-      const updatedUser = result.user;
+      const updatedUser = result.data;
       setSelectedUser(updatedUser);
       setUsers((prev) => {
         if (!updatedUser) return prev;
@@ -601,15 +599,15 @@ function Users() {
           return;
         }
 
-        const nextUserIds = new Set(result.user_ids ?? []);
+        const nextUserIds = new Set(result.data?.user_ids ?? []);
 
         setLiveUsersError("");
         hasShownLiveUsersErrorRef.current = false;
         setOnlineUserIds(nextUserIds);
         setOnlineUsersCount(
-          typeof result.total_online_users === "number" &&
-            Number.isFinite(result.total_online_users)
-            ? result.total_online_users
+          typeof result.data?.total_online_users === "number" &&
+            Number.isFinite(result.data.total_online_users)
+            ? result.data.total_online_users
             : nextUserIds.size,
         );
       } catch (err) {

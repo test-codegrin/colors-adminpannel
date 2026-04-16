@@ -164,8 +164,8 @@ export default function SubscriptionPlans() {
         const serverTotalPages =
           result.pagination?.total_pages ??
           result.pagination?.totalPages ??
-          result.totalPages ??
-          (result.count && limit > 0 ? Math.ceil(result.count / limit) : 1);
+          (result.count && limit > 0 ? Math.ceil(result.count / limit) : 1) ??
+          1;
 
         setTotalPages(Math.max(serverTotalPages, 1));
 
@@ -219,7 +219,7 @@ export default function SubscriptionPlans() {
     try {
       const plan = await getSubscriptionPlanById(id);
 
-      setSelectedPlan(plan);
+      setSelectedPlan(plan.plan);
     } catch (fetchError) {
       addToast({
         title: "Load Failed",

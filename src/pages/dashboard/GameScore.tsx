@@ -38,7 +38,7 @@ function GameScore() {
 
     try {
       const result = await getGameScoreUsersDetails();
-      setRows(result.data);
+      setRows(result.data ?? []);
     } catch (fetchError) {
       const message = getGameScoreErrorMessage(fetchError);
 

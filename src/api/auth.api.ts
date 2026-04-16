@@ -23,15 +23,6 @@ export async function sendAdminLoginOtp(email: string): Promise<OtpResponse> {
 }
 
 export function getLoginErrorMessage(error: unknown): string {
-  if (typeof error === "object" && error !== null && "response" in error) {
-    const err = error as { response?: { data?: { message?: string } } };
-
-    return err.response?.data?.message ?? FALLBACK_ERROR;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
+  console.error(error);
   return FALLBACK_ERROR;
 }

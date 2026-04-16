@@ -175,12 +175,12 @@ function createCoreState(): DashboardCoreState {
 }
 
 function resolveAsyncResult<T>(
-  result: PromiseSettledResult<T>,
+  result: PromiseSettledResult<{ data: T }>,
   fallback: T,
 ): AsyncState<T> {
   if (result.status === "fulfilled") {
     return {
-      data: result.value,
+      data: result.value.data ?? fallback,
       isLoading: false,
       error: "",
     };
@@ -446,11 +446,55 @@ function DashboardHome() {
 
     setCoreState({
       overview: resolveAsyncResult(overviewResult, null),
-      usersGrowth: resolveAsyncResult(usersGrowthResult, []),
-      revenueGrowth: resolveAsyncResult(revenueGrowthResult, []),
-      messagesGrowth: resolveAsyncResult(messagesGrowthResult, []),
+      usersGrowth:
+        usersGrowthResult.status === "fulfilled"
+          ? {
+              data: usersGrowthResult.value.data.growth ?? [],
+              isLoading: false,
+              error: "",
+            }
+          : {
+              data: [],
+              isLoading: false,
+              error: getAnalyticsErrorMessage(usersGrowthResult.reason),
+            },
+      revenueGrowth:
+        revenueGrowthResult.status === "fulfilled"
+          ? {
+              data: revenueGrowthResult.value.data.growth ?? [],
+              isLoading: false,
+              error: "",
+            }
+          : {
+              data: [],
+              isLoading: false,
+              error: getAnalyticsErrorMessage(revenueGrowthResult.reason),
+            },
+      messagesGrowth:
+        messagesGrowthResult.status === "fulfilled"
+          ? {
+              data: messagesGrowthResult.value.data.growth ?? [],
+              isLoading: false,
+              error: "",
+            }
+          : {
+              data: [],
+              isLoading: false,
+              error: getAnalyticsErrorMessage(messagesGrowthResult.reason),
+            },
       pageViews: resolveAsyncResult(pageViewsResult, null),
-      topPages: resolveAsyncResult(topPagesResult, []),
+      topPages:
+        topPagesResult.status === "fulfilled"
+          ? {
+              data: topPagesResult.value.data.top_pages ?? [],
+              isLoading: false,
+              error: "",
+            }
+          : {
+              data: [],
+              isLoading: false,
+              error: getAnalyticsErrorMessage(topPagesResult.reason),
+            },
       devices: resolveAsyncResult(devicesResult, null),
       liveUsers: resolveAsyncResult(liveUsersResult, null),
       featureUsage: resolveAsyncResult(featureUsageResult, null),
@@ -479,8 +523,8 @@ function DashboardHome() {
       }
 
       setRecentUsersState({
-        items: response.items,
-        pagination: response.pagination,
+        items: response.data.users ?? [],
+        pagination: response.data.pagination ?? { ...emptyPagination, page },
         isLoading: false,
         error: "",
       });
@@ -515,8 +559,8 @@ function DashboardHome() {
       }
 
       setRecentPaymentsState({
-        items: response.items,
-        pagination: response.pagination,
+        items: response.data.payments ?? [],
+        pagination: response.data.pagination ?? { ...emptyPagination, page },
         isLoading: false,
         error: "",
       });

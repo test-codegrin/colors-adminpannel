@@ -128,7 +128,7 @@ export default function LiveUsers() {
     try {
       const response = await getAnalyticsLiveUsers();
 
-      setLiveUsersData(response);
+      setLiveUsersData(response.data);
     } catch (fetchError) {
       setLiveUsersData(null);
       setError(getAnalyticsErrorMessage(fetchError));

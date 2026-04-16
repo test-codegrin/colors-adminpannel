@@ -82,7 +82,6 @@ export default function PaymentsTable() {
         const serverTotalPages =
           result.pagination?.total_pages ??
           result.pagination?.totalPages ??
-          result.totalPages ??
           1;
 
         setTotalPages(Math.max(serverTotalPages, 1));
@@ -136,7 +135,7 @@ export default function PaymentsTable() {
 
     setLoadingReceipt(payment.payment_id);
     try {
-      const { receipt_url } = await getPaymentReceipt(payment.payment_id);
+      const { receipt_url } = (await getPaymentReceipt(payment.payment_id)).data;
 
       if (receipt_url) {
         window.open(receipt_url, "_blank");
