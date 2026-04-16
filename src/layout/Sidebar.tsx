@@ -20,7 +20,7 @@ const USERS_ROUTE_PATH = "/dashboard/users";
 const navItems: NavItem[] = [
   { label: "Analytics", path: "/dashboard", icon: "mdi:view-dashboard-outline" },
   { label: "Users", path: "/dashboard/users", icon: "mdi:account-group-outline" },
-  { label: "Help Desk", path: "/dashboard/chat-messages", icon: "quill:chat" },
+  { label: "Help Desk", path: "/dashboard/help-desk", icon: "quill:chat" },
   { label: "Payments", path: "/dashboard/payments", icon: "mdi:credit-card-outline" },
   { label: "Subscription Plans", path: "/dashboard/subscription-plans", icon: "mdi:ticket-confirmation-outline" },
   { label: "Color Stories", path: "/dashboard/color-stories", icon: "mdi:book-open-page-variant-outline" },

@@ -34,7 +34,7 @@ function App() {
         <Route element={<DashboardLayout />} path="/dashboard">
           <Route index element={<DashboardHome />} />
           <Route element={<Users />} path="users" />
-          <Route element={<ChatMessages />} path="chat-messages" />
+          <Route element={<ChatMessages />} path="help-desk" />
           <Route element={<Payments />} path="payments" />
           <Route element={<SubscriptionPlans />} path="subscription-plans" />
           <Route element={<ColorStories />} path="color-stories" />
