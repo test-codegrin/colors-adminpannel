@@ -244,6 +244,25 @@ export default function ThreadDetailModal({
         }
     }
 
+    const [refreshing, setRefreshing] = useState(false);
+
+    async function handleRefresh() {
+        if (!selectedThread) return;
+        setRefreshing(true);
+        try {
+            const res = await getThreadDetail(selectedThread.threadId);
+            setThreadDetail(res.data);
+        } catch (err) {
+            addToast({
+                title: "Error",
+                description: getSupportErrorMessage(err),
+                color: "danger",
+            });
+        } finally {
+            setRefreshing(false);
+        }
+    }
+
     function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -299,14 +318,26 @@ export default function ThreadDetailModal({
                                             <p className="text-base font-semibold leading-tight truncate">
                                                 {selectedThread?.user.name}
                                             </p>
-                                            <div className="flex flex-col gap-0.5 mt-0.5">
-                                                <InfoRow icon="mdi:email-outline" value={selectedThread?.user.email ?? ""} />
+                                            <div className="flex text-xs flex-col gap-0.5 mt-0.5">
+                                                {selectedThread?.user.email ?? ""}
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Right: status chip + close button */}
                                     <div className="flex items-center gap-2 mt-1 shrink-0">
+                                        {/* ✅ Refresh Button */}
+                                        <Button
+                                            isIconOnly
+                                            size="sm"
+                                            variant="flat"
+                                            onPress={handleRefresh}
+                                            isLoading={refreshing}
+                                            className="w-7 h-7 min-w-7"
+                                        >
+                                            {!refreshing && <Icon icon="mdi:refresh" width={16} />}
+                                        </Button>
+
                                         <Chip
                                             size="sm"
                                             color={threadDetail?.status === 1 ? "success" : "default"}

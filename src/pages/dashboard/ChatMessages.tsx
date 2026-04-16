@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
     getSupportThreads,
     getSupportErrorMessage,
+    closeThread,
     type SupportThread,
 } from "@/api/chat.api";
 
@@ -24,6 +25,12 @@ import {
     CardBody,
     Card,
     Tooltip,
+    Modal,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
+    useDisclosure,
 } from "@heroui/react";
 
 import { Icon } from "@iconify/react";
@@ -68,8 +75,14 @@ export default function SupportThreadsPage() {
     const [total, setTotal] = useState(0);
     const [limit, setLimit] = useState(25);
 
+    // Thread detail modal
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedThread, setSelectedThread] = useState<SupportThread | null>(null);
+
+    // Close confirmation modal
+    const { isOpen: isConfirmOpen, onOpen: onConfirmOpen, onClose: onConfirmClose } = useDisclosure();
+    const [threadToClose, setThreadToClose] = useState<SupportThread | null>(null);
+    const [isClosing, setIsClosing] = useState(false);
 
     const totalUnread = threads.filter((t) => t.unreadUserMessages > 0).length;
 
@@ -107,9 +120,40 @@ export default function SupportThreadsPage() {
         setModalOpen(true);
     }
 
+    // Opens the confirmation popup for closing a thread
+    function handleCloseClick(thread: SupportThread) {
+        setThreadToClose(thread);
+        onConfirmOpen();
+    }
+
+    // Called when user confirms closing
+    async function handleConfirmClose() {
+        if (!threadToClose) return;
+        setIsClosing(true);
+        try {
+            await closeThread(threadToClose.threadId);
+            addToast({
+                title: "Thread Closed",
+                description: `Thread #${threadToClose.threadId} has been closed successfully.`,
+                color: "success",
+            });
+            onConfirmClose();
+            setThreadToClose(null);
+            fetchThreads(page, limit);
+        } catch (err) {
+            addToast({
+                title: "Error",
+                description: getSupportErrorMessage(err),
+                color: "danger",
+            });
+        } finally {
+            setIsClosing(false);
+        }
+    }
+
     function renderCell(thread: SupportThread, columnKey: string) {
         const isUnread = thread.unreadUserMessages > 0;
-        const isStatus = thread.status > 0;
+        const isOpen = thread.status > 0;
 
         switch (columnKey) {
             case "id":
@@ -135,7 +179,6 @@ export default function SupportThreadsPage() {
                 return (
                     <div className="text-xs sm:text-sm text-default-500 break-all">
                         {thread.user.email}
-                        <div>{thread.user.mobile}</div>
                     </div>
                 );
 
@@ -152,15 +195,14 @@ export default function SupportThreadsPage() {
                 );
 
             case "status":
-                return isStatus ? (
+                return isOpen ? (
                     <Chip
                         size="sm"
                         color="success"
                         variant="flat"
                         className="text-[10px] sm:text-xs font-semibold"
-                        // startContent={<Icon icon="mdi:email-outline" width={12} />}
                     >
-                        {thread.status ? "Open" : "Closed"}
+                        Open
                     </Chip>
                 ) : (
                     <Chip
@@ -168,9 +210,8 @@ export default function SupportThreadsPage() {
                         color="default"
                         variant="flat"
                         className="text-[10px] sm:text-xs text-default-400"
-                        // startContent={<Icon icon="mdi:email-open-outline" width={12} />}
                     >
-                        {thread.status ? "Open" : "Closed"}
+                        Closed
                     </Chip>
                 );
 
@@ -181,7 +222,6 @@ export default function SupportThreadsPage() {
                         color="warning"
                         variant="flat"
                         className="text-[10px] sm:text-xs font-semibold"
-                        // startContent={<Icon icon="mdi:email-outline" width={12} />}
                     >
                         {thread.unreadUserMessages} New
                     </Chip>
@@ -191,7 +231,6 @@ export default function SupportThreadsPage() {
                         color="default"
                         variant="flat"
                         className="text-[10px] sm:text-xs text-default-400"
-                        // startContent={<Icon icon="mdi:email-open-outline" width={12} />}
                     >
                         Read
                     </Chip>
@@ -206,17 +245,32 @@ export default function SupportThreadsPage() {
 
             case "actions":
                 return (
-                    <Tooltip content="View conversation">
-                        <Button
-                            isIconOnly
-                            size="sm"
-                            variant={isUnread ? "solid" : "flat"}
-                            color="primary"
-                            onPress={() => openModal(thread)}
-                        >
-                            <Icon icon="quill:chat" width={16} />
-                        </Button>
-                    </Tooltip>
+                    <div className="flex gap-3">
+                        <Tooltip content="View conversation">
+                            <Button
+                                isIconOnly
+                                size="sm"
+                                variant={isUnread ? "solid" : "flat"}
+                                color="primary"
+                                onPress={() => openModal(thread)}
+                            >
+                                <Icon icon="quill:chat" width={16} />
+                            </Button>
+                        </Tooltip>
+
+                        <Tooltip content={isOpen ? "Close thread" : "Thread already closed"}>
+                            <Button
+                                isIconOnly
+                                size="sm"
+                                variant={isUnread ? "solid" : "flat"}
+                                color="danger"
+                                isDisabled={!isOpen}
+                                onPress={() => handleCloseClick(thread)}
+                            >
+                                <Icon icon="mdi:lock" width={16} />
+                            </Button>
+                        </Tooltip>
+                    </div>
                 );
 
             default:
@@ -298,7 +352,7 @@ export default function SupportThreadsPage() {
                                                 className={
                                                     isUnread
                                                         ? "bg-warning-50 dark:bg-warning-900/20"
-                                                        : ""   // ← read: no background, fully default
+                                                        : ""
                                                 }
                                             >
                                                 {(columnKey) => (
@@ -361,13 +415,87 @@ export default function SupportThreadsPage() {
                 </CardBody>
             </Card>
 
-            {/* MODAL */}
+            {/* THREAD DETAIL MODAL */}
             <ThreadDetailModal
                 isOpen={modalOpen}
                 onOpenChange={setModalOpen}
                 selectedThread={selectedThread}
                 onThreadClosed={() => fetchThreads(page, limit)}
             />
+
+            {/* CLOSE THREAD CONFIRMATION MODAL */}
+            <Modal
+                isOpen={isConfirmOpen}
+                onClose={onConfirmClose}
+                size="sm"
+                isDismissable={!isClosing}
+                hideCloseButton={isClosing}
+            >
+                <ModalContent>
+                    {(onClose) => (
+                        <>
+                            <ModalHeader className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center justify-center w-9 h-9 rounded-full bg-danger-100 dark:bg-danger-900/30 shrink-0">
+                                        <Icon
+                                            icon="mdi:lock"
+                                            className="text-danger"
+                                            width={20}
+                                        />
+                                    </div>
+                                    <span>Close Thread</span>
+                                </div>
+                            </ModalHeader>
+
+                            <ModalBody>
+
+                                {threadToClose && (
+                                    <div className="mt-2 p-3 rounded-lg bg-default-100 dark:bg-default-50/10 space-y-1">
+                                        {/* <div className="flex justify-between text-xs text-default-500">
+                                            <span>Thread ID</span>
+                                            <span className="font-medium text-default-700">
+                                                #{threadToClose.threadId}
+                                            </span>
+                                        </div> */}
+                                        <p className="text-sm text-default-600">
+                                            Are you sure you want to close the chat with{" "}
+                                            <span className="font-semibold text-foreground">{threadToClose.user.name}</span>?
+                                        </p>
+                                        <p className="text-xs text-default-400 mt-1">
+                                            Once closed, no further replies can be sent unless the thread is reopened.
+                                        </p>
+                                    </div>
+                                )}
+                            </ModalBody>
+
+                            <ModalFooter>
+                                <Button
+                                    variant="flat"
+                                    color="default"
+                                    onPress={onClose}
+                                    isDisabled={isClosing}
+                                    size="sm"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    color="danger"
+                                    onPress={handleConfirmClose}
+                                    isLoading={isClosing}
+                                    size="sm"
+                                    startContent={
+                                        !isClosing ? (
+                                            <Icon icon="mdi:lock" width={16} />
+                                        ) : undefined
+                                    }
+                                >
+                                    {isClosing ? "Closing..." : "Close Thread"}
+                                </Button>
+                            </ModalFooter>
+                        </>
+                    )}
+                </ModalContent>
+            </Modal>
         </>
     );
 }
