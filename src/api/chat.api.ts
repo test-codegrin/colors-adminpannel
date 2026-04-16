@@ -91,7 +91,8 @@ export async function closeThread(
   threadId: number,
 ): Promise<ApiResponse<{ threadId: number; status: number }>> {
   const response = await api.patch<ApiResponse<{ threadId: number; status: number }>>(
-    `/admin/support-messages/threads/${threadId}/close`,
+    `/admin/support-messages/threads/${threadId}/status`,
+    { status: 0 }, // 0 for closed, 1 for open
   );
   return response.data;
 }

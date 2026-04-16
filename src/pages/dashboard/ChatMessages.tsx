@@ -109,6 +109,7 @@ export default function SupportThreadsPage() {
 
     function renderCell(thread: SupportThread, columnKey: string) {
         const isUnread = thread.unreadUserMessages > 0;
+        const isStatus = thread.status > 0;
 
         switch (columnKey) {
             case "id":
@@ -151,14 +152,25 @@ export default function SupportThreadsPage() {
                 );
 
             case "status":
-                return (
+                return isStatus ? (
                     <Chip
                         size="sm"
-                        color={thread.status === 1 ? "success" : "default"}
+                        color="success"
                         variant="flat"
-                        className="text-[10px] sm:text-xs"
+                        className="text-[10px] sm:text-xs font-semibold"
+                        // startContent={<Icon icon="mdi:email-outline" width={12} />}
                     >
-                        {thread.status === 1 ? "Open" : "Closed"}
+                        {thread.status ? "Open" : "Closed"}
+                    </Chip>
+                ) : (
+                    <Chip
+                        size="sm"
+                        color="default"
+                        variant="flat"
+                        className="text-[10px] sm:text-xs text-default-400"
+                        // startContent={<Icon icon="mdi:email-open-outline" width={12} />}
+                    >
+                        {thread.status ? "Open" : "Closed"}
                     </Chip>
                 );
 
@@ -169,7 +181,7 @@ export default function SupportThreadsPage() {
                         color="warning"
                         variant="flat"
                         className="text-[10px] sm:text-xs font-semibold"
-                        startContent={<Icon icon="mdi:email-outline" width={12} />}
+                        // startContent={<Icon icon="mdi:email-outline" width={12} />}
                     >
                         {thread.unreadUserMessages} New
                     </Chip>
@@ -179,7 +191,7 @@ export default function SupportThreadsPage() {
                         color="default"
                         variant="flat"
                         className="text-[10px] sm:text-xs text-default-400"
-                        startContent={<Icon icon="mdi:email-open-outline" width={12} />}
+                        // startContent={<Icon icon="mdi:email-open-outline" width={12} />}
                     >
                         Read
                     </Chip>
