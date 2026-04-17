@@ -50,88 +50,76 @@ export default function ColorStoriesFilters({
     onStatusChange(nextValue);
   };
 
+
+
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-wrap items-end gap-3">
+      <div className="w-full md:min-w-64 md:flex-1">
+        <Input
+          isClearable
+          label="Search stories"
+          placeholder="Search title, excerpt, or tags"
+          startContent={
+            <Icon
+              className="text-default-400"
+              height={18}
+              icon="mdi:magnify"
+              width={18}
+            />
+          }
+          value={values.search}
+          onClear={() => onSearchChange("")}
+          onValueChange={onSearchChange}
+        />
+      </div>
 
-      <div className="flex flex-wrap gap-3 md:flex-nowrap md:items-end">
+      <div className="grid w-full grid-cols-2 gap-3 md:w-auto md:min-w-72">
+        <Select
+          disallowEmptySelection
+          label="Status"
+          selectedKeys={[values.status]}
+          onSelectionChange={handleStatusSelectionChange}
+        >
+          <SelectItem key="all">All</SelectItem>
+          <SelectItem key="0">Draft</SelectItem>
+          <SelectItem key="1">Published</SelectItem>
+        </Select>
 
-        {/* 🔍 SEARCH — full width on mobile, flexible on md+ */}
-        <div className="w-full md:flex-1 md:min-w-[220px]">
-          <Input
-            isClearable
-            label="Search stories"
-            placeholder="Search title, excerpt, or tags"
-            size="sm"
-            startContent={
-              <Icon
-                className="text-default-400"
-                height={18}
-                icon="mdi:magnify"
-                width={18}
-              />
+        <Select
+          disallowEmptySelection
+          isDisabled={categories.length === 0}
+          items={categoryOptions}
+          label="Category"
+          placeholder={
+            categories.length > 0 ? "Filter by category" : "No categories"
+          }
+          selectedKeys={[values.category || "all"]}
+          onSelectionChange={(keys) => {
+            if (keys === "all") {
+              onCategoryChange("");
+              return;
             }
-            value={values.search}
-            variant="bordered"
-            onClear={() => onSearchChange("")}
-            onValueChange={onSearchChange}
-          />
-        </div>
+            const [selectedKey] = Array.from(keys);
+            onCategoryChange(selectedKey === "all" ? "" : String(selectedKey));
+          }}
+        >
+          {(item) => <SelectItem key={item.key}>{item.label}</SelectItem>}
+        </Select>
+      </div>
 
-        {/* 📊 STATUS + CATEGORY — side-by-side on ALL screen sizes */}
-        <div className="grid grid-cols-2 gap-3 w-full md:w-[280px] md:shrink-0">
-          <Select
-            disallowEmptySelection
-            label="Status"
-            selectedKeys={[values.status]}
-            size="sm"
-            variant="bordered"
-            onSelectionChange={handleStatusSelectionChange}
-          >
-            <SelectItem key="all">All</SelectItem>
-            <SelectItem key="0">Draft</SelectItem>
-            <SelectItem key="1">Published</SelectItem>
-          </Select>
-
-          <Select
-            disallowEmptySelection
-            isDisabled={categories.length === 0}
-            items={categoryOptions}
-            label="Category"
-            placeholder={
-              categories.length > 0 ? "Filter by category" : "No categories"
-            }
-            selectedKeys={[values.category || "all"]}
-            size="sm"
-            variant="bordered"
-            onSelectionChange={(keys) => {
-              if (keys === "all") {
-                onCategoryChange("");
-                return;
-              }
-              const [selectedKey] = Array.from(keys);
-              onCategoryChange(selectedKey === "all" ? "" : String(selectedKey));
-            }}
-          >
-            {(item) => <SelectItem key={item.key}>{item.label}</SelectItem>}
-          </Select>
-        </div>
-
-        {/* 🧹 CLEAR BUTTON — full width on mobile, auto on md+ */}
-        <div className="w-full md:w-auto md:shrink-0">
-          <Button
-            className="h-10 w-full px-4 md:w-auto"
-            isDisabled={!hasActiveFilters || isLoading}
-            size="sm"
-            startContent={
-              <Icon height={18} icon="mdi:filter-remove-outline" width={18} />
-            }
-            variant="flat"
-            onPress={onClear}
-          >
-            Clear filters
-          </Button>
-        </div>
-
+      <div className="w-full md:ml-auto md:w-auto">
+        <Button
+          className="w-full md:w-auto"
+          isDisabled={!hasActiveFilters || isLoading}
+          size="sm"
+          startContent={
+            <Icon height={18} icon="mdi:filter-remove-outline" width={18} />
+          }
+          variant="flat"
+          onPress={onClear}
+        >
+          Clear filters
+        </Button>
       </div>
     </div>
   );

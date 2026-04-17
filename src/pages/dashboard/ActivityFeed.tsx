@@ -311,7 +311,6 @@ export default function ActivityFeedPage() {
           </Select>
 
           <div className="flex flex-col items-start gap-2">
-            <p className="text-sm font-medium">Export CSV</p>
             <Button
               className="w-full sm:w-auto"
               color="primary"
@@ -321,7 +320,7 @@ export default function ActivityFeedPage() {
               variant="flat"
               onPress={handleOpenExportModal}
             >
-              Open Export
+              Export CSV
             </Button>
           </div>
         </div>
@@ -512,7 +511,7 @@ export default function ActivityFeedPage() {
               isLoading={isExporting}
               onPress={handleExport}
             >
-              {isExporting ? "Exporting..." : "Export CSV"}
+              Export CSV
             </Button>
           </ModalFooter>
         </ModalContent>

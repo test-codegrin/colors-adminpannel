@@ -691,7 +691,6 @@ function Users() {
             </div>
           </div>
 
-          <div className="bg-content1">
             <UsersFilters
               hasActiveFilters={hasActiveFilters}
               isLoading={isLoading}
@@ -707,7 +706,6 @@ function Users() {
                 handleFilterChange("startDate", value)
               }
             />
-          </div>
 
           {/* {shouldShowOnlineStrip ? (
             <div className="rounded-[22px] border border-success/20 bg-success/5 px-4 py-4 sm:px-5">

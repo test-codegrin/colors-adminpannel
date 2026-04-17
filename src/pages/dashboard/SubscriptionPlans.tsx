@@ -385,7 +385,6 @@ export default function SubscriptionPlans() {
     <>
       <Card shadow="md">
         <CardBody className="gap-6 p-4 sm:p-6">
-
           {/* ✅ Header Responsive */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
@@ -414,6 +413,7 @@ export default function SubscriptionPlans() {
 
               <Button
                 color="primary"
+                size="sm"
                 startContent={<Icon icon="mdi:plus" width={18} />}
                 onPress={openCreateModal}
               >
@@ -474,16 +474,12 @@ export default function SubscriptionPlans() {
                     <TableCell>
                       <Chip
                         color={
-                          toBooleanFlag(plan.is_active)
-                            ? "success"
-                            : "danger"
+                          toBooleanFlag(plan.is_active) ? "success" : "danger"
                         }
                         size="sm"
                         variant="flat"
                       >
-                        {toBooleanFlag(plan.is_active)
-                          ? "Active"
-                          : "Inactive"}
+                        {toBooleanFlag(plan.is_active) ? "Active" : "Inactive"}
                       </Chip>
                     </TableCell>
 
@@ -541,7 +537,6 @@ export default function SubscriptionPlans() {
 
           {/* ✅ Pagination Responsive */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-
             <div className="flex justify-start sm:justify-start">
               <Select
                 disallowEmptySelection
