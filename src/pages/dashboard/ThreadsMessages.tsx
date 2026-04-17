@@ -422,6 +422,7 @@ export default function SupportThreadsPage() {
                 isOpen={isConfirmOpen}
                 onClose={onConfirmClose}
                 size="sm"
+                placement="center"
                 isDismissable={!isClosing}
                 hideCloseButton={isClosing}
             >
