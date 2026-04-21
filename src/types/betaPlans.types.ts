@@ -5,6 +5,7 @@ export interface BetaPlan {
   user_id: number;
   name: string;
   email: string;
+  search:string;
 }
 
 export interface BetaPlansApiResponse {

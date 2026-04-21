@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   CardBody,
+  Input,
   Modal,
   ModalBody,
   ModalContent,
@@ -26,13 +27,14 @@ import {
   addToast,
   useDisclosure,
 } from "@heroui/react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Icon } from "@iconify/react";
 
 import {
   deleteContactMessageById,
   getContactMessages,
   getContactMessagesErrorMessage,
+  isContactMessagesRequestCancelled,
 } from "@/api/contactMessages.api";
 import ContactMessageModal from "@/components/ContactMessageModal";
 
@@ -41,9 +43,7 @@ import ContactMessageModal from "@/components/ContactMessageModal";
 function formatDate(value?: string): string {
   if (!value) return "-";
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return value;
-
   return date.toLocaleString();
 }
 
@@ -57,13 +57,18 @@ export default function ContactMessagesPage() {
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [deletingMessageId, setDeletingMessageId] = useState<number | null>(
-    null,
-  );
+  const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null);
   const [pendingDeleteMessage, setPendingDeleteMessage] = useState<{
     id: number;
     subject: string;
   } | null>(null);
+
+  // Search state
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const {
     isOpen: isDeleteModalOpen,
@@ -85,43 +90,74 @@ export default function ContactMessagesPage() {
     openDeleteModal();
   };
 
+  // Debounce search input → update searchQuery after 400ms
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearchQuery(value);
+      setPage(1); // reset to page 1 on new search
+    }, 400);
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput("");
+    setSearchQuery("");
+    setPage(1);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  };
+
   const fetchMessages = useCallback(async () => {
+    // Cancel any in-flight request
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+
     setIsLoading(true);
     setError("");
 
     try {
-      const res = await getContactMessages(page, limit);
+      const res = await getContactMessages({
+        page,
+        limit,
+        search: searchQuery || undefined,
+        signal: abortRef.current.signal,
+      });
+
       const serverTotalPages =
         res.pagination?.total_pages ?? res.pagination?.totalPages ?? 1;
 
       setMessages(res.data ?? []);
       setTotalPages(Math.max(serverTotalPages, 1));
     } catch (err) {
+      if (isContactMessagesRequestCancelled(err)) return;
       setError(getContactMessagesErrorMessage(err));
       setMessages([]);
       setTotalPages(1);
     } finally {
       setIsLoading(false);
     }
-  }, [page, limit]);
+  }, [page, limit, searchQuery]);
 
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
 
   useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
+    if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
+  // Cleanup debounce + abort on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, []);
+
   const handleDeleteMessage = async () => {
-    if (!pendingDeleteMessage) {
-      return;
-    }
+    if (!pendingDeleteMessage) return;
 
     const id = pendingDeleteMessage.id;
-
     setDeletingMessageId(id);
 
     try {
@@ -160,7 +196,7 @@ export default function ContactMessagesPage() {
       <Card shadow="md">
         <CardBody className="gap-6 p-4 sm:p-6">
 
-          {/* ✅ Header Responsive */}
+          {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h2 className="text-lg sm:text-xl font-semibold">
@@ -176,9 +212,7 @@ export default function ContactMessagesPage() {
                 isLoading={isLoading}
                 size="sm"
                 startContent={
-                  !isLoading && (
-                    <Icon icon="solar:refresh-bold" width={16} />
-                  )
+                  !isLoading && <Icon icon="solar:refresh-bold" width={16} />
                 }
                 variant="flat"
                 onPress={fetchMessages}
@@ -188,10 +222,49 @@ export default function ContactMessagesPage() {
             </div>
           </div>
 
+          {/* Search Bar */}
+          <div className="w-full sm:max-w-full">
+            <Input
+              isClearable
+              placeholder="Search by name, email or subject..."
+              size="md"
+              startContent={
+                <Icon
+                  className="text-default-400"
+                  icon="solar:magnifer-linear"
+                  width={16}
+                />
+              }
+              value={searchInput}
+              onClear={handleClearSearch}
+              onValueChange={handleSearchChange}
+            />
+          </div>
+
+          {/* Active search badge */}
+          {searchQuery && (
+            <div className="flex items-center gap-2 text-sm text-default-500">
+              <span>
+                Showing results for{" "}
+                <span className="font-semibold text-foreground">
+                  &ldquo;{searchQuery}&rdquo;
+                </span>
+              </span>
+              <Button
+                className="h-5 min-w-0 px-2 text-xs"
+                size="sm"
+                variant="flat"
+                onPress={handleClearSearch}
+              >
+                Clear
+              </Button>
+            </div>
+          )}
+
           {/* Error */}
           {error && <p className="text-danger text-sm">{error}</p>}
 
-          {/* ✅ Table Scroll Fix */}
+          {/* Table */}
           <div className="w-full overflow-x-auto scrollbar-hide">
             <Table
               removeWrapper
@@ -208,14 +281,17 @@ export default function ContactMessagesPage() {
               </TableHeader>
 
               <TableBody
-                emptyContent="No contact messages"
+                emptyContent={
+                  searchQuery
+                    ? `No messages found for "${searchQuery}"`
+                    : "No contact messages"
+                }
                 isLoading={isLoading}
                 items={messages}
                 loadingContent={<Spinner label="Loading..." />}
               >
                 {(msg: ContactMessage) => (
                   <TableRow key={msg.contact_message_id}>
-
                     <TableCell>
                       <span className="font-mono text-xs">
                         #{msg.contact_message_id}
@@ -225,25 +301,17 @@ export default function ContactMessagesPage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Avatar name={msg.name} size="sm" />
-                        <span className="whitespace-nowrap">
-                          {msg.name}
-                        </span>
+                        <span className="whitespace-nowrap">{msg.name}</span>
                       </div>
                     </TableCell>
 
-                    {/* ✅ Email wrap fix */}
-                    <TableCell className="break-all">
-                      {msg.email}
-                    </TableCell>
+                    <TableCell className="break-all">{msg.email}</TableCell>
 
-                    {/* ✅ Subject wrap */}
                     <TableCell className="max-w-[200px] break-words">
                       {msg.subject}
                     </TableCell>
 
-                    <TableCell>
-                      {formatDate(msg.created_at)}
-                    </TableCell>
+                    <TableCell>{formatDate(msg.created_at)}</TableCell>
 
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -252,9 +320,7 @@ export default function ContactMessagesPage() {
                             isIconOnly
                             size="sm"
                             variant="flat"
-                            onPress={() =>
-                              handleView(msg.contact_message_id)
-                            }
+                            onPress={() => handleView(msg.contact_message_id)}
                           >
                             <Icon icon="mdi:eye" width={16} />
                           </Button>
@@ -268,8 +334,7 @@ export default function ContactMessagesPage() {
                             variant="flat"
                             isDisabled={deletingMessageId !== null}
                             isLoading={
-                              deletingMessageId ===
-                              msg.contact_message_id
+                              deletingMessageId === msg.contact_message_id
                             }
                             onPress={() =>
                               handleOpenDeleteModal(
@@ -278,13 +343,9 @@ export default function ContactMessagesPage() {
                               )
                             }
                           >
-                            {deletingMessageId !==
-                              msg.contact_message_id && (
-                                <Icon
-                                  icon="mdi:delete-outline"
-                                  width={16}
-                                />
-                              )}
+                            {deletingMessageId !== msg.contact_message_id && (
+                              <Icon icon="mdi:delete-outline" width={16} />
+                            )}
                           </Button>
                         </Tooltip>
                       </div>
@@ -295,11 +356,9 @@ export default function ContactMessagesPage() {
             </Table>
           </div>
 
-          {/* ✅ Pagination Responsive */}
+          {/* Pagination + Limit */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-
-            {/* Limit */}
-            <div className="flex justify-start sm:justify-start">
+            <div className="flex justify-start">
               <Select
                 disallowEmptySelection
                 className="w-28"
@@ -320,7 +379,6 @@ export default function ContactMessagesPage() {
               </Select>
             </div>
 
-            {/* Pagination */}
             <div className="flex justify-start sm:justify-end w-full">
               <Pagination
                 showControls

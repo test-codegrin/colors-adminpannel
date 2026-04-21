@@ -35,8 +35,8 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import { useCallback, useEffect, useState } from "react";
-
+import { useCallback, useEffect, useRef, useState } from "react";
+import { isCaseStudiesRequestCancelled } from "@/api/caseStudies.api";
 import {
   createCaseStudy,
   deleteCaseStudyById,
@@ -337,6 +337,17 @@ function DynamicSection<T extends Record<string, string>>({
 }
 
 /* ================================================================
+   STATUS FILTER OPTIONS
+================================================================ */
+type StatusFilterValue = "all" | "published" | "draft";
+
+const STATUS_FILTER_OPTIONS: { key: StatusFilterValue; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "published", label: "Published" },
+  { key: "draft", label: "Draft" },
+];
+
+/* ================================================================
    MAIN COMPONENT
 ================================================================ */
 export default function CaseStudies() {
@@ -349,20 +360,21 @@ export default function CaseStudies() {
   const [totalCount, setTotalCount] = useState(0);
   const [reloadToken, setReloadToken] = useState(0);
 
-  const [selectedCaseStudy, setSelectedCaseStudy] = useState<CaseStudy | null>(
-    null,
-  );
-  console.log(selectedCaseStudy);
+  /* ---- Search & Filter state ---- */
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all");
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const [selectedCaseStudy, setSelectedCaseStudy] = useState<CaseStudy | null>(null);
   const [isViewLoading, setIsViewLoading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<FormState>(defaultForm);
   const [formErrors, setFormErrors] = useState<FormErrors>(defaultErrors);
-  const [pendingDelete, setPendingDelete] = useState<{
-    id: number;
-    title: string;
-  } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: number; title: string } | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [, setStatusUpdatingId] = useState<number | null>(null);
 
@@ -390,36 +402,77 @@ export default function CaseStudies() {
     setFormErrors(defaultErrors);
   };
 
-  /* ---- Load list ---- */
+  /* ---- Derive status param from filter ---- */
+  const getStatusParam = (filter: StatusFilterValue): CaseStudyStatus[] => {
+    if (filter === "published") return [1];
+    if (filter === "draft") return [0];
+    return [];
+  };
+
+  /* ---- Fetch list (search + filter + pagination) ---- */
   useEffect(() => {
-    let active = true;
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
     setError("");
-    getCaseStudies({ page, per_page: limit })
+
+    getCaseStudies({
+      page,
+      per_page: limit,
+      search: searchQuery || undefined,
+      status: getStatusParam(statusFilter),
+      signal: controller.signal,
+    })
       .then((res) => {
-        if (!active) return;
         setCaseStudies(res.data ?? []);
         setTotalCount(res.pagination?.total ?? 0);
         setTotalPages(Math.max(res.pagination?.total_pages ?? 1, 1));
       })
       .catch((err) => {
-        if (!active) return;
+        if (isCaseStudiesRequestCancelled(err)) return;
         setError(getCaseStudiesErrorMessage(err));
         setCaseStudies([]);
         setTotalCount(0);
         setTotalPages(1);
       })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [page, limit, reloadToken]);
+      .finally(() => setIsLoading(false));
+
+    return () => { controller.abort(); };
+  }, [page, limit, searchQuery, statusFilter, reloadToken]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  /* Cleanup debounce on unmount */
+  useEffect(() => {
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+  }, []);
+
+  /* ---- Search handlers ---- */
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setSearchQuery(value);
+      setPage(1);
+    }, 400);
+  };
+
+  const handleSearchClear = () => {
+    setSearchInput("");
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    setSearchQuery("");
+    setPage(1);
+  };
+
+  /* ---- Status filter handler ---- */
+  const handleStatusFilterChange = (value: StatusFilterValue) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
 
   /* ---- Field helpers ---- */
   const setField = <K extends keyof FormState>(key: K, val: FormState[K]) => {
@@ -429,15 +482,9 @@ export default function CaseStudies() {
 
   /* Process rows */
   const addProcess = () =>
-    setForm((p) => ({
-      ...p,
-      processRows: [...p.processRows, { title: "", description: "" }],
-    }));
+    setForm((p) => ({ ...p, processRows: [...p.processRows, { title: "", description: "" }] }));
   const removeProcess = (i: number) =>
-    setForm((p) => ({
-      ...p,
-      processRows: p.processRows.filter((_, idx) => idx !== i),
-    }));
+    setForm((p) => ({ ...p, processRows: p.processRows.filter((_, idx) => idx !== i) }));
   const changeProcess = (i: number, key: keyof ProcessRow, val: string) =>
     setForm((p) => {
       const rows = [...p.processRows];
@@ -447,15 +494,9 @@ export default function CaseStudies() {
 
   /* Result rows */
   const addResult = () =>
-    setForm((p) => ({
-      ...p,
-      resultRows: [...p.resultRows, { title: "", value: "" }],
-    }));
+    setForm((p) => ({ ...p, resultRows: [...p.resultRows, { title: "", value: "" }] }));
   const removeResult = (i: number) =>
-    setForm((p) => ({
-      ...p,
-      resultRows: p.resultRows.filter((_, idx) => idx !== i),
-    }));
+    setForm((p) => ({ ...p, resultRows: p.resultRows.filter((_, idx) => idx !== i) }));
   const changeResult = (i: number, key: keyof ResultRow, val: string) =>
     setForm((p) => {
       const rows = [...p.resultRows];
@@ -465,18 +506,9 @@ export default function CaseStudies() {
 
   /* Comparison rows */
   const addComparison = () =>
-    setForm((p) => ({
-      ...p,
-      comparisonRows: [
-        ...p.comparisonRows,
-        { title: "", before: "", after: "" },
-      ],
-    }));
+    setForm((p) => ({ ...p, comparisonRows: [...p.comparisonRows, { title: "", before: "", after: "" }] }));
   const removeComparison = (i: number) =>
-    setForm((p) => ({
-      ...p,
-      comparisonRows: p.comparisonRows.filter((_, idx) => idx !== i),
-    }));
+    setForm((p) => ({ ...p, comparisonRows: p.comparisonRows.filter((_, idx) => idx !== i) }));
   const changeComparison = (i: number, key: keyof ComparisonRow, val: string) =>
     setForm((p) => {
       const rows = [...p.comparisonRows];
@@ -486,17 +518,9 @@ export default function CaseStudies() {
 
   /* Internal Link rows */
   const addInternalLink = () =>
-    setForm((p) => ({
-      ...p,
-      internalLinks: [...p.internalLinks, { anchor: "", url: "" }],
-    }));
-
+    setForm((p) => ({ ...p, internalLinks: [...p.internalLinks, { anchor: "", url: "" }] }));
   const removeInternalLink = (i: number) =>
-    setForm((p) => ({
-      ...p,
-      internalLinks: p.internalLinks.filter((_, idx) => idx !== i),
-    }));
-
+    setForm((p) => ({ ...p, internalLinks: p.internalLinks.filter((_, idx) => idx !== i) }));
   const changeInternalLink = (i: number, key: "anchor" | "url", val: string) =>
     setForm((p) => {
       const rows = [...p.internalLinks];
@@ -568,7 +592,6 @@ export default function CaseStudies() {
       new Set(parseDelimited(form.palette).map((c) => c.toUpperCase())),
     );
 
-    /* Validation — only up to process section */
     if (!client) errs.client = "Client name is required.";
     if (!industry) errs.industry = "Industry is required.";
     if (!title) errs.title = "Title is required.";
@@ -581,8 +604,7 @@ export default function CaseStudies() {
     if (palette.length === 0) {
       errs.palette = "Add at least one hex color.";
     } else if (palette.some((c) => !isValidHex(c))) {
-      errs.palette =
-        "All palette colors must be valid hex values like #0F172A.";
+      errs.palette = "All palette colors must be valid hex values like #0F172A.";
     }
     if (overviewParagraphs.length === 0) {
       errs.overviewParagraphs = "Add at least one overview paragraph.";
@@ -608,7 +630,6 @@ export default function CaseStudies() {
       return null;
     }
 
-    /* Optional sections — no validation */
     const paletteNamesRaw = parseDelimited(form.paletteNames);
     const paletteNames = palette.map((hex, i) => paletteNamesRaw[i] || hex);
     const tags = parseDelimited(form.tags);
@@ -632,9 +653,7 @@ export default function CaseStudies() {
       .map((line) => {
         const parts = line.split(/::|:|-/).map((p) => p.trim());
         if (parts.length >= 2) {
-          const name = parts[0];
-          const role = parts.slice(1).join(" ");
-          return { name, role };
+          return { name: parts[0], role: parts.slice(1).join(" ") };
         }
         return { name: line.trim(), role: "" };
       })
@@ -705,21 +724,18 @@ export default function CaseStudies() {
           timeout: 3000,
           title: "Updated",
         });
-
-        // Update the specific item in state
-       if (res.data) {
-    const updatedCaseStudy = res.data;
-    setCaseStudies((prev) =>
-      prev.map((cs) => (cs.id === editingId ? updatedCaseStudy : cs))
-    );
-    // ← add this: keep the view modal in sync too
-    if (selectedCaseStudy?.id === editingId) {
-      setSelectedCaseStudy(updatedCaseStudy);
-    }
-  } else {
-    triggerReload();
-  }
-} else {
+        if (res.data) {
+          const updatedCaseStudy = res.data;
+          setCaseStudies((prev) =>
+            prev.map((cs) => (cs.id === editingId ? updatedCaseStudy : cs))
+          );
+          if (selectedCaseStudy?.id === editingId) {
+            setSelectedCaseStudy(updatedCaseStudy);
+          }
+        } else {
+          triggerReload();
+        }
+      } else {
         const res = await createCaseStudy(payload);
         addToast({
           color: "success",
@@ -728,8 +744,6 @@ export default function CaseStudies() {
           timeout: 3000,
           title: "Created",
         });
-
-        // Add new item to state
         if (res.data) {
           const newCaseStudy = res.data;
           setCaseStudies((prev) => {
@@ -768,12 +782,8 @@ export default function CaseStudies() {
         timeout: 3000,
         title: "Deleted",
       });
-
-      // Remove from state instead of reloading
       setCaseStudies((prev) => prev.filter((cs) => cs.id !== pendingDelete.id));
       setTotalCount((prev) => prev - 1);
-
-      // Handle pagination
       if (caseStudies.length === 1 && page > 1) {
         setPage((p) => p - 1);
       }
@@ -800,7 +810,6 @@ export default function CaseStudies() {
 
       setStatusUpdatingId(csId);
 
-      // Optimistic update
       setCaseStudies((prev) =>
         prev.map((item) =>
           Number(item.id) === csId ? { ...item, status: nextStatus } : item,
@@ -809,8 +818,6 @@ export default function CaseStudies() {
 
       try {
         const res = await updateCaseStudyStatus(csId, nextStatus);
-
-        // Verify with server response
         const updatedCaseStudy = res.data;
         setCaseStudies((prev) => {
           if (!updatedCaseStudy) return prev;
@@ -818,7 +825,6 @@ export default function CaseStudies() {
             Number(item.id) === csId ? updatedCaseStudy : item,
           );
         });
-
         addToast({
           title: nextStatus === 1 ? "Case Study Published" : "Moved To Draft",
           description:
@@ -831,15 +837,11 @@ export default function CaseStudies() {
           timeout: 3000,
         });
       } catch (err) {
-        // Rollback on error
         setCaseStudies((prev) =>
           prev.map((item) =>
-            Number(item.id) === csId
-              ? { ...item, status: originalStatus }
-              : item,
+            Number(item.id) === csId ? { ...item, status: originalStatus } : item,
           ),
         );
-
         addToast({
           title: "Status Update Failed",
           description: getCaseStudiesErrorMessage(err),
@@ -909,6 +911,37 @@ export default function CaseStudies() {
             </div>
           </div>
 
+          {/* ---- Search + Status Filter ---- */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Input
+              isClearable
+              className="flex-1"
+              classNames={{ inputWrapper: "bg-default-100" }}
+              placeholder="Search by title, client, industry..."
+              startContent={
+                <Icon className="text-default-400" icon="mdi:magnify" width={18} />
+              }
+              value={searchInput}
+              size="lg"
+              onClear={handleSearchClear}
+              onValueChange={handleSearchChange}
+            />
+            <Select
+              disallowEmptySelection
+              className="w-full sm:w-36"
+              classNames={{ trigger: "bg-default-100" }}
+              label="Status"
+              selectedKeys={[statusFilter]}
+              onChange={(e) =>
+                handleStatusFilterChange(e.target.value as StatusFilterValue)
+              }
+            >
+              {STATUS_FILTER_OPTIONS.map((opt) => (
+                <SelectItem key={opt.key}>{opt.label}</SelectItem>
+              ))}
+            </Select>
+          </div>
+
           {error ? <p className="text-sm text-danger">{error}</p> : null}
 
           {/* Desktop table */}
@@ -929,9 +962,7 @@ export default function CaseStudies() {
                 <TableColumn className="w-[14%]">Client</TableColumn>
                 <TableColumn className="w-[12%]">Tags</TableColumn>
                 <TableColumn className="w-[10%]">Status</TableColumn>
-                <TableColumn className="w-[10%] text-right">
-                  Actions
-                </TableColumn>
+                <TableColumn className="w-[10%] text-right">Actions</TableColumn>
               </TableHeader>
               <TableBody
                 emptyContent={
@@ -955,9 +986,7 @@ export default function CaseStudies() {
                           <p className="font-semibold text-foreground">
                             {cs.title || "-"}
                           </p>
-                          <span className="text-xs text-default-400">
-                            #{cs.id}
-                          </span>
+                          <span className="text-xs text-default-400">#{cs.id}</span>
                           {cs.featured ? (
                             <Chip color="secondary" size="sm" variant="flat">
                               Featured
@@ -999,12 +1028,8 @@ export default function CaseStudies() {
                           size="sm"
                         />
                         <div>
-                          <p className="text-sm font-medium">
-                            {cs.client || "-"}
-                          </p>
-                          <p className="text-xs text-default-400">
-                            {cs.readTime || "-"}
-                          </p>
+                          <p className="text-sm font-medium">{cs.client || "-"}</p>
+                          <p className="text-xs text-default-400">{cs.readTime || "-"}</p>
                         </div>
                       </div>
                     </TableCell>
@@ -1026,17 +1051,11 @@ export default function CaseStudies() {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <Chip
-                          color={getStatusColor(cs.status)}
-                          size="sm"
-                          variant="flat"
-                        >
+                        <Chip color={getStatusColor(cs.status)} size="sm" variant="flat">
                           {getStatusLabel(cs.status)}
                         </Chip>
                         <p className="text-[10px] text-default-400">
-                          {cs.publishedAt
-                            ? formatDateTime(cs.publishedAt)
-                            : "Not published"}
+                          {cs.publishedAt ? formatDateTime(cs.publishedAt) : "Not published"}
                         </p>
                       </div>
                     </TableCell>
@@ -1063,14 +1082,9 @@ export default function CaseStudies() {
                             onClick={(e) => e.stopPropagation()}
                           />
                         </Tooltip>
-
                         <div className="flex items-center gap-2">
                           <Tooltip
-                            content={
-                              cs.status === 1
-                                ? "Move to draft"
-                                : "Publish case study"
-                            }
+                            content={cs.status === 1 ? "Move to draft" : "Publish case study"}
                           >
                             <Button
                               isIconOnly
@@ -1093,7 +1107,6 @@ export default function CaseStudies() {
                               onClick={(e) => e.stopPropagation()}
                             />
                           </Tooltip>
-
                           <Tooltip content="Delete case study">
                             <Button
                               isIconOnly
@@ -1147,9 +1160,7 @@ export default function CaseStudies() {
                   role="button"
                   tabIndex={0}
                   onClick={() => void openView(cs.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void openView(cs.id);
-                  }}
+                  onKeyDown={(e) => { if (e.key === "Enter") void openView(cs.id); }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -1176,9 +1187,7 @@ export default function CaseStudies() {
                     />
                     <div>
                       <p className="text-xs font-medium">{cs.client || "-"}</p>
-                      <p className="text-xs text-default-400">
-                        {cs.industry || "-"}
-                      </p>
+                      <p className="text-xs text-default-400">{cs.industry || "-"}</p>
                     </div>
                   </div>
                   {cs.palette.length > 0 ? (
@@ -1207,24 +1216,15 @@ export default function CaseStudies() {
                           size="sm"
                           variant="flat"
                           startContent={
-                            <Icon
-                              height={15}
-                              icon="mdi:pencil-outline"
-                              width={15}
-                            />
+                            <Icon height={15} icon="mdi:pencil-outline" width={15} />
                           }
                           onPress={() => void openEdit(cs.id)}
                           onClick={(e) => e.stopPropagation()}
                         />
                       </Tooltip>
-
                       <div className="flex items-center gap-1.5">
                         <Tooltip
-                          content={
-                            cs.status === 1
-                              ? "Move to draft"
-                              : "Publish case study"
-                          }
+                          content={cs.status === 1 ? "Move to draft" : "Publish case study"}
                         >
                           <Button
                             isIconOnly
@@ -1247,7 +1247,6 @@ export default function CaseStudies() {
                             onClick={(e) => e.stopPropagation()}
                           />
                         </Tooltip>
-
                         <Tooltip content="Delete case study">
                           <Button
                             isIconOnly
@@ -1258,11 +1257,7 @@ export default function CaseStudies() {
                             variant="flat"
                             startContent={
                               deletingId !== cs.id && (
-                                <Icon
-                                  height={15}
-                                  icon="mdi:delete-outline"
-                                  width={15}
-                                />
+                                <Icon height={15} icon="mdi:delete-outline" width={15} />
                               )
                             }
                             onPress={() => {
@@ -1331,12 +1326,7 @@ export default function CaseStudies() {
             <>
               <ModalHeader className="flex items-center justify-between">
                 <h3 className="text-base font-semibold">Case Study Details</h3>
-                <Button
-                  isIconOnly
-                  radius="full"
-                  variant="light"
-                  onPress={onClose}
-                >
+                <Button isIconOnly radius="full" variant="light" onPress={onClose}>
                   <Icon className="h-5 w-5" icon="mdi:close" />
                 </Button>
               </ModalHeader>
@@ -1348,9 +1338,7 @@ export default function CaseStudies() {
                 ) : selectedCaseStudy ? (
                   <div className="space-y-5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="text-lg font-semibold">
-                        {selectedCaseStudy.title}
-                      </h4>
+                      <h4 className="text-lg font-semibold">{selectedCaseStudy.title}</h4>
                       {selectedCaseStudy.featured ? (
                         <Chip color="secondary" size="sm" variant="flat">
                           Featured
@@ -1365,26 +1353,15 @@ export default function CaseStudies() {
                       </Chip>
                     </div>
 
-                    <p className="text-sm text-default-600">
-                      {selectedCaseStudy.summary}
-                    </p>
+                    <p className="text-sm text-default-600">{selectedCaseStudy.summary}</p>
 
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                       {[
                         { label: "Client", value: selectedCaseStudy.client },
-                        {
-                          label: "Industry",
-                          value: selectedCaseStudy.industry,
-                        },
-                        {
-                          label: "Read Time",
-                          value: selectedCaseStudy.readTime,
-                        },
+                        { label: "Industry", value: selectedCaseStudy.industry },
+                        { label: "Read Time", value: selectedCaseStudy.readTime },
                         { label: "Date", value: selectedCaseStudy.date },
-                        {
-                          label: "Timeline",
-                          value: selectedCaseStudy.projectInfo.timeline ?? "-",
-                        },
+                        { label: "Timeline", value: selectedCaseStudy.projectInfo.timeline ?? "-" },
                       ].map(({ label, value }) => (
                         <div
                           key={label}
@@ -1428,9 +1405,7 @@ export default function CaseStudies() {
                         </p>
                         <div className="space-y-1">
                           {selectedCaseStudy.overview.paragraphs.map((p, i) => (
-                            <p key={i} className="text-sm text-default-600">
-                              {p}
-                            </p>
+                            <p key={i} className="text-sm text-default-600">{p}</p>
                           ))}
                         </div>
                       </div>
@@ -1448,9 +1423,7 @@ export default function CaseStudies() {
                               className="rounded-xl border border-default-200 bg-default-50 px-3 py-2"
                             >
                               <p className="text-sm font-semibold">{s.title}</p>
-                              <p className="text-sm text-default-500">
-                                {s.description}
-                              </p>
+                              <p className="text-sm text-default-500">{s.description}</p>
                             </div>
                           ))}
                         </div>
@@ -1470,42 +1443,29 @@ export default function CaseStudies() {
                                   key={i}
                                   className="rounded-xl border border-default-200 bg-default-50 px-3 py-2 text-center"
                                 >
-                                  <p className="text-lg font-bold text-primary">
-                                    {s.value}
-                                  </p>
-                                  <p className="text-xs text-default-500">
-                                    {s.label}
-                                  </p>
+                                  <p className="text-lg font-bold text-primary">{s.value}</p>
+                                  <p className="text-xs text-default-500">{s.label}</p>
                                 </div>
                               ))}
                             </div>
                           </div>
                         ) : null}
-                        {(selectedCaseStudy.results.comparisons ?? []).length >
-                        0 ? (
+                        {(selectedCaseStudy.results.comparisons ?? []).length > 0 ? (
                           <div>
                             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-default-500">
                               Comparisons
                             </p>
                             <div className="space-y-2">
-                              {selectedCaseStudy.results.comparisons.map(
-                                (c, i) => (
-                                  <div
-                                    key={i}
-                                    className="flex items-center gap-3 rounded-xl border border-default-200 bg-default-50 px-3 py-2"
-                                  >
-                                    <p className="flex-1 text-sm font-medium">
-                                      {c.label}
-                                    </p>
-                                    <span className="text-xs text-default-400">
-                                      Before: {c.before}
-                                    </span>
-                                    <span className="text-xs text-success">
-                                      After: {c.after}
-                                    </span>
-                                  </div>
-                                ),
-                              )}
+                              {selectedCaseStudy.results.comparisons.map((c, i) => (
+                                <div
+                                  key={i}
+                                  className="flex items-center gap-3 rounded-xl border border-default-200 bg-default-50 px-3 py-2"
+                                >
+                                  <p className="flex-1 text-sm font-medium">{c.label}</p>
+                                  <span className="text-xs text-default-400">Before: {c.before}</span>
+                                  <span className="text-xs text-success">After: {c.after}</span>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         ) : null}
@@ -1519,31 +1479,22 @@ export default function CaseStudies() {
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {selectedCaseStudy.tags.map((t) => (
-                            <Chip key={t} size="sm" variant="flat">
-                              {t}
-                            </Chip>
+                            <Chip key={t} size="sm" variant="flat">{t}</Chip>
                           ))}
                         </div>
                       </div>
                     ) : null}
-                    {/* ---- CTA ---- */}
+
                     {selectedCaseStudy.cta && (
                       <div>
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-default-500">
                           CTA
                         </p>
-
-                        <div className="rounded-xl border border-default-200 bg-default-50 px-3 py-3 space-y-2">
-                          {/* Title */}
+                        <div className="space-y-2 rounded-xl border border-default-200 bg-default-50 px-3 py-3">
                           {selectedCaseStudy.cta.title && (
-                            <p className="text-sm font-semibold">
-                              {selectedCaseStudy.cta.title}
-                            </p>
+                            <p className="text-sm font-semibold">{selectedCaseStudy.cta.title}</p>
                           )}
-
-                          {/* Button */}
-                          {(selectedCaseStudy.cta.buttonHref ||
-                            selectedCaseStudy.cta.buttonLabel) && (
+                          {(selectedCaseStudy.cta.buttonHref || selectedCaseStudy.cta.buttonLabel) && (
                             <a
                               href={selectedCaseStudy.cta.buttonHref}
                               target="_blank"
@@ -1557,35 +1508,31 @@ export default function CaseStudies() {
                       </div>
                     )}
 
-                    {/* ---- Internal Links ---- */}
-                    {selectedCaseStudy.internalLinks &&
-                      selectedCaseStudy.internalLinks.length > 0 && (
-                        <div>
-                          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-default-500">
-                            Internal Links
-                          </p>
-                          <div className="space-y-2">
-                            {selectedCaseStudy.internalLinks.map((link, i) => (
-                              <div
-                                key={i}
-                                className="flex items-center justify-between rounded-xl border border-default-200 bg-default-50 px-3 py-2"
+                    {selectedCaseStudy.internalLinks && selectedCaseStudy.internalLinks.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-default-500">
+                          Internal Links
+                        </p>
+                        <div className="space-y-2">
+                          {selectedCaseStudy.internalLinks.map((link, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center justify-between rounded-xl border border-default-200 bg-default-50 px-3 py-2"
+                            >
+                              <p className="text-sm font-medium">{link.anchor}</p>
+                              <a
+                                className="max-w-[60%] truncate text-xs text-primary underline"
+                                href={link.url}
+                                rel="noreferrer"
+                                target="_blank"
                               >
-                                <p className="text-sm font-medium">
-                                  {link.anchor}
-                                </p>
-                                <a
-                                  className="text-xs text-primary underline truncate max-w-[60%]"
-                                  href={link.url}
-                                  rel="noreferrer"
-                                  target="_blank"
-                                >
-                                  {link.url}
-                                </a>
-                              </div>
-                            ))}
-                          </div>
+                                {link.url}
+                              </a>
+                            </div>
+                          ))}
                         </div>
-                      )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-default-400">No data found.</p>
@@ -1606,10 +1553,7 @@ export default function CaseStudies() {
         scrollBehavior="inside"
         size="2xl"
         onOpenChange={(open) => {
-          if (!open) {
-            onFormClose();
-            resetForm();
-          }
+          if (!open) { onFormClose(); resetForm(); }
         }}
       >
         <ModalContent>
@@ -1619,12 +1563,7 @@ export default function CaseStudies() {
                 <h3 className="text-base font-semibold">
                   {editingId ? "Edit Case Study" : "Add Case Study"}
                 </h3>
-                <Button
-                  isIconOnly
-                  radius="full"
-                  variant="light"
-                  onPress={onClose}
-                >
+                <Button isIconOnly radius="full" variant="light" onPress={onClose}>
                   <Icon className="h-5 w-5" icon="mdi:close" />
                 </Button>
               </ModalHeader>
@@ -1641,9 +1580,7 @@ export default function CaseStudies() {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Input
                         isRequired
-                        classNames={{
-                          inputWrapper: "bg-default-100",
-                        }}
+                        classNames={{ inputWrapper: "bg-default-100" }}
                         errorMessage={formErrors.client}
                         isInvalid={!!formErrors.client}
                         label="Client"
@@ -1654,9 +1591,7 @@ export default function CaseStudies() {
                       />
                       <Input
                         isRequired
-                        classNames={{
-                          inputWrapper: "bg-default-100",
-                        }}
+                        classNames={{ inputWrapper: "bg-default-100" }}
                         errorMessage={formErrors.industry}
                         isInvalid={!!formErrors.industry}
                         label="Industry"
@@ -1668,9 +1603,7 @@ export default function CaseStudies() {
                     </div>
                     <Input
                       isRequired
-                      classNames={{
-                        inputWrapper: "bg-default-100",
-                      }}
+                      classNames={{ inputWrapper: "bg-default-100" }}
                       errorMessage={formErrors.title}
                       isInvalid={!!formErrors.title}
                       label="Title"
@@ -1681,9 +1614,7 @@ export default function CaseStudies() {
                     />
                     <Textarea
                       isRequired
-                      classNames={{
-                        inputWrapper: "bg-default-100",
-                      }}
+                      classNames={{ inputWrapper: "bg-default-100" }}
                       errorMessage={formErrors.summary}
                       isInvalid={!!formErrors.summary}
                       label="Summary"
@@ -1696,36 +1627,27 @@ export default function CaseStudies() {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Input
                         isRequired
-                        classNames={{
-                          inputWrapper: "bg-default-100",
-                        }}
+                        classNames={{ inputWrapper: "bg-default-100" }}
                         errorMessage={formErrors.readTime}
                         isInvalid={!!formErrors.readTime}
                         label="Read Time (Time in Minutes)"
                         placeholder="e.g. 12"
                         value={form.readTime}
                         variant="bordered"
-                        onValueChange={(v) =>
-                          setField("readTime", v.replace(/\D/g, ""))
-                        }
+                        onValueChange={(v) => setField("readTime", v.replace(/\D/g, ""))}
                       />
-
                       <div className="flex flex-col gap-1">
-                        <p className="text-xs font-medium text-foreground ml-1">
+                        <p className="ml-1 text-xs font-medium text-foreground">
                           Date <span className="text-danger">*</span>
                         </p>
                         <div className="flex gap-2">
                           <Select
                             isRequired
                             aria-label="Select Month"
-                            classNames={{
-                              trigger: "bg-default-100",
-                            }}
+                            classNames={{ trigger: "bg-default-100" }}
                             placeholder="MM"
                             selectedKeys={
-                              form.date.split(" ")[0]
-                                ? [form.date.split(" ")[0]]
-                                : []
+                              form.date.split(" ")[0] ? [form.date.split(" ")[0]] : []
                             }
                             variant="bordered"
                             onSelectionChange={(keys) => {
@@ -1734,34 +1656,17 @@ export default function CaseStudies() {
                               setField("date", `${month} ${year}`.trim());
                             }}
                           >
-                            {[
-                              "Jan",
-                              "Feb",
-                              "Mar",
-                              "Apr",
-                              "May",
-                              "Jun",
-                              "Jul",
-                              "Aug",
-                              "Sep",
-                              "Oct",
-                              "Nov",
-                              "Dec",
-                            ].map((m) => (
-                              <SelectItem key={m}>{m}</SelectItem>
-                            ))}
+                            {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map(
+                              (m) => <SelectItem key={m}>{m}</SelectItem>
+                            )}
                           </Select>
                           <Select
                             isRequired
                             aria-label="Select Year"
-                            classNames={{
-                              trigger: "bg-default-100",
-                            }}
+                            classNames={{ trigger: "bg-default-100" }}
                             placeholder="2026"
                             selectedKeys={
-                              form.date.split(" ")[1]
-                                ? [form.date.split(" ")[1]]
-                                : []
+                              form.date.split(" ")[1] ? [form.date.split(" ")[1]] : []
                             }
                             variant="bordered"
                             onSelectionChange={(keys) => {
@@ -1770,31 +1675,23 @@ export default function CaseStudies() {
                               setField("date", `${month} ${year}`.trim());
                             }}
                           >
-                            {Array.from({ length: 21 }, (_, i) =>
-                              String(2020 + i),
-                            ).map((y) => (
-                              <SelectItem key={y}>{y}</SelectItem>
-                            ))}
+                            {Array.from({ length: 21 }, (_, i) => String(2020 + i)).map(
+                              (y) => <SelectItem key={y}>{y}</SelectItem>
+                            )}
                           </Select>
                         </div>
                         {formErrors.date && (
-                          <p className="text-xs text-danger ml-1">
-                            {formErrors.date}
-                          </p>
+                          <p className="ml-1 text-xs text-danger">{formErrors.date}</p>
                         )}
                       </div>
                     </div>
                     <Select
                       disallowEmptySelection
-                      classNames={{
-                        trigger: "bg-default-100",
-                      }}
+                      classNames={{ trigger: "bg-default-100" }}
                       label="Status"
                       selectedKeys={[form.status]}
                       variant="bordered"
-                      onChange={(e) =>
-                        setField("status", e.target.value as "0" | "1")
-                      }
+                      onChange={(e) => setField("status", e.target.value as "0" | "1")}
                     >
                       <SelectItem key="0">Draft</SelectItem>
                       <SelectItem key="1">Published</SelectItem>
@@ -1804,18 +1701,14 @@ export default function CaseStudies() {
                         isSelected={form.featured}
                         onValueChange={(v) => setField("featured", v)}
                       />
-                      <p className="text-sm text-default-600">
-                        Mark as Featured
-                      </p>
+                      <p className="text-sm text-default-600">Mark as Featured</p>
                     </div>
 
                     {/* ---- Palette ---- */}
                     <SectionLabel label="Palette" />
                     <Input
                       isRequired
-                      classNames={{
-                        inputWrapper: "bg-default-100",
-                      }}
+                      classNames={{ inputWrapper: "bg-default-100" }}
                       errorMessage={formErrors.palette}
                       isInvalid={!!formErrors.palette}
                       label="Hex Colors"
@@ -1837,11 +1730,7 @@ export default function CaseStudies() {
                             >
                               <div
                                 className="h-4 w-4 shrink-0 rounded-full border border-default-200 shadow-inner"
-                                style={{
-                                  backgroundColor: isValidHex(c)
-                                    ? c
-                                    : "transparent",
-                                }}
+                                style={{ backgroundColor: isValidHex(c) ? c : "transparent" }}
                               />
                               <span className="font-mono text-xs font-semibold leading-none text-default-700">
                                 {isValidHex(c) ? c.toUpperCase() : c}
@@ -1852,9 +1741,7 @@ export default function CaseStudies() {
                       </div>
                     )}
                     <Input
-                      classNames={{
-                        inputWrapper: "bg-default-100",
-                      }}
+                      classNames={{ inputWrapper: "bg-default-100" }}
                       label="Palette Names (optional)"
                       placeholder="Midnight, Sky Blue, ..."
                       value={form.paletteNames}
@@ -1865,9 +1752,7 @@ export default function CaseStudies() {
                     {/* ---- Tags ---- */}
                     <SectionLabel label="Tags" />
                     <Input
-                      classNames={{
-                        inputWrapper: "bg-default-100",
-                      }}
+                      classNames={{ inputWrapper: "bg-default-100" }}
                       label="Tags"
                       placeholder="branding, design system, ..."
                       value={form.tags}
@@ -1879,9 +1764,7 @@ export default function CaseStudies() {
                     <SectionLabel label="Overview" />
                     <Textarea
                       isRequired
-                      classNames={{
-                        inputWrapper: "bg-default-100",
-                      }}
+                      classNames={{ inputWrapper: "bg-default-100" }}
                       errorMessage={formErrors.overviewParagraphs}
                       isInvalid={!!formErrors.overviewParagraphs}
                       label="Overview Paragraphs"
@@ -1897,16 +1780,8 @@ export default function CaseStudies() {
                     <DynamicSection<ProcessRow>
                       error={formErrors.processRows}
                       fields={[
-                        {
-                          key: "title",
-                          label: "Process Title",
-                          placeholder: "e.g. Audit Existing Design",
-                        },
-                        {
-                          key: "description",
-                          label: "Process Description",
-                          placeholder: "e.g. Analyzed 14 colors...",
-                        },
+                        { key: "title", label: "Process Title", placeholder: "e.g. Audit Existing Design" },
+                        { key: "description", label: "Process Description", placeholder: "e.g. Analyzed 14 colors..." },
                       ]}
                       label="Process Steps"
                       rows={form.processRows}
@@ -1919,16 +1794,8 @@ export default function CaseStudies() {
                     <SectionLabel label="Results (Optional)" />
                     <DynamicSection<ResultRow>
                       fields={[
-                        {
-                          key: "title",
-                          label: "Result Title",
-                          placeholder: "e.g. Brand Recognition",
-                        },
-                        {
-                          key: "value",
-                          label: "Result Value",
-                          placeholder: "e.g. 300%",
-                        },
+                        { key: "title", label: "Result Title", placeholder: "e.g. Brand Recognition" },
+                        { key: "value", label: "Result Value", placeholder: "e.g. 300%" },
                       ]}
                       label="Result Items"
                       rows={form.resultRows}
@@ -1941,16 +1808,8 @@ export default function CaseStudies() {
                     <SectionLabel label="Comparisons (Optional)" />
                     <DynamicSection<ComparisonRow>
                       fields={[
-                        {
-                          key: "label",
-                          label: "Label",
-                          placeholder: "e.g. Before",
-                        },
-                        {
-                          key: "value",
-                          label: "Value",
-                          placeholder: "e.g. Old design",
-                        },
+                        { key: "label", label: "Label", placeholder: "e.g. Before" },
+                        { key: "value", label: "Value", placeholder: "e.g. Old design" },
                       ]}
                       label="Comparison Items"
                       rows={form.comparisonRows}
@@ -1964,9 +1823,7 @@ export default function CaseStudies() {
                     <SectionLabel label="Project Info (Optional)" />
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Input
-                        classNames={{
-                          inputWrapper: "bg-default-100",
-                        }}
+                        classNames={{ inputWrapper: "bg-default-100" }}
                         label="Client (override)"
                         placeholder={form.client || "Client name"}
                         value={form.projectInfoClient}
@@ -1974,22 +1831,16 @@ export default function CaseStudies() {
                         onValueChange={(v) => setField("projectInfoClient", v)}
                       />
                       <Input
-                        classNames={{
-                          inputWrapper: "bg-default-100",
-                        }}
+                        classNames={{ inputWrapper: "bg-default-100" }}
                         label="Timeline"
                         placeholder="e.g. 3 months"
                         value={form.projectInfoTimeline}
                         variant="bordered"
-                        onValueChange={(v) =>
-                          setField("projectInfoTimeline", v)
-                        }
+                        onValueChange={(v) => setField("projectInfoTimeline", v)}
                       />
                     </div>
                     <Input
-                      classNames={{
-                        inputWrapper: "bg-default-100",
-                      }}
+                      classNames={{ inputWrapper: "bg-default-100" }}
                       label="Services"
                       placeholder="Branding, UI/UX, ..."
                       value={form.projectInfoServices}
@@ -2000,14 +1851,10 @@ export default function CaseStudies() {
                     {/* ---- Team ---- */}
                     <SectionLabel label="Team (Optional)" />
                     <Textarea
-                      classNames={{
-                        inputWrapper: "bg-default-100",
-                      }}
+                      classNames={{ inputWrapper: "bg-default-100" }}
                       label="Team Members"
                       minRows={2}
-                      placeholder={
-                        "John Doe :: Creative Director\nJane Smith :: UI Designer"
-                      }
+                      placeholder={"John Doe :: Creative Director\nJane Smith :: UI Designer"}
                       value={form.team}
                       variant="bordered"
                       onValueChange={(v) => setField("team", v)}
@@ -2046,16 +1893,8 @@ export default function CaseStudies() {
                     <SectionLabel label="Internal Links (Optional)" />
                     <DynamicSection<{ anchor: string; url: string }>
                       fields={[
-                        {
-                          key: "anchor",
-                          label: "Anchor Text",
-                          placeholder: "e.g. color gradients",
-                        },
-                        {
-                          key: "url",
-                          label: "URL",
-                          placeholder: "https://www.coloors.net/gradients",
-                        },
+                        { key: "anchor", label: "Anchor Text", placeholder: "e.g. color gradients" },
+                        { key: "url", label: "URL", placeholder: "https://www.coloors.net/gradients" },
                       ]}
                       label="Internal Links"
                       rows={form.internalLinks}
@@ -2068,18 +1907,10 @@ export default function CaseStudies() {
               </ModalBody>
 
               <ModalFooter>
-                <Button
-                  isDisabled={isSubmitting}
-                  variant="flat"
-                  onPress={onClose}
-                >
+                <Button isDisabled={isSubmitting} variant="flat" onPress={onClose}>
                   Cancel
                 </Button>
-                <Button
-                  color="primary"
-                  isLoading={isSubmitting}
-                  onPress={handleSave}
-                >
+                <Button color="primary" isLoading={isSubmitting} onPress={handleSave}>
                   {editingId ? "Save Changes" : "Create Case Study"}
                 </Button>
               </ModalFooter>
@@ -2103,32 +1934,21 @@ export default function CaseStudies() {
           {() => (
             <>
               <ModalHeader className="flex items-center gap-2">
-                <Icon
-                  className="h-5 w-5 text-danger"
-                  icon="mdi:alert-circle-outline"
-                />
+                <Icon className="h-5 w-5 text-danger" icon="mdi:alert-circle-outline" />
                 <span>Delete Case Study</span>
               </ModalHeader>
               <ModalBody>
                 <p className="text-sm text-default-600">
                   Are you sure you want to delete{" "}
-                  <span className="font-semibold">{pendingDelete?.title}</span>?
-                  This cannot be undone.
+                  <span className="font-semibold">{pendingDelete?.title}</span>? This cannot
+                  be undone.
                 </p>
               </ModalBody>
               <ModalFooter>
-                <Button
-                  isDisabled={deletingId !== null}
-                  variant="flat"
-                  onPress={onDeleteClose}
-                >
+                <Button isDisabled={deletingId !== null} variant="flat" onPress={onDeleteClose}>
                   Cancel
                 </Button>
-                <Button
-                  color="danger"
-                  isLoading={deletingId !== null}
-                  onPress={handleDelete}
-                >
+                <Button color="danger" isLoading={deletingId !== null} onPress={handleDelete}>
                   Delete
                 </Button>
               </ModalFooter>

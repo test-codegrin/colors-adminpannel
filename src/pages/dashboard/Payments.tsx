@@ -7,6 +7,7 @@ import {
   Card,
   CardBody,
   Chip,
+  Input,
   Pagination,
   Select,
   SelectItem,
@@ -18,17 +19,16 @@ import {
   TableHeader,
   TableRow,
   Tooltip,
+  addToast,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useEffect, useRef, useState } from "react";
-import { useAsyncList } from "@react-stately/data";
 
 import {
   getAllPayments,
   getPaymentsErrorMessage,
   getPaymentReceipt,
 } from "@/api/payments.api";
-
 
 /* ---------- Utility ---------- */
 
@@ -66,57 +66,97 @@ function ReceiptIcon() {
 /* ---------- Component ---------- */
 
 export default function PaymentsTable() {
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
   const [totalPages, setTotalPages] = useState(1);
-  const hasMountedRef = useRef(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [search, setSearch] = useState("");
   const [loadingReceipt, setLoadingReceipt] = useState<number | null>(null);
 
-  const paymentsList = useAsyncList<Payment>({
-    async load() {
-      setError("");
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-      try {
-        const result = await getAllPayments(page, limit);
-        const serverTotalPages =
-          result.pagination?.total_pages ??
-          result.pagination?.totalPages ??
-          1;
+  /* ---------- Load Payments ---------- */
 
-        setTotalPages(Math.max(serverTotalPages, 1));
+  const loadPayments = async (params: {
+    page: number;
+    limit: number;
+    search: string;
+  }) => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
 
-        return { items: result.payments ?? [] };
-      } catch (err) {
-        setError(getPaymentsErrorMessage(err));
-        setTotalPages(1);
+    setIsLoading(true);
+    setError("");
 
-        return { items: [] };
+    try {
+      const result = await getAllPayments({
+        page: params.page,
+        limit: params.limit,
+        search: params.search,
+        signal: abortControllerRef.current.signal,
+      });
+
+      const serverTotalPages =
+        result.pagination?.total_pages ??
+        result.pagination?.totalPages ??
+        1;
+
+      setTotalPages(Math.max(serverTotalPages, 1));
+      setPayments(result.payments ?? []);
+    } catch (err) {
+      // Ignore cancelled requests
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        (err as { code?: string }).code === "ERR_CANCELED"
+      ) {
+        return;
       }
-    },
-  }
 
+      const message = getPaymentsErrorMessage(err);
 
-
-  );
-
-  const isLoading = paymentsList.isLoading;
-
-  const triggerReload = () => {
-    paymentsList.reload();
+      setError(message);
+      setPayments([]);
+      setTotalPages(1);
+      addToast({
+        title: "Load Failed",
+        description: message,
+        severity: "danger",
+        radius: "full",
+        timeout: 3000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  /* ---------- Pagination Logic ---------- */
+  /* ---------- Initial Load ---------- */
 
   useEffect(() => {
-    if (!hasMountedRef.current) {
-      hasMountedRef.current = true;
+    void loadPayments({ page, limit, search });
 
-      return;
-    }
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
-    paymentsList.reload();
+  /* ---------- Re-fetch on page / limit change ---------- */
+
+  useEffect(() => {
+    void loadPayments({ page, limit, search });
   }, [page, limit]);
+
+  /* ---------- Live search — reset to page 1 ---------- */
+
+  useEffect(() => {
+    setPage(1);
+    void loadPayments({ page: 1, limit, search });
+  }, [search]);
+
+  /* ---------- Keep page in bounds ---------- */
 
   useEffect(() => {
     if (page > totalPages) {
@@ -152,25 +192,69 @@ export default function PaymentsTable() {
 
   return (
     <Card shadow="md">
-      <CardBody className="gap-6 p-4 sm:p-6 overflow-x-auto scrollbar-hide">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Payments</h2>
-          <Button
-            isLoading={isLoading}
-            size="sm"
-            startContent={
-              !isLoading && <Icon icon="solar:refresh-bold" width={16} />
-            }
-            variant="flat"
-            onPress={triggerReload}
-          >
-            Refresh
-          </Button>
-        </div>
-        <div className="min-h-[300px]">
-          {error && <p className="text-danger text-sm">{error}</p>}
+      <CardBody className="gap-6 p-4 sm:p-6">
 
-          <Table removeWrapper aria-label="Payments table">
+        {/* ---------- Header ---------- */}
+
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold">Payments</h2>
+            <p className="text-sm text-default-500">
+              All transactions from `/payments/all`
+            </p>
+          </div>
+
+          <div className="flex justify-start lg:justify-end">
+            <Button
+              isLoading={isLoading}
+              size="sm"
+              startContent={
+                !isLoading && <Icon icon="solar:refresh-bold" width={16} />
+              }
+              variant="flat"
+              onPress={() => loadPayments({ page, limit, search })}
+            >
+              Refresh
+            </Button>
+          </div>
+        </div>
+
+        {/* ---------- Search Bar — live search ---------- */}
+
+        <Input
+          isClearable
+          className="w-full sm:max-w-sm"
+          placeholder="Search by name or email..."
+          size="sm"
+          startContent={
+            <Icon
+              className="text-default-400"
+              icon="solar:magnifer-linear"
+              width={16}
+            />
+          }
+          value={search}
+          onClear={() => setSearch("")}
+          onValueChange={(value) => setSearch(value)}
+        />
+
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
+
+        {/* ---------- Table ---------- */}
+
+        <div className="w-full overflow-x-auto scrollbar-hide">
+          <Table
+            aria-label="Payments table"
+            className="min-w-[800px]"
+            classNames={{
+              base: "min-h-[360px]",
+              wrapper: "overflow-hidden shadow-none p-0",
+              table: "w-full table-auto",
+              th: "bg-default-100 text-[11px] font-semibold uppercase tracking-[0.16em] text-default-600",
+              td: "py-4 align-middle",
+              emptyWrapper: "py-14 text-default-500",
+            }}
+          >
             <TableHeader>
               <TableColumn>ID</TableColumn>
               <TableColumn>Name</TableColumn>
@@ -182,9 +266,13 @@ export default function PaymentsTable() {
             </TableHeader>
 
             <TableBody
-              emptyContent="No payments found"
-              isLoading={paymentsList.isLoading}
-              items={paymentsList.items}
+              emptyContent={
+                search
+                  ? `No results found for "${search}".`
+                  : "No payments found."
+              }
+              isLoading={isLoading}
+              items={payments}
               loadingContent={<Spinner label="Loading payments..." />}
             >
               {(payment: Payment) => (
@@ -194,7 +282,7 @@ export default function PaymentsTable() {
                   <TableCell>{payment.email}</TableCell>
                   <TableCell>₹{payment.amount}</TableCell>
 
-                  <TableCell className="flex items-center justify-center w-20">
+                  <TableCell>
                     <Chip
                       color={
                         payment.status === "paid"
@@ -212,7 +300,6 @@ export default function PaymentsTable() {
 
                   <TableCell>{formatDate(payment.created_at)}</TableCell>
 
-                  {/* ── Receipt Button ── */}
                   <TableCell>
                     <Tooltip
                       content={
@@ -244,40 +331,43 @@ export default function PaymentsTable() {
           </Table>
         </div>
 
-        {/* ---------- Pagination Bottom Right ---------- */}
+        {/* ---------- Pagination ---------- */}
 
-        <div className="flex w-full items-end justify-between gap-4">
-          <Select
-            disallowEmptySelection
-            className="w-28"
-            label="Limit"
-            selectedKeys={[String(limit)]}
-            size="sm"
-            onChange={(event) => {
-              const nextLimit = Number(event.target.value);
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div className="flex justify-start">
+            <Select
+              disallowEmptySelection
+              className="w-28"
+              label="Limit"
+              selectedKeys={[String(limit)]}
+              size="sm"
+              onChange={(event) => {
+                const nextLimit = Number(event.target.value);
 
-              if (nextLimit !== limit) {
-                setLimit(nextLimit);
-                setPage(1);
-              }
-            }}
-          >
-            <SelectItem key="10">10</SelectItem>
-            <SelectItem key="25">25</SelectItem>
-            <SelectItem key="50">50</SelectItem>
-          </Select>
+                if (nextLimit !== limit) {
+                  setLimit(nextLimit);
+                  setPage(1);
+                }
+              }}
+            >
+              <SelectItem key="10">10</SelectItem>
+              <SelectItem key="25">25</SelectItem>
+              <SelectItem key="50">50</SelectItem>
+            </Select>
+          </div>
 
-          <div className="flex justify-end w-full">
+          <div className="flex justify-start sm:justify-end w-full">
             <Pagination
               showControls
               color="primary"
-              isDisabled={paymentsList.isLoading}
+              isDisabled={isLoading}
               page={page}
               total={Math.max(totalPages, 1)}
               onChange={setPage}
             />
           </div>
         </div>
+
       </CardBody>
     </Card>
   );

@@ -19,6 +19,15 @@ export interface CaseStudyOverview {
   highlights?: CaseStudyOverviewHighlight[];
 }
 
+export interface GetCaseStudiesParams {
+  page: number;
+  per_page: number;
+  search?: string;
+  signal?: AbortSignal;
+  /** Pass [1] for published-only, [0] for draft-only, or [] for all */
+  status: CaseStudyStatus[];
+}
+
 export interface CaseStudyProcessStep {
   description: string;
   title: string;
@@ -65,13 +74,28 @@ export interface CaseStudyTeamMember {
   role: string;
 }
 
+export interface CaseStudyCta {
+  title: string;
+  buttonLabel: string;
+  buttonHref: string;
+}
+
+export interface CaseStudyInternalLink {
+  anchor: string;
+  url: string;
+}
+
 export interface CaseStudy {
   client: string;
   createdAt?: string;
+  cta?: CaseStudyCta;
+  ctaTitle?: string;
+  ctaUrl?: string;
   date: string;
   featured: boolean;
   id: number;
   industry: string;
+  internalLinks?: CaseStudyInternalLink[];
   overview: CaseStudyOverview;
   palette: string[];
   paletteNames: string[];
@@ -87,49 +111,36 @@ export interface CaseStudy {
   team: CaseStudyTeamMember[];
   title: string;
   updatedAt?: string;
-  cta?: CaseStudyCta;
-  ctaTitle?: string;
-  ctaUrl?: string;
-  internalLinks?: CaseStudyInternalLink[];
 }
 
 export interface CaseStudyPayload {
   client: string;
+  cta?: CaseStudyCta;
+  ctaTitle?: string;
+  ctaUrl?: string;
   date: string;
   featured: boolean;
   industry: string;
+  internalLinks?: CaseStudyInternalLink[];
   overview: CaseStudyOverview;
   palette: string[];
+  palette_names?: string[];
   paletteNames: string[];
   process: CaseStudyProcess;
+  project_info?: CaseStudyProjectInfo;
   projectInfo: CaseStudyProjectInfo;
-  publishedAt?: string | null;   
+  published_at?: string | null;
+  read_time?: string;
   readTime: string;
   results?: CaseStudyResults;
+  sort_order?: number;
   sortOrder?: number;
   status: CaseStudyStatus;
   summary: string;
   tags: string[];
   team: CaseStudyTeamMember[];
   team_members?: CaseStudyTeamMember[];
-  palette_names?: string[];
-  project_info?: CaseStudyProjectInfo;
-  published_at?: string | null;
-  read_time?: string;
-  sort_order?: number;
   title: string;
-  // CTA
-  cta?: CaseStudyCta;
-  ctaTitle?: string;        
-  ctaUrl?: string;          
-  // Internal Links
-  internalLinks?: CaseStudyInternalLink[];
-  
-}
-
-export interface GetCaseStudiesParams {
-  page: number;
-  per_page: number;
 }
 
 export interface CaseStudiesApiResponse {
@@ -147,19 +158,4 @@ export interface SingleCaseStudyApiResponse {
   data?: CaseStudy;
   item?: CaseStudy;
   success?: boolean;
-}
-export interface CaseStudyCta {
-  title: string;
-  buttonLabel: string;
-  buttonHref: string;
-}
-
-export interface CaseStudyInternalLink {
-  anchor: string;
-  url: string;
-}
-export interface CaseStudyCTA {
-  title?: string;
-  buttonLabel?: string;
-  buttonHref?: string;
 }

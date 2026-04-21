@@ -137,6 +137,20 @@ export default function SubscriptionPlans() {
     useState<SubscriptionPlan | null>(null);
   const [deletingPlanId, setDeletingPlanId] = useState<number | null>(null);
 
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [betaFilter, setBetaFilter] = useState<string>("all");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const {
     isOpen: isViewModalOpen,
     onOpen: onViewOpen,
@@ -160,7 +174,13 @@ export default function SubscriptionPlans() {
       setError("");
 
       try {
-        const result = await getSubscriptionPlans(page, limit);
+        const result = await getSubscriptionPlans(
+          page,
+          limit,
+          debouncedSearch || undefined,
+          statusFilter === "all" ? null : Number(statusFilter),
+          betaFilter === "all" ? null : Number(betaFilter),
+        );
         const serverTotalPages =
           result.pagination?.total_pages ??
           result.pagination?.totalPages ??
@@ -178,6 +198,10 @@ export default function SubscriptionPlans() {
       }
     },
   });
+
+  useEffect(() => {
+    plansList.reload();
+  }, [debouncedSearch, statusFilter, betaFilter]);
 
   useEffect(() => {
     if (!hasMountedRef.current) {
@@ -420,6 +444,19 @@ export default function SubscriptionPlans() {
                 Add Plan
               </Button>
             </div>
+          </div>
+
+          {/* ✅ Filters Section */}
+          <div className="">
+            {/* 🔍 Search */}
+            <Input
+              placeholder="Search plans..."
+              value={search}
+              onValueChange={setSearch}
+              startContent={<Icon icon="mdi:magnify" width={18} />}
+              className="w-full md:max-w-full"
+              size="md"
+            />
           </div>
 
           {error && <p className="text-sm text-danger">{error}</p>}

@@ -5,6 +5,7 @@ import {
   Card,
   CardBody,
   Chip,
+  Input,
   Pagination,
   Select,
   SelectItem,
@@ -18,11 +19,12 @@ import {
   addToast,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   getGameScoreErrorMessage,
   getGameScoreUsersDetails,
+  isGameScoreRequestCancelled,
 } from "@/api/gameScore.api";
 
 function GameScore() {
@@ -31,15 +33,27 @@ function GameScore() {
   const [limit, setLimit] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
-  const loadGameScores = async () => {
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const loadGameScores = async (searchValue?: string) => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+
     setIsLoading(true);
     setError("");
 
     try {
-      const result = await getGameScoreUsersDetails();
+      const result = await getGameScoreUsersDetails({
+        search: searchValue ?? search,
+        signal: abortControllerRef.current.signal,
+      });
+
       setRows(result.data ?? []);
     } catch (fetchError) {
+      if (isGameScoreRequestCancelled(fetchError)) return;
+
       const message = getGameScoreErrorMessage(fetchError);
 
       setError(message);
@@ -56,10 +70,22 @@ function GameScore() {
     }
   };
 
+  // Initial load
   useEffect(() => {
     void loadGameScores();
+
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, []);
 
+  // Re-fetch on every search change (live search)
+  useEffect(() => {
+    void loadGameScores(search);
+    setPage(1);
+  }, [search]);
+
+  // Keep page in bounds when limit or row count changes
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(rows.length / limit));
 
@@ -72,10 +98,12 @@ function GameScore() {
     rows.length === 1
       ? "1 user score"
       : `${rows.length.toLocaleString()} user scores`;
+
   const maxHighestScore = rows.reduce(
     (maxValue, row) => Math.max(maxValue, row.highestscore),
     0,
   );
+
   const totalPages = Math.max(1, Math.ceil(rows.length / limit));
   const paginatedRows = rows.slice((page - 1) * limit, page * limit);
 
@@ -83,9 +111,8 @@ function GameScore() {
     <Card shadow="md">
       <CardBody className="gap-6 p-4 sm:p-6">
 
-        {/* ✅ Header Responsive */}
+        {/* Header */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg sm:text-xl font-semibold">
@@ -125,24 +152,44 @@ function GameScore() {
                 )
               }
               variant="flat"
-              onPress={loadGameScores}
+              onPress={() => loadGameScores()}
             >
               Refresh
             </Button>
           </div>
         </div>
 
+        {/* Search Bar — live search, no button */}
+        <Input
+          isClearable
+          className="w-full sm:max-w-full"
+          placeholder="Search by username or email..."
+          size="md"
+          startContent={
+            <Icon
+              className="text-default-400"
+              icon="solar:magnifer-linear"
+              width={16}
+            />
+          }
+          value={search}
+          onClear={() => setSearch("")}
+          onValueChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+        />
+
         {error ? <p className="text-sm text-danger">{error}</p> : null}
 
-        {/* ✅ Table Scroll Fix */}
+        {/* Table */}
         <div className="w-full overflow-x-auto scrollbar-hide">
           <Table
             aria-label="Game score users details table"
             className="min-w-[700px]"
             classNames={{
               base: "min-h-[360px]",
-              wrapper:
-                "overflow-hidden shadow-none p-0",
+              wrapper: "overflow-hidden shadow-none p-0",
               table: "w-full table-auto",
               th: "bg-default-100 text-[11px] font-semibold uppercase tracking-[0.16em] text-default-600",
               td: "py-4 align-middle",
@@ -157,14 +204,17 @@ function GameScore() {
             </TableHeader>
 
             <TableBody
-              emptyContent="No game score data found."
+              emptyContent={
+                search
+                  ? `No results found for "${search}".`
+                  : "No game score data found."
+              }
               isLoading={isLoading}
               items={paginatedRows}
               loadingContent={<Spinner label="Loading game scores..." />}
             >
               {(item) => (
                 <TableRow key={`${item.useremail}-${item.username}`}>
-
                   <TableCell>
                     <span className="font-medium text-foreground">
                       {item.username || "-"}
@@ -194,11 +244,9 @@ function GameScore() {
           </Table>
         </div>
 
-        {/* ✅ Pagination Responsive */}
+        {/* Pagination */}
         {!isLoading && rows.length > 0 ? (
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-
-            {/* Limit */}
             <div className="flex justify-start">
               <Select
                 disallowEmptySelection
@@ -221,7 +269,6 @@ function GameScore() {
               </Select>
             </div>
 
-            {/* Pagination */}
             <div className="flex justify-start sm:justify-end w-full">
               <Pagination
                 showControls
@@ -241,4 +288,3 @@ function GameScore() {
 }
 
 export default GameScore;
-

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
     getSupportThreads,
     getSupportErrorMessage,
     closeThread,
+    filterThreadsLocally,
     type SupportThread,
 } from "@/api/chat.api";
 
@@ -31,12 +32,14 @@ import {
     ModalBody,
     ModalFooter,
     useDisclosure,
+    Input,
 } from "@heroui/react";
 
 import { Icon } from "@iconify/react";
 import ThreadDetailModal from "@/components/ThreaddetailModal";
 
-// Helpers
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function formatDate(iso: string): string {
     return new Date(iso).toLocaleString("en-IN", {
         day: "2-digit",
@@ -47,7 +50,8 @@ function formatDate(iso: string): string {
     });
 }
 
-// Columns
+// ─── Constants ────────────────────────────────────────────────────────────────
+
 const columns = [
     { key: "id", label: "ID" },
     { key: "user", label: "NAME" },
@@ -59,7 +63,10 @@ const columns = [
     { key: "actions", label: "ACTIONS" },
 ];
 
-// Page Component
+type StatusFilter = "all" | "open" | "closed";
+
+// ─── Page Component ───────────────────────────────────────────────────────────
+
 export default function SupportThreadsPage() {
     const [threads, setThreads] = useState<SupportThread[]>([]);
     const [loading, setLoading] = useState(true);
@@ -68,6 +75,12 @@ export default function SupportThreadsPage() {
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
     const [limit, setLimit] = useState(25);
+
+    // Search & filter state
+    const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedQuery, setDebouncedQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Thread detail modal
     const [modalOpen, setModalOpen] = useState(false);
@@ -78,49 +91,81 @@ export default function SupportThreadsPage() {
     const [threadToClose, setThreadToClose] = useState<SupportThread | null>(null);
     const [isClosing, setIsClosing] = useState(false);
 
+    // ─── Derived: apply client-side search + status filter ───────────────────
+
+    const filteredThreads = (() => {
+        let result = filterThreadsLocally(threads, debouncedQuery);
+        if (statusFilter === "open") result = result.filter((t) => t.status > 0);
+        if (statusFilter === "closed") result = result.filter((t) => t.status === 0);
+        return result;
+    })();
+
     const totalUnread = threads.filter((t) => t.unreadUserMessages > 0).length;
+    const isFiltering = debouncedQuery.trim() !== "" || statusFilter !== "all";
+
+    // ─── Debounce search input ────────────────────────────────────────────────
+
+    function handleSearchChange(value: string) {
+        setSearchQuery(value);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            setDebouncedQuery(value);
+            setPage(1);
+        }, 300);
+    }
+
+    function clearSearch() {
+        setSearchQuery("");
+        setDebouncedQuery("");
+        setPage(1);
+    }
+
+    // ─── Fetch ────────────────────────────────────────────────────────────────
+
+    const fetchThreads = useCallback(
+        async (p: number, perPage: number) => {
+            setLoading(true);
+            try {
+                const res = await getSupportThreads(p, perPage);
+                setThreads(res.data);
+                setTotalPages(res.total_pages);
+                setTotal(res.total);
+            } catch (err) {
+                addToast({
+                    title: "Error",
+                    description: getSupportErrorMessage(err),
+                    color: "danger",
+                });
+            } finally {
+                setLoading(false);
+            }
+        },
+        [],
+    );
 
     useEffect(() => {
         fetchThreads(page, limit);
-    }, [page, limit]);
+    }, [page, limit, fetchThreads]);
 
-    async function fetchThreads(p: number, perPage: number) {
-        setLoading(true);
-        try {
-            const res = await getSupportThreads(p, perPage);
-            setThreads(res.data);
-            setTotalPages(res.total_pages);
-            setTotal(res.total);
-        } catch (err) {
-            addToast({
-                title: "Error",
-                description: getSupportErrorMessage(err),
-                color: "danger",
-            });
-        } finally {
-            setLoading(false);
-        }
-    }
+    // ─── Modal handlers ───────────────────────────────────────────────────────
 
     function openModal(thread: SupportThread) {
         setThreads((prev) =>
             prev.map((t) =>
                 t.threadId === thread.threadId
                     ? { ...t, unreadUserMessages: 0 }
-                    : t
-            )
+                    : t,
+            ),
         );
         setSelectedThread({ ...thread, unreadUserMessages: 0 });
         setModalOpen(true);
     }
 
-    // Opens the confirmation popup for closing a thread
     function handleCloseClick(thread: SupportThread) {
         setThreadToClose(thread);
         onConfirmOpen();
     }
 
-    // Called when user confirms closing
     async function handleConfirmClose() {
         if (!threadToClose) return;
         setIsClosing(true);
@@ -145,6 +190,8 @@ export default function SupportThreadsPage() {
         }
     }
 
+    // ─── Cell renderer ────────────────────────────────────────────────────────
+
     function renderCell(thread: SupportThread, columnKey: string) {
         const isUnread = thread.unreadUserMessages > 0;
         const isOpen = thread.status > 0;
@@ -164,7 +211,13 @@ export default function SupportThreadsPage() {
 
             case "user":
                 return (
-                    <span className={`text-xs sm:text-sm ${isUnread ? "font-bold text-foreground" : "font-medium text-default-700"}`}>
+                    <span
+                        className={`text-xs sm:text-sm ${
+                            isUnread
+                                ? "font-bold text-foreground"
+                                : "font-medium text-default-700"
+                        }`}
+                    >
                         {thread.user.name}
                     </span>
                 );
@@ -179,7 +232,13 @@ export default function SupportThreadsPage() {
             case "lastMessage":
                 return (
                     <div className="max-w-[160px] sm:max-w-[260px]">
-                        <p className={`text-xs sm:text-sm truncate ${isUnread ? "font-semibold text-foreground" : "text-default-700"}`}>
+                        <p
+                            className={`text-xs sm:text-sm truncate ${
+                                isUnread
+                                    ? "font-semibold text-foreground"
+                                    : "text-default-700"
+                            }`}
+                        >
                             {thread.lastMessage}
                         </p>
                         <span className="text-[10px] sm:text-xs text-default-400 capitalize">
@@ -252,7 +311,11 @@ export default function SupportThreadsPage() {
                             </Button>
                         </Tooltip>
 
-                        <Tooltip content={isOpen ? "Close thread" : "Thread already closed"}>
+                        <Tooltip
+                            content={
+                                isOpen ? "Close thread" : "Thread already closed"
+                            }
+                        >
                             <Button
                                 isIconOnly
                                 size="sm"
@@ -271,6 +334,8 @@ export default function SupportThreadsPage() {
                 return null;
         }
     }
+
+    // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
         <>
@@ -297,7 +362,9 @@ export default function SupportThreadsPage() {
                                     )}
                                 </div>
                                 <p className="text-xs text-default-400">
-                                    {total} total conversations
+                                    {isFiltering
+                                        ? `${filteredThreads.length} result${filteredThreads.length !== 1 ? "s" : ""} of ${total} total`
+                                        : `${total} total conversations`}
                                 </p>
                             </div>
 
@@ -310,6 +377,76 @@ export default function SupportThreadsPage() {
                             >
                                 Refresh
                             </Button>
+                        </div>
+
+                        {/* SEARCH + FILTER BAR */}
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <Input
+                                className="flex-1"
+                                placeholder="Search by name, email, message or ID…"
+                                size="lg"
+                                value={searchQuery}
+                                onValueChange={handleSearchChange}
+                                startContent={
+                                    <Icon
+                                        icon="mdi:magnify"
+                                        className="text-default-400 shrink-0"
+                                        width={18}
+                                    />
+                                }
+                                endContent={
+                                    searchQuery ? (
+                                        <button
+                                            type="button"
+                                            onClick={clearSearch}
+                                            className="text-default-400 hover:text-default-600 transition-colors"
+                                        >
+                                            <Icon icon="mdi:close-circle" width={16} />
+                                        </button>
+                                    ) : null
+                                }
+                                isClearable={false}
+                            />
+
+                            <Select
+                                disallowEmptySelection
+                                className="w-full sm:w-36"
+                                label="Status"
+                                selectedKeys={[statusFilter]}
+                                size="sm"
+                                onChange={(e) => {
+                                    setStatusFilter(e.target.value as StatusFilter);
+                                    setPage(1);
+                                }}
+                                startContent={
+                                    <Icon
+                                        icon="mdi:filter-outline"
+                                        className="text-default-400 shrink-0"
+                                        width={16}
+                                    />
+                                }
+                            >
+                                <SelectItem key="all">All</SelectItem>
+                                <SelectItem key="open">Open</SelectItem>
+                                <SelectItem key="closed">Closed</SelectItem>
+                            </Select>
+
+                            {/* Clear filters button — only visible when a filter is active */}
+                            {isFiltering && (
+                                <Button
+                                    size="sm"
+                                    variant="flat"
+                                    color="default"
+                                    startContent={<Icon icon="mdi:filter-off-outline" width={16} />}
+                                    onPress={() => {
+                                        clearSearch();
+                                        setStatusFilter("all");
+                                    }}
+                                    className="shrink-0"
+                                >
+                                    Clear
+                                </Button>
+                            )}
                         </div>
 
                         {/* TABLE */}
@@ -328,35 +465,49 @@ export default function SupportThreadsPage() {
                                 </TableHeader>
 
                                 <TableBody
-                                    items={loading ? [] : threads}
+                                    items={loading ? [] : filteredThreads}
                                     emptyContent={
-                                        loading ? null : (
+                                        loading ? null : isFiltering ? (
+                                            <div className="flex flex-col items-center gap-1 py-6">
+                                                <Icon
+                                                    icon="mdi:magnify-close"
+                                                    className="text-default-300"
+                                                    width={32}
+                                                />
+                                                <span className="text-sm text-default-400">
+                                                    No threads match your search.
+                                                </span>
+                                                <Button
+                                                    size="sm"
+                                                    variant="light"
+                                                    color="primary"
+                                                    onPress={() => {
+                                                        clearSearch();
+                                                        setStatusFilter("all");
+                                                    }}
+                                                >
+                                                    Clear filters
+                                                </Button>
+                                            </div>
+                                        ) : (
                                             <span className="text-sm text-default-400">
                                                 No support threads found.
                                             </span>
                                         )
                                     }
                                 >
-                                    {threads.map((thread) => {
-                                        // const isUnread = thread.unreadUserMessages > 0;
-
-                                        return (
-                                            <TableRow
-                                                key={thread.threadId}
-                                                // className={
-                                                //     isUnread
-                                                //         ? ""
-                                                //         : ""
-                                                // }
-                                            >
-                                                {(columnKey) => (
-                                                    <TableCell>
-                                                        {renderCell(thread, columnKey as string)}
-                                                    </TableCell>
-                                                )}
-                                            </TableRow>
-                                        );
-                                    })}
+                                    {filteredThreads.map((thread) => (
+                                        <TableRow key={thread.threadId}>
+                                            {(columnKey) => (
+                                                <TableCell>
+                                                    {renderCell(
+                                                        thread,
+                                                        columnKey as string,
+                                                    )}
+                                                </TableCell>
+                                            )}
+                                        </TableRow>
+                                    ))}
                                 </TableBody>
                             </Table>
 
@@ -396,14 +547,17 @@ export default function SupportThreadsPage() {
                                 <SelectItem key="50">50</SelectItem>
                             </Select>
 
-                            <Pagination
-                                showControls
-                                color="primary"
-                                isDisabled={loading}
-                                page={page}
-                                total={Math.max(totalPages, 1)}
-                                onChange={setPage}
-                            />
+                            {/* Hide pagination when filtering client-side — results are already local */}
+                            {!isFiltering && (
+                                <Pagination
+                                    showControls
+                                    color="primary"
+                                    isDisabled={loading}
+                                    page={page}
+                                    total={Math.max(totalPages, 1)}
+                                    onChange={setPage}
+                                />
+                            )}
                         </div>
                     </div>
                 </CardBody>
@@ -443,15 +597,18 @@ export default function SupportThreadsPage() {
                             </ModalHeader>
 
                             <ModalBody>
-
                                 {threadToClose && (
                                     <div className="mt-2 p-3 rounded-lg bg-default-100 dark:bg-default-50/10 space-y-1">
                                         <p className="text-sm text-default-600">
                                             Are you sure you want to close the chat with{" "}
-                                            <span className="font-semibold text-foreground">{threadToClose.user.name}</span>?
+                                            <span className="font-semibold text-foreground">
+                                                {threadToClose.user.name}
+                                            </span>
+                                            ?
                                         </p>
                                         <p className="text-xs text-default-400 mt-1">
-                                            Once closed, no further replies can be sent unless the thread is reopened.
+                                            Once closed, no further replies can be sent
+                                            unless the thread is reopened.
                                         </p>
                                     </div>
                                 )}

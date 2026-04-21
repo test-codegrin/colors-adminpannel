@@ -21,13 +21,37 @@ interface PaginatedApiResponse<T> {
   payments: T[];
 }
 
+export interface GetPaymentParams {
+  page: number;
+  limit: number;
+  search?: string;
+  signal?: AbortSignal;
+}
+
 export async function getAllPayments(
-  page: number,
-  limit: number,
+  pageOrParams: number | GetPaymentParams,
+  limit?: number,
 ): Promise<PaginatedApiResponse<Payment>> {
+  const request: GetPaymentParams =
+    typeof pageOrParams === "number"
+      ? { page: pageOrParams, limit: limit ?? 50 }
+      : pageOrParams;
+
+  const params: Record<string, number | string> = {
+    page: request.page,
+    limit: request.limit,
+  };
+
+  if (request.search?.trim()) {
+    params.search = request.search.trim();
+  }
+
   const response = await api.get<PaginatedApiResponse<Payment>>(
     "/payments/all",
-    { params: { page, limit } },
+    {
+      params,
+      signal: request.signal,
+    },
   );
 
   return response.data;

@@ -30,9 +30,22 @@ interface PaginatedApiResponse<T> extends ApiResponse<T[]> {
 export async function getCaseStudies(
   params: GetCaseStudiesParams,
 ): Promise<PaginatedApiResponse<CaseStudy>> {
+  const queryParams: Record<string, number | string> = {
+    page: params.page,
+    per_page: params.per_page,
+  };
+
+  if (params.search?.trim()) {
+    queryParams.search = params.search.trim();
+  }
+
+  if (params.status && params.status.length > 0) {
+    queryParams.status = params.status[0].toString();
+  }
+
   const response = await api.get<PaginatedApiResponse<CaseStudy>>(
     "/admin/case-studies",
-    { params },
+    { params: queryParams, signal: params.signal },
   );
 
   return response.data;
@@ -96,4 +109,13 @@ export async function deleteCaseStudyById(
 export function getCaseStudiesErrorMessage(error: unknown): string {
   console.error(error);
   return "Failed to process case studies request.";
+}
+
+export function isCaseStudiesRequestCancelled(error: unknown): boolean {
+  return Boolean(
+    typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "ERR_CANCELED",
+  );
 }

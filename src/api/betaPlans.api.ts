@@ -20,14 +20,35 @@ interface PaginatedApiResponse<T> extends ApiResponse<T[]> {
   };
 }
 
-export async function getBetaPlans(params?: {
-  page?: number;
-  limit?: number;
-}): Promise<PaginatedApiResponse<BetaPlan>> {
-  const response = await api.get<PaginatedApiResponse<BetaPlan>>(
-    "/beta",
-    { params },
-  );
+export interface GetBetaPlansParams {
+  page: number;
+  limit: number;
+  search?: string;
+  signal?: AbortSignal;
+}
+
+export async function getBetaPlans(
+  pageOrParams: number | GetBetaPlansParams,
+  limit?: number,
+): Promise<PaginatedApiResponse<BetaPlan>> {
+  const request: GetBetaPlansParams =
+    typeof pageOrParams === "number"
+      ? { page: pageOrParams, limit: limit ?? 50 }
+      : pageOrParams;
+
+  const params: Record<string, number | string> = {
+    page: request.page,
+    limit: request.limit,
+  };
+
+  if (request.search?.trim()) {
+    params.search = request.search.trim();
+  }
+
+  const response = await api.get<PaginatedApiResponse<BetaPlan>>("/beta", {
+    params,
+    signal: request.signal,
+  });
 
   return response.data;
 }
@@ -51,4 +72,13 @@ export async function deleteBetaPlanById(
 export function getBetaPlansErrorMessage(error: unknown): string {
   console.error(error);
   return "Failed to load beta plans.";
+}
+
+export function isBetaPlansRequestCancelled(error: unknown): boolean {
+  return Boolean(
+    typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "ERR_CANCELED",
+  );
 }

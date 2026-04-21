@@ -8,6 +8,7 @@ import {
   Button,
   Card,
   CardBody,
+  Input,
   Pagination,
   Modal,
   ModalBody,
@@ -27,13 +28,14 @@ import {
   addToast,
   useDisclosure,
 } from "@heroui/react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Icon } from "@iconify/react";
 
 import {
   deleteBetaPlanById,
   getBetaPlans,
   getBetaPlansErrorMessage,
+  isBetaPlansRequestCancelled,
 } from "@/api/betaPlans.api";
 
 export default function BetaPlansPage() {
@@ -55,6 +57,12 @@ export default function BetaPlansPage() {
     name: string;
   } | null>(null);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [committedQuery, setCommittedQuery] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
   const {
     isOpen: isDeleteModalOpen,
     onOpen: openDeleteModal,
@@ -62,31 +70,41 @@ export default function BetaPlansPage() {
     onClose: closeDeleteModal,
   } = useDisclosure();
 
-  const fetchBetaPlans = useCallback(async () => {
-    setIsLoading(true);
-    setError("");
-    try {
-      const res = await getBetaPlans({ page, limit });
+  // ─── Fetch ────────────────────────────────────────────────────────────────
+  const fetchBetaPlans = useCallback(
+    async (overrideQuery?: string) => {
+      // Cancel any in-flight request
+      abortRef.current?.abort();
+      abortRef.current = new AbortController();
 
-      setBetaPlans(res.data ?? []);
-      setPagination(res.pagination);
-    } catch (err) {
-      setError(getBetaPlansErrorMessage(err));
-      setBetaPlans([]);
-      setPagination({
-        total: 0,
-        page,
-        limit,
-        total_pages: 0,
-        totalPages: 0,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [limit, page]);
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const res = await getBetaPlans({
+          page,
+          limit,
+          search: overrideQuery ?? committedQuery,
+          signal: abortRef.current.signal,
+        });
+
+        setBetaPlans(res.data ?? []);
+        setPagination(res.pagination);
+      } catch (err) {
+        if (isBetaPlansRequestCancelled(err)) return;
+        setError(getBetaPlansErrorMessage(err));
+        setBetaPlans([]);
+        setPagination({ total: 0, page, limit, total_pages: 0, totalPages: 0 });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [page, limit, committedQuery],
+  );
 
   useEffect(() => {
     void fetchBetaPlans();
+    return () => abortRef.current?.abort();
   }, [fetchBetaPlans]);
 
   useEffect(() => {
@@ -100,6 +118,26 @@ export default function BetaPlansPage() {
     }
   }, [page, pagination.totalPages, pagination.total_pages]);
 
+  // ─── Search handlers ──────────────────────────────────────────────────────
+  function handleSearchChange(value: string) {
+    setSearchQuery(value);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(() => {
+      setPage(1);
+      setCommittedQuery(value);
+    }, 400);
+  }
+
+  function clearSearch() {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setSearchQuery("");
+    setCommittedQuery("");
+    setPage(1);
+  }
+
+  // ─── Delete handlers ──────────────────────────────────────────────────────
   const handleOpenDeleteModal = (id: number, name?: string) => {
     setPendingDelete({ id, name: name?.trim() ? name : "this beta plan" });
     openDeleteModal();
@@ -116,8 +154,7 @@ export default function BetaPlansPage() {
       addToast({
         title: "Beta Plan Deleted",
         description: result.message ?? "Beta plan deleted successfully.",
-        // severity: "success",
-        color:"danger",
+        color: "danger",
         radius: "full",
         timeout: 3000,
       });
@@ -142,20 +179,21 @@ export default function BetaPlansPage() {
     1,
   );
 
+  const isSearchActive = committedQuery.trim() !== "";
+
   return (
     <>
       <Card shadow="md">
         <CardBody className="gap-6 p-4 sm:p-6">
 
-          {/* ✅ Header Responsive */}
+          {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-
             <div>
-              <h2 className="text-lg sm:text-xl font-semibold">
-                Beta Plans
-              </h2>
+              <h2 className="text-lg sm:text-xl font-semibold">Beta Plans</h2>
               <p className="text-sm text-default-500">
-                Manage and review beta plan submissions
+                {isSearchActive
+                  ? `${pagination.total} result${pagination.total !== 1 ? "s" : ""} for "${committedQuery}"`
+                  : "Manage and review beta plan submissions"}
               </p>
             </div>
 
@@ -164,22 +202,54 @@ export default function BetaPlansPage() {
                 isLoading={isLoading}
                 size="sm"
                 startContent={
-                  !isLoading && (
-                    <Icon icon="solar:refresh-bold" width={16} />
-                  )
+                  !isLoading && <Icon icon="solar:refresh-bold" width={16} />
                 }
                 variant="flat"
-                onPress={fetchBetaPlans}
+                onPress={() => fetchBetaPlans()}
               >
                 Refresh
               </Button>
             </div>
           </div>
 
+          {/* Search Bar */}
+          <div className="flex gap-3">
+            <Input
+              className="flex-1"
+              placeholder="Search by name, email or user ID…"
+              size="md"
+              value={searchQuery}
+              onValueChange={handleSearchChange}
+              startContent={
+                isLoading && isSearchActive ? (
+                  <Spinner size="sm" color="default" />
+                ) : (
+                  <Icon
+                    icon="mdi:magnify"
+                    className="text-default-400 shrink-0"
+                    width={18}
+                  />
+                )
+              }
+              endContent={
+                searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="text-default-400 hover:text-default-600 transition-colors"
+                  >
+                    <Icon icon="mdi:close-circle" width={16} />
+                  </button>
+                ) : null
+              }
+              isClearable={false}
+            />
+          </div>
+
           {/* Error */}
           {error && <p className="text-danger text-sm">{error}</p>}
 
-          {/* ✅ Table Scroll Fix */}
+          {/* Table */}
           <div className="w-full overflow-x-auto scrollbar-hide">
             <Table
               removeWrapper
@@ -194,14 +264,36 @@ export default function BetaPlansPage() {
               </TableHeader>
 
               <TableBody
-                emptyContent="No beta plans"
                 isLoading={isLoading}
-                items={betaPlans}
                 loadingContent={<Spinner label="Loading..." />}
+                emptyContent={
+                  isSearchActive ? (
+                    <div className="flex flex-col items-center gap-2 py-6">
+                      <Icon
+                        icon="mdi:magnify-close"
+                        className="text-default-300"
+                        width={32}
+                      />
+                      <span className="text-sm text-default-400">
+                        No beta plans match &ldquo;{committedQuery}&rdquo;.
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="light"
+                        color="primary"
+                        onPress={clearSearch}
+                      >
+                        Clear search
+                      </Button>
+                    </div>
+                  ) : (
+                    "No beta plans"
+                  )
+                }
+                items={betaPlans}
               >
                 {(betaPlan: BetaPlan) => (
                   <TableRow key={betaPlan.beta_claim_id}>
-
                     <TableCell>
                       <span className="font-mono text-xs">
                         #{betaPlan.user_id}
@@ -217,14 +309,12 @@ export default function BetaPlansPage() {
                       </div>
                     </TableCell>
 
-                    {/* ✅ Email wrap fix */}
                     <TableCell className="break-all">
                       {betaPlan.email}
                     </TableCell>
 
                     <TableCell>
                       <div className="flex items-center gap-2">
-
                         <Tooltip content="Delete beta plan">
                           <Button
                             isIconOnly
@@ -232,9 +322,7 @@ export default function BetaPlansPage() {
                             size="sm"
                             variant="flat"
                             isDisabled={deletingId !== null}
-                            isLoading={
-                              deletingId === betaPlan.beta_claim_id
-                            }
+                            isLoading={deletingId === betaPlan.beta_claim_id}
                             onPress={() =>
                               handleOpenDeleteModal(
                                 betaPlan.beta_claim_id,
@@ -243,10 +331,7 @@ export default function BetaPlansPage() {
                             }
                           >
                             {deletingId !== betaPlan.beta_claim_id && (
-                              <Icon
-                                icon="mdi:delete-outline"
-                                width={16}
-                              />
+                              <Icon icon="mdi:delete-outline" width={16} />
                             )}
                           </Button>
                         </Tooltip>
@@ -258,11 +343,9 @@ export default function BetaPlansPage() {
             </Table>
           </div>
 
-          {/* ✅ Pagination Responsive */}
+          {/* Pagination — resets to page 1 on new search */}
           {!isLoading && pagination.total > 0 ? (
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-
-              {/* Limit */}
               <div className="flex justify-start">
                 <Select
                   disallowEmptySelection
@@ -285,7 +368,6 @@ export default function BetaPlansPage() {
                 </Select>
               </div>
 
-              {/* Pagination */}
               <div className="flex justify-start sm:justify-end w-full">
                 <Pagination
                   showControls
@@ -301,8 +383,6 @@ export default function BetaPlansPage() {
 
         </CardBody>
       </Card>
-
-     
 
       {/* Delete Confirmation Modal */}
       <Modal

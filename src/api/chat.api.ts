@@ -1,6 +1,6 @@
 import api from "@/lib/axios";
 
-// ─── Types
+// ─── Types ─────────────────────────────────
 
 export interface SupportUser {
   name: string;
@@ -63,18 +63,32 @@ export async function getSupportThreads(
   return response.data;
 }
 
-/** GET /admin/support-messages/threads/:threadId/messages */
+// GET /admin/support-messages/threads?search=query
+// If your backend supports server-side search, use this.
+// Falls back to client-side filtering if not available.
+export async function searchSupportThreads(
+  query: string,
+  page = 1,
+  perPage = 20,
+): Promise<PaginatedThreadsResponse> {
+  const response = await api.get<PaginatedThreadsResponse>(
+    "/admin/support-messages/threads",
+    { params: { page, per_page: perPage, search: query } },
+  );
+  return response.data;
+}
+
+// GET /admin/support-messages/threads/:threadId/messages
 export async function getThreadDetail(
   threadId: number,
 ): Promise<ThreadDetailResponse> {
   const response = await api.get<ThreadDetailResponse>(
     `/admin/support-messages/threads/${threadId}/messages`,
   );
-  console.log(response.data);
   return response.data;
 }
 
-/** POST /admin/support-messages/threads/:threadId/reply */
+// POST /admin/support-messages/threads/:threadId/reply
 export async function replyToThread(
   threadId: number,
   message: string,
@@ -86,7 +100,7 @@ export async function replyToThread(
   return response.data;
 }
 
-/** PATCH /admin/support-messages/threads/:threadId/status */
+// PATCH /admin/support-messages/threads/:threadId/status
 export async function closeThread(
   threadId: number,
 ): Promise<ApiResponse<{ threadId: number; status: number }>> {
@@ -95,6 +109,24 @@ export async function closeThread(
     { status: 0 }, // 0 for closed, 1 for open
   );
   return response.data;
+}
+
+// ─── Client-side search helper ────────────────────────────────────────────────
+// Use this to filter threads locally when backend search isn't available.
+export function filterThreadsLocally(
+  threads: SupportThread[],
+  query: string,
+): SupportThread[] {
+  const q = query.toLowerCase().trim();
+  if (!q) return threads;
+  return threads.filter(
+    (t) =>
+      t.threadId.toString().includes(q) ||
+      t.user.name.toLowerCase().includes(q) ||
+      t.user.email.toLowerCase().includes(q) ||
+      t.user.mobile.toLowerCase().includes(q) ||
+      t.lastMessage.toLowerCase().includes(q),
+  );
 }
 
 export function getSupportErrorMessage(error: unknown): string {
