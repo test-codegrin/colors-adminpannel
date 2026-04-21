@@ -139,8 +139,8 @@ export default function SubscriptionPlans() {
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [betaFilter, setBetaFilter] = useState<string>("all");
+  const [statusFilter] = useState<string>("all");
+  const [betaFilter] = useState<string>("all");
 
   useEffect(() => {
     const timer = setTimeout(() => {

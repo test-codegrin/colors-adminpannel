@@ -46,7 +46,7 @@ export interface GetSubscriptionPlanParams {
  * 🔥 MAIN FUNCTION WITH FULL FILTER SUPPORT
  */
 export async function getSubscriptionPlans(
-pageOrParams: number | GetSubscriptionPlanParams, limit?: number, p0?: string | undefined, p1?: number | null, p2?: number | null,
+pageOrParams: number | GetSubscriptionPlanParams, limit?: number, _p0?: string | undefined, _p1?: number | null, _p2?: number | null,
 ): Promise<SubscriptionPlansListResponse<SubscriptionPlan>> {
   const request: GetSubscriptionPlanParams =
     typeof pageOrParams === "number"
